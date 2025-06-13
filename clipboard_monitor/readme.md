@@ -186,5 +186,3 @@ By following these steps, your clipboard monitor should run reliably as a backgr
 *Remember to replace all placeholder paths and `com.omairaslam.clipboardmonitor` (if you chose a different label) with your actual values.*
 
 ```
-
-This `README.md` should provide a much better experience for anyone (including your future self!) looking to understand, set up, and run your clipboard monitor project, especially if it's hosted on GitHub.
