@@ -33,6 +33,8 @@
     <dict>
         <key>PYTHONUNBUFFERED</key>
         <string>1</string> <!-- Ensures Python output is written to logs immediately -->
+        <key>PATH</key>
+        <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
     </dict>
 
 </dict>

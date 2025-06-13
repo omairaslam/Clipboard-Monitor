@@ -1,6 +1,15 @@
 # Clipboard Monitor for macOS
 
-A Python script that monitors the macOS clipboard for changes and logs them. This script is designed to run as a background service using `launchd`.
+A Python script that monitors the macOS clipboard for changes and processes them through modular plugins. This script is designed to run as a background service using `launchd` and features enhanced monitoring capabilities using pyobjc.
+
+## Features
+
+- **Enhanced Monitoring**: Uses pyobjc for efficient clipboard monitoring (0.1-second intervals)
+- **Modular Processing**: Supports custom modules for processing different clipboard content types
+- **Automatic Fallback**: Falls back to polling mode if pyobjc is not available
+- **Rich Logging**: Beautiful console output with rich formatting
+- **Service Integration**: Runs as a macOS LaunchAgent for automatic startup
+- **Error Handling**: Robust error handling and automatic restart capabilities
 
 ## Prerequisites
 
@@ -19,24 +28,28 @@ A Python script that monitors the macOS clipboard for changes and logs them. Thi
 
 2.  **Install Dependencies**
     This script requires the following Python libraries:
-    *   `pyperclip`
-    *   `rich`
-    *   `pyobjc-framework-Cocoa`
+    *   `pyperclip` - Cross-platform clipboard access
+    *   `rich` - Rich console output and logging
+    *   `pyobjc-framework-Cocoa` - macOS integration for enhanced clipboard monitoring
 
-    It's highly recommended to use a virtual environment:
+    **Easy Installation (Recommended):**
+    Use the provided installation script:
+    ```bash
+    cd clipboard_monitor
+    ./install_dependencies.sh
+    ```
+
+    **Manual Installation:**
+    The project includes a `requirements.txt` file with all dependencies:
+    ```bash
+    python3 -m pip install --user -r requirements.txt
+    ```
+
+    **Virtual Environment (Alternative):**
+    If you prefer using a virtual environment:
     ```bash
     python3 -m venv venv
     source venv/bin/activate
-    pip install pyperclip rich pyobjc-framework-Cocoa
-    ```
-    Alternatively, you can create a `requirements.txt` file with the dependencies:
-    ```
-    pyperclip
-    rich
-    pyobjc-framework-Cocoa
-    ```
-    And then install them using:
-    ```bash
     pip install -r requirements.txt
     ```
 
@@ -167,6 +180,49 @@ Once the `.plist` file is configured and saved in `~/Library/LaunchAgents/`:
     # You might need to manually start it again if RunAtLoad was false or for immediate effect
     # launchctl start com.omairaslam.clipboardmonitor
     ```
+
+## Quick Commands Reference
+
+Here are the most commonly used commands for managing your clipboard monitor service:
+
+### **Check Service Status**
+```bash
+# Check if the service is running
+launchctl list | grep clipboardmonitor
+
+# View recent output logs
+tail -n 10 /Users/omair.aslam/Library/Logs/ClipboardMonitor.out.log
+
+# View recent error logs
+tail -n 10 /Users/omair.aslam/Library/Logs/ClipboardMonitor.err.log
+
+# Follow logs in real-time
+tail -f /Users/omair.aslam/Library/Logs/ClipboardMonitor.out.log
+```
+
+### **Restart Service**
+```bash
+# Stop the service
+launchctl unload ~/Library/LaunchAgents/com.omairaslam.clipboardmonitor.plist
+
+# Start the service
+launchctl load ~/Library/LaunchAgents/com.omairaslam.clipboardmonitor.plist
+```
+
+### **One-liner Restart**
+```bash
+# Restart in one command
+launchctl unload ~/Library/LaunchAgents/com.omairaslam.clipboardmonitor.plist && launchctl load ~/Library/LaunchAgents/com.omairaslam.clipboardmonitor.plist
+```
+
+### **Install Dependencies**
+```bash
+# Run the installation script (if available)
+./install_dependencies.sh
+
+# Or install manually
+python3 -m pip install --user -r requirements.txt
+```
 
 ## Troubleshooting Tips
 

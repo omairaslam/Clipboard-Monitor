@@ -45,15 +45,26 @@ def process(clipboard_content) -> bool:
                     # Track this content to prevent reprocessing
                     _content_tracker.add_content(clipboard_content)
 
-                    # Copy the RTF to clipboard
-                    pyperclip.copy(rtf_text)
-                    logger.info("[green]Converted to RTF and copied to clipboard![/green]")
-                    show_notification("Markdown Converted", "Rich text copied to clipboard!")
-
-                    # Note: We don't restore the original markdown to avoid race conditions
-                    # The user can paste the RTF where needed, and the original markdown
-                    # is preserved in their clipboard history
-                    return True  # Indicate that content was processed
+                    # Use pbcopy to set RTF content directly (macOS specific)
+                    logger.info("[bold blue]ATTEMPTING TO USE PBCOPY METHOD FOR RTF CLIPBOARD HANDLING[/bold blue]")
+                    try:
+                        subprocess.run(
+                            ['pbcopy', '-Prefer', 'rtf'],
+                            input=rtf_text.encode('utf-8'),
+                            check=True,
+                            timeout=5
+                        )
+                        logger.info("[green]SUCCESS: Used pbcopy for RTF clipboard handling[/green]")
+                        logger.info("[green]Converted to RTF and copied to clipboard![/green]")
+                        show_notification("Markdown Converted", "Rich text copied to clipboard!")
+                        return True  # Indicate that content was processed
+                    except subprocess.SubprocessError as e:
+                        logger.error(f"[bold red]Error using pbcopy for RTF:[/bold red] {e}")
+                        # Fall back to pyperclip if pbcopy fails
+                        logger.info("[yellow]FALLING BACK TO PYPERCLIP METHOD FOR RTF CLIPBOARD HANDLING[/yellow]")
+                        pyperclip.copy(rtf_text)
+                        logger.info("[yellow]Used pyperclip fallback for RTF copy[/yellow]")
+                        return True
 
                 except pyperclip.PyperclipException as e:
                     logger.error(f"[bold red]Error copying RTF to clipboard:[/bold red] {e}")
@@ -145,14 +156,14 @@ def convert_markdown_to_rtf(markdown_text: str) -> str:
         return None
 
     try:
-        process = subprocess.Popen(
+        # First convert markdown to HTML as an intermediate format
+        html_process = subprocess.Popen(
             [
                 'pandoc',
-                '-f', 'markdown+smart+auto_identifiers',  # Enhanced markdown input
-                '-t', 'rtf',                             # RTF output
-                '--wrap=none',                           # Don't wrap text
-                '--standalone',                          # Complete document
-                '--columns=10000'                        # Prevent unwanted line breaks
+                '-f', 'markdown+smart+auto_identifiers',
+                '-t', 'html',
+                '--wrap=none',
+                '--standalone'
             ],
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
@@ -161,34 +172,62 @@ def convert_markdown_to_rtf(markdown_text: str) -> str:
 
         # Set a timeout to prevent hanging
         try:
-            rtf_text, errors = process.communicate(
+            html_output, errors = html_process.communicate(
                 input=markdown_text.encode('utf-8'),
-                timeout=30  # 30 second timeout
+                timeout=15  # 15 second timeout
             )
         except subprocess.TimeoutExpired:
-            process.kill()
-            logger.error("[bold red]Pandoc conversion timed out[/bold red]")
+            html_process.kill()
+            logger.error("[bold red]HTML conversion timed out[/bold red]")
             return None
 
-        if process.returncode != 0:
+        if html_process.returncode != 0:
             error_msg = errors.decode('utf-8') if errors else "Unknown pandoc error"
-            logger.error(f"[bold red]Pandoc conversion failed:[/bold red] {error_msg}")
+            logger.error(f"[bold red]HTML conversion failed:[/bold red] {error_msg}")
             return None
 
-        if errors:
-            # Log warnings but don't fail
-            logger.warning(f"[bold yellow]Pandoc warnings:[/bold yellow] {errors.decode('utf-8')}")
+        # Then convert HTML to RTF using textutil (macOS only)
+        rtf_process = subprocess.Popen(
+            [
+                'textutil',
+                '-stdin',
+                '-stdout',
+                '-format', 'html',
+                '-convert', 'rtf'
+            ],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE
+        )
 
-        result = rtf_text.decode('utf-8')
+        try:
+            rtf_output, rtf_errors = rtf_process.communicate(
+                input=html_output,
+                timeout=15  # 15 second timeout
+            )
+        except subprocess.TimeoutExpired:
+            rtf_process.kill()
+            logger.error("[bold red]RTF conversion timed out[/bold red]")
+            return None
+
+        if rtf_process.returncode != 0:
+            error_msg = rtf_errors.decode('utf-8') if rtf_errors else "Unknown textutil error"
+            logger.error(f"[bold red]RTF conversion failed:[/bold red] {error_msg}")
+            return None
+
+        result = rtf_output.decode('utf-8')
         if not result.strip():
-            logger.error("[bold red]Pandoc produced empty RTF output[/bold red]")
+            logger.error("[bold red]Conversion produced empty RTF output[/bold red]")
             return None
 
         return result
 
-    except FileNotFoundError:
-        logger.error("[bold red]Pandoc is not installed. Please install pandoc to convert markdown to RTF.[/bold red]")
-        logger.info("Install using: brew install pandoc")
+    except FileNotFoundError as e:
+        if "textutil" in str(e):
+            logger.error("[bold red]textutil not found. This tool is only available on macOS.[/bold red]")
+        else:
+            logger.error("[bold red]Pandoc is not installed. Please install pandoc to convert markdown to RTF.[/bold red]")
+            logger.info("Install using: brew install pandoc")
         return None
     except UnicodeDecodeError as e:
         logger.error(f"[bold red]Unicode error during conversion:[/bold red] {e}")

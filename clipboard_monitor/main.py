@@ -26,18 +26,18 @@ logging.basicConfig(
 ) # Configure basic logging with RichHandler for pretty console output.
 logger = logging.getLogger("clipboard_monitor")
 
-# Attempt to import pyobjc for event-driven clipboard monitoring on macOS.
+# Attempt to import pyobjc for enhanced clipboard monitoring on macOS.
 try:
-    from AppKit import NSPasteboard, NSPasteboardDidChangeNotification, NSApplication, NSObject
-    from Foundation import NSNotificationCenter  # Removed unused NSRunLoop import
+    from AppKit import NSPasteboard, NSApplication, NSObject
+    from Foundation import NSNotificationCenter, NSTimer, NSRunLoop, NSDefaultRunLoopMode
     import objc # For @objc.selector decorator
-    MACOS_EVENT_DRIVEN = True
-    logger.debug("pyobjc loaded successfully. Event-driven monitoring enabled for macOS.")
+    MACOS_ENHANCED = True
+    logger.debug("pyobjc loaded successfully. Enhanced monitoring enabled for macOS.")
 except ImportError:
     # If pyobjc is not found, set a flag to fall back to polling.
     logger.warning("[bold yellow]pyobjc not found. Falling back to polling clipboard monitoring.[/bold yellow]")
-    logger.warning("[bold yellow]For event-driven monitoring on macOS, install it: pip install pyobjc-framework-Cocoa[/bold yellow]")
-    MACOS_EVENT_DRIVEN = False
+    logger.warning("[bold yellow]For enhanced monitoring on macOS, install it: pip install pyobjc-framework-Cocoa[/bold yellow]")
+    MACOS_ENHANCED = False
 
 
 
@@ -150,89 +150,105 @@ class ClipboardMonitor:
 
             return processed
 
-# Check if event-driven monitoring is enabled (pyobjc was successfully imported).
-if MACOS_EVENT_DRIVEN:
-    class ClipboardEventHandler(NSObject):
+# Check if enhanced monitoring is enabled (pyobjc was successfully imported).
+if MACOS_ENHANCED:
+    class ClipboardMonitorHandler(NSObject):
         """
-        An Objective-C compatible class that handles clipboard change notifications from macOS.
-        This class is instantiated and used only if MACOS_EVENT_DRIVEN is True.
+        An Objective-C compatible class that uses NSTimer to efficiently monitor clipboard changes.
+        This class is instantiated and used only if MACOS_ENHANCED is True.
         """
 
         def initWithMonitor_andInitialContent_(self, monitor_instance, initial_clipboard_content):
             """
             Custom initializer for the Objective-C object.
-            Stores the ClipboardMonitor instance and the initial clipboard content for comparison.
+            Stores the ClipboardMonitor instance and tracks clipboard changes.
             """
-            self = objc.super(ClipboardEventHandler, self).init()
+            self = objc.super(ClipboardMonitorHandler, self).init()
             if self is None:
                 return None
 
             self.monitor_instance = monitor_instance
-            # Store the initial content to avoid processing it again if the first event
-            # is for this same content, or if no change occurs before the first event.
-            # This also helps in cases where multiple notifications might fire for a single copy action.
+            self.pasteboard = NSPasteboard.generalPasteboard()
+            self.last_change_count = self.pasteboard.changeCount()
             self.last_processed_clipboard_content = initial_clipboard_content
             self.processing_in_progress = False  # Flag to prevent recursive processing
-            logger.debug(f"ClipboardEventHandler initialized. Initial content for comparison: '{str(initial_clipboard_content)[:70] if initial_clipboard_content else 'None'}...'")
+            self.timer = None
+            logger.debug(f"ClipboardMonitorHandler initialized. Initial changeCount: {self.last_change_count}")
             return self
 
-        @objc.selector # Decorator to make this method callable from Objective-C
-        def clipboardChanged_(self, notification):
+        @objc.selector
+        def checkClipboardChange_(self, timer):
             """
-            Callback method triggered by the macOS NotificationCenter when the
-            NSPasteboardDidChangeNotification is observed.
+            Timer callback method that checks for clipboard changes using changeCount.
+            This is more efficient than polling the actual clipboard content.
             """
             # Prevent recursive processing if a module modifies the clipboard
             if self.processing_in_progress:
-                logger.debug("Processing already in progress, skipping clipboard change event")
                 return
 
-            # The 'notification' argument contains information about the event.
-            logger.debug(f"clipboardChanged_ notification received: {notification}")
+            current_change_count = self.pasteboard.changeCount()
+            if current_change_count != self.last_change_count:
+                self.last_change_count = current_change_count
 
-            try:
-                current_clipboard_content = pyperclip.paste()
-            except pyperclip.PyperclipException as e:
-                logger.error(f"[bold red]Error reading clipboard via pyperclip in event handler:[/bold red] {e}")
-                return
-            except Exception as e: # Catch any other unexpected error during paste
-                logger.error(f"[bold red]Unexpected error reading clipboard in event handler:[/bold red] {e}")
-                return
+                try:
+                    current_clipboard_content = pyperclip.paste()
+                except pyperclip.PyperclipException as e:
+                    logger.error(f"[bold red]Error reading clipboard via pyperclip in timer handler:[/bold red] {e}")
+                    return
+                except Exception as e:
+                    logger.error(f"[bold red]Unexpected error reading clipboard in timer handler:[/bold red] {e}")
+                    return
 
-            # Avoid processing if content hasn't actually changed from the last *processed* event
-            # This can happen if notifications fire multiple times for a single copy action
-            # or if the content is None and was None before (e.g., image copy followed by another image copy).
-            if current_clipboard_content == self.last_processed_clipboard_content:
-                logger.debug("Clipboard content identical to last processed content by event handler. Skipping.")
-                return
+                # Avoid processing if content hasn't actually changed
+                if current_clipboard_content == self.last_processed_clipboard_content:
+                    logger.debug("Clipboard content identical to last processed content. Skipping.")
+                    return
 
-            # Set processing flag to prevent recursion
-            self.processing_in_progress = True
+                # Set processing flag to prevent recursion
+                self.processing_in_progress = True
 
-            try:
-                # Update the last processed content to the current content.
-                self.last_processed_clipboard_content = current_clipboard_content
+                try:
+                    # Update the last processed content to the current content.
+                    self.last_processed_clipboard_content = current_clipboard_content
 
-                logger.info("[bold blue]Clipboard changed (event detected)![/bold blue]")
-                show_notification(CONFIG['notification_title'], "Clipboard changed (event)!")
+                    logger.info("[bold blue]Clipboard changed (enhanced monitoring)![/bold blue]")
+                    show_notification(CONFIG['notification_title'], "Clipboard changed (enhanced)!")
 
-                # If the monitor instance is available, process the new clipboard content.
-                if self.monitor_instance:
-                    try:
-                        self.monitor_instance.process_clipboard(current_clipboard_content)
-                    except Exception as e:
-                        # Log any errors during the processing by the modules.
-                        logger.error(f"[bold red]Error during monitor.process_clipboard from event handler:[/bold red] {e}")
-                else:
-                    logger.error("[bold red]Monitor instance not available in ClipboardEventHandler[/bold red]")
-            finally:
-                # Always reset the processing flag
-                self.processing_in_progress = False
+                    # If the monitor instance is available, process the new clipboard content.
+                    if self.monitor_instance:
+                        try:
+                            self.monitor_instance.process_clipboard(current_clipboard_content)
+                        except Exception as e:
+                            # Log any errors during the processing by the modules.
+                            logger.error(f"[bold red]Error during monitor.process_clipboard from timer handler:[/bold red] {e}")
+                    else:
+                        logger.error("[bold red]Monitor instance not available in ClipboardMonitorHandler[/bold red]")
+                finally:
+                    # Always reset the processing flag
+                    self.processing_in_progress = False
+
+        def startMonitoring(self):
+            """Start the timer-based monitoring."""
+            if self.timer is None:
+                # Create a timer that fires every 0.1 seconds (much more responsive than 1 second polling)
+                self.timer = NSTimer.scheduledTimerWithTimeInterval_target_selector_userInfo_repeats_(
+                    0.1, self, objc.selector(self.checkClipboardChange_, signature=b'v@:@'), None, True
+                )
+                logger.debug("Enhanced clipboard monitoring timer started")
+
+        def stopMonitoring(self):
+            """Stop the timer-based monitoring."""
+            if self.timer:
+                self.timer.invalidate()
+                self.timer = None
+                logger.debug("Enhanced clipboard monitoring timer stopped")
 
         def cleanup(self):
             """Clean up resources when shutting down."""
+            self.stopMonitoring()
             self.monitor_instance = None
             self.last_processed_clipboard_content = None
+            self.pasteboard = None
 
 def main():
     monitor = ClipboardMonitor()
@@ -242,56 +258,50 @@ def main():
     if not monitor.modules:
         logger.warning("[bold yellow]No modules loaded. Monitor will run but won't process clipboard content.[/bold yellow]")
 
-    # --- Event-Driven Monitoring Path (macOS with pyobjc) ---
-    if MACOS_EVENT_DRIVEN:
-        logger.info("[bold green]Using event-driven clipboard monitoring (macOS).[/bold green]")
+    # --- Enhanced Monitoring Path (macOS with pyobjc) ---
+    if MACOS_ENHANCED:
+        logger.info("[bold green]Using enhanced clipboard monitoring (macOS).[/bold green]")
 
         initial_clipboard_content = None
         try:
             # Get the initial clipboard content when the script starts.
             initial_clipboard_content = pyperclip.paste()
             if initial_clipboard_content: # Only process if there's something initially
-                logger.info("Processing initial clipboard content (event-driven mode)...")
+                logger.info("Processing initial clipboard content (enhanced mode)...")
                 # Process this initial content once.
                 monitor.process_clipboard(initial_clipboard_content)
         except pyperclip.PyperclipException as e:
-            logger.error(f"[bold red]Error reading initial clipboard content (event-driven):[/bold red] {e}")
+            logger.error(f"[bold red]Error reading initial clipboard content (enhanced):[/bold red] {e}")
         except Exception as e:
-            logger.error(f"[bold red]Error processing initial clipboard content (event-driven):[/bold red] {e}")
+            logger.error(f"[bold red]Error processing initial clipboard content (enhanced):[/bold red] {e}")
 
         try:
             app = NSApplication.sharedApplication() # Get a shared NSApplication instance
-            # Create an instance of our event handler, passing the monitor and initial content.
-            handler_instance = ClipboardEventHandler.alloc().initWithMonitor_andInitialContent_(monitor, initial_clipboard_content)
+            # Create an instance of our monitor handler, passing the monitor and initial content.
+            handler_instance = ClipboardMonitorHandler.alloc().initWithMonitor_andInitialContent_(monitor, initial_clipboard_content)
 
-            # Register the handler instance to observe clipboard changes.
-            NSNotificationCenter.defaultCenter().addObserver_selector_name_object_(
-                handler_instance, # The observer object.
-                objc.selector(handler_instance.clipboardChanged_, signature=b'v@:@'), # The selector (method) to call. 'v@:@' is the type signature.
-                NSPasteboardDidChangeNotification, # The name of the notification to observe.
-                NSPasteboard.generalPasteboard()   # The object whose notifications to observe (the general system pasteboard).
-            )
+            # Start the timer-based monitoring
+            handler_instance.startMonitoring()
 
-            logger.info("[bold yellow]Event-driven clipboard monitor started. Press Ctrl+C to exit.[/bold yellow]")
+            logger.info("[bold yellow]Enhanced clipboard monitor started. Press Ctrl+C to exit.[/bold yellow]")
 
             try:
                 app.run() # Start the Cocoa event loop. This call will block and keep the script running,
-                          # responding to system events like clipboard changes.
+                          # with the timer checking for clipboard changes.
             except KeyboardInterrupt:
-                logger.info("[bold yellow]Keyboard interrupt received in event-driven mode.[/bold yellow]")
+                logger.info("[bold yellow]Keyboard interrupt received in enhanced mode.[/bold yellow]")
             finally:
                 # Clean up the handler
                 if handler_instance:
-                    NSNotificationCenter.defaultCenter().removeObserver_(handler_instance)
                     handler_instance.cleanup()
 
         except Exception as e:
-            logger.error(f"[bold red]Error setting up event-driven monitoring:[/bold red] {e}")
+            logger.error(f"[bold red]Error setting up enhanced monitoring:[/bold red] {e}")
             logger.info("[bold yellow]Falling back to polling mode...[/bold yellow]")
             # Fall through to polling mode
         else:
             # This line is unlikely to be reached if Ctrl+C terminates the app directly.
-            logger.info("[bold yellow]Event-driven clipboard monitor shut down.[/bold yellow]")
+            logger.info("[bold yellow]Enhanced clipboard monitor shut down.[/bold yellow]")
             return
 
     # --- Polling Monitoring Path (Fallback if pyobjc is not available or not on macOS) ---
