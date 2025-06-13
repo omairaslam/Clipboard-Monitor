@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.omairaslam.clipboardmonitor</string> <!-- A unique identifier for your agent -->
+
+    <key>ProgramArguments</key>
+    <array>
+        <!-- IMPORTANT: Replace this with the full path to YOUR Python 3 interpreter -->
+        <string>/usr/bin/python3</string> 
+        <string>/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/clipboard_monitor/main.py</string> <!-- Full path to your main.py script -->
+    </array>
+
+    <key>RunAtLoad</key>
+    <true/> <!-- Start the agent automatically when it's loaded (e.g., at user login) -->
+
+    <key>KeepAlive</key>
+    <true/> <!-- If the script crashes or exits, launchd will try to restart it -->
+
+    <key>StandardOutPath</key>
+    <string>/Users/omair.aslam/Library/Logs/ClipboardMonitor.out.log</string> <!-- Log file for standard output -->
+
+    <key>StandardErrorPath</key>
+    <string>/Users/omair.aslam/Library/Logs/ClipboardMonitor.err.log</string> <!-- Log file for standard error -->
+
+    <key>WorkingDirectory</key>
+    <!-- Sets the working directory to where your main.py script is located.
+         This helps with relative paths, like loading modules from the 'modules' subdirectory. -->
+    <string>/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/clipboard_monitor/</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PYTHONUNBUFFERED</key>
+        <string>1</string> <!-- Ensures Python output is written to logs immediately -->
+    </dict>
+
+</dict>
+</plist>

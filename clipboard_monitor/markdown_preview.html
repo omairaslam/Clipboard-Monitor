@@ -1,0 +1,80 @@
+<h1>Clipboard Monitor Documentation</h1>
+<h2>Overview</h2>
+<p>The <strong>Clipboard Monitor</strong> is a powerful tool that
+automatically detects and processes clipboard content. It supports
+multiple formats including <em>Markdown</em> and Mermaid diagrams.</p>
+<h2>Features</h2>
+<h3>Core Functionality</h3>
+<p>• <strong>Real-time monitoring</strong> of clipboard changes</p>
+<p>• <strong>Automatic detection</strong> of content types</p>
+<p>• <strong>Seamless conversion</strong> between formats</p>
+<h3>Supported Formats</h3>
+<p>1. <strong>Markdown</strong> - Converts to rich text format (RTF)</p>
+<p>2. <strong>Mermaid</strong> - Opens diagrams in browser</p>
+<p>3. <strong>Plain text</strong> - Passes through unchanged</p>
+<h2>Installation</h2>
+<h3>Prerequisites</h3>
+<p>Before installing, ensure you have: - Python 3.7 or higher - Required
+dependencies (see <code>requirements.txt</code>)</p>
+<h3>Quick Start</h3>
+<pre><code># Clone the repository
+git clone https://github.com/user/clipboard-monitor.git
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Run the monitor
+python main.py</code></pre>
+<h2>Configuration</h2>
+<p>The application can be configured through the <code>CONFIG</code>
+dictionary:</p>
+<pre><code>CONFIG = {
+    &#39;notification_title&#39;: &#39;Clipboard Monitor&#39;,
+    &#39;polling_interval&#39;: 1.0,
+    &#39;module_validation_timeout&#39;: 5.0
+}</code></pre>
+<h2>Usage Examples</h2>
+<h3>Markdown Processing</h3>
+<p>When you copy markdown content, it’ automatically converted to
+RTF:</p>
+<p><strong>Note</strong>: The conversion preserves formatting including
+<em>italics</em>, <strong>bold</strong>, and
+<code>code blocks</code>.</p>
+<h3>Code Blocks</h3>
+<p>Here’ a Python example:</p>
+<pre><code>def process_clipboard(content):
+    &quot;&quot;&quot;Process clipboard content&quot;&quot;&quot;
+    if is_markdown(content):
+        return convert_to_rtf(content)
+    return content</code></pre>
+<h2>Troubleshooting</h2>
+<h3>Common Issues</h3>
+<p>• <strong>Module not loading</strong>: Check file permissions</p>
+<p>• <strong>Conversion failed</strong>: Ensure pandoc is installed</p>
+<p>• <strong>No notifications</strong>: Verify macOS notification
+settings</p>
+<h3>Error Messages</h3>
+<table>
+<tbody>
+<tr>
+<td><p>Error</p></td>
+<td><p>Solution</p></td>
+</tr>
+<tr>
+<td><p><code>pyobjc not found</code></p></td>
+<td><p>Install with
+<code>pip install pyobjc-framework-Cocoa</code></p></td>
+</tr>
+<tr>
+<td><p><code>pandoc not found</code></p></td>
+<td><p>Install with <code>brew install pandoc</code></p></td>
+</tr>
+</tbody>
+</table>
+<h2>Contributing</h2>
+<p>We welcome contributions! Please: 1. Fork the repository 2. Create a
+feature branch 3. Submit a pull request</p>
+<p>—————</p>
+<p><em>For more information, visit our <u><a
+href="https://github.com/user/clipboard-monitor">GitHub
+repository</a></u>.</em></p>
