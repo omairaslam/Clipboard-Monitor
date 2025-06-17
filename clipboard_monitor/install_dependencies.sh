@@ -1,40 +1,25 @@
 #!/bin/bash
 
-# Clipboard Monitor - Dependency Installation Script
-# This script installs the required Python dependencies for the clipboard monitor
+# ANSI color codes
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+RED='\033[0;31m'
+NC='\033[0m' # No Color
 
-echo "🔧 Installing Clipboard Monitor dependencies..."
+echo -e "${GREEN}Installing dependencies for Clipboard Monitor...${NC}"
 
-# Check if Python 3 is available
-if ! command -v python3 &> /dev/null; then
-    echo "❌ Python 3 is not installed. Please install Python 3 first."
-    exit 1
-fi
+# Install required packages
+echo -e "${YELLOW}Installing Python packages...${NC}"
+python3 -m pip install --user pyperclip rich pyobjc-framework-Cocoa rumps
 
-echo "✅ Python 3 found: $(python3 --version)"
+# Test imports
+echo -e "${YELLOW}Testing imports...${NC}"
+python3 -c "import pyperclip; print('✅ pyperclip')" || echo -e "${RED}❌ pyperclip import failed${NC}"
+python3 -c "import rich; print('✅ rich')" || echo -e "${RED}❌ rich import failed${NC}"
+python3 -c "import AppKit; print('✅ pyobjc-framework-Cocoa')" || echo -e "${RED}❌ pyobjc-framework-Cocoa import failed${NC}"
+python3 -c "import rumps; print('✅ rumps')" || echo -e "${RED}❌ rumps import failed${NC}"
 
-# Install dependencies
-echo "📦 Installing Python dependencies..."
-python3 -m pip install --user -r requirements.txt
-
-if [ $? -eq 0 ]; then
-    echo "✅ Dependencies installed successfully!"
-    echo ""
-    echo "🧪 Testing pyobjc import..."
-    python3 -c "
-try:
-    from AppKit import NSPasteboard, NSApplication, NSObject
-    from Foundation import NSNotificationCenter, NSTimer, NSRunLoop, NSDefaultRunLoopMode
-    import objc
-    print('✅ pyobjc imports successful - enhanced monitoring available!')
-except ImportError as e:
-    print(f'❌ pyobjc import failed: {e}')
-    print('💡 Try: python3 -m pip install --user pyobjc-framework-Cocoa')
-"
-    echo ""
-    echo "🚀 You can now run the clipboard monitor with:"
-    echo "   python3 main.py"
-else
-    echo "❌ Failed to install dependencies. Please check the error messages above."
-    exit 1
-fi
+echo -e "${GREEN}Installation complete!${NC}"
+echo -e "${YELLOW}To install the menu bar app, run:${NC}"
+echo -e "cp com.omairaslam.clipboardmonitor.menubar.plist ~/Library/LaunchAgents/"
+echo -e "launchctl load ~/Library/LaunchAgents/com.omairaslam.clipboardmonitor.menubar.plist"

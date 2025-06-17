@@ -120,11 +120,47 @@ def process(clipboard_content):
                 "Mermaid Detected",
                 "Processing Mermaid diagram..."
             )
-            return launch_mermaid_chart(clipboard_content)
+            
+            # Escape parentheses in node text to prevent Mermaid parsing errors
+            sanitized_content = sanitize_mermaid_content(clipboard_content)
+            
+            return launch_mermaid_chart(sanitized_content)
     except Exception as e:
         logger.error(f"[bold red]Error processing clipboard:[/bold red] {str(e)}")
         
     return False
+
+def sanitize_mermaid_content(mermaid_code):
+    """Sanitize Mermaid content to escape problematic characters"""
+    try:
+        # Pattern to find node text (content inside square brackets or quotes)
+        node_text_pattern = r'(\[[^\]]*\]|"[^"]*")'
+        
+        def escape_node_text(match):
+            text = match.group(0)
+            # If it's a bracketed text [like this]
+            if text.startswith('[') and text.endswith(']'):
+                # Escape parentheses inside the brackets
+                inner_text = text[1:-1]
+                escaped_text = inner_text.replace('(', '\\(').replace(')', '\\)')
+                return f"[{escaped_text}]"
+            # If it's quoted text "like this"
+            elif text.startswith('"') and text.endswith('"'):
+                # Escape parentheses inside the quotes
+                inner_text = text[1:-1]
+                escaped_text = inner_text.replace('(', '\\(').replace(')', '\\)')
+                return f'"{escaped_text}"'
+            return text
+        
+        # Replace node text with escaped version
+        sanitized_code = re.sub(node_text_pattern, escape_node_text, mermaid_code)
+        
+        logger.debug(f"Sanitized Mermaid content: {sanitized_code}")
+        return sanitized_code
+    except Exception as e:
+        logger.error(f"[bold red]Error sanitizing Mermaid content:[/bold red] {str(e)}")
+        # Return original content if sanitization fails
+        return mermaid_code
 
 # For testing
 if __name__ == '__main__':

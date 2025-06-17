@@ -1,0 +1,329 @@
+Traceback (most recent call last):
+  File "/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/clipboard_monitor/menu_bar_app.py", line 140, in <module>
+    ClipboardMonitorMenuBar().run()
+  File "/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/clipboard_monitor/menu_bar_app.py", line 24, in __init__
+    self.menu = [
+  File "/Users/omair.aslam/Library/Python/3.9/lib/python/site-packages/rumps/rumps.py", line 1119, in menu
+    self._menu.update(iterable)
+  File "/Users/omair.aslam/Library/Python/3.9/lib/python/site-packages/rumps/rumps.py", line 333, in update
+    parse_menu(iterable, self, 0)
+  File "/Users/omair.aslam/Library/Python/3.9/lib/python/site-packages/rumps/rumps.py", line 328, in parse_menu
+    parse_menu(submenu, menuitem, depth+1)
+  File "/Users/omair.aslam/Library/Python/3.9/lib/python/site-packages/rumps/rumps.py", line 328, in parse_menu
+    parse_menu(submenu, menuitem, depth+1)
+  File "/Users/omair.aslam/Library/Python/3.9/lib/python/site-packages/rumps/rumps.py", line 312, in parse_menu
+    for n, ele in enumerate(iteritems(iterable) if isinstance(iterable, collections_abc.Mapping) else iterable):
+TypeError: 'method' object is not iterable
+Traceback (most recent call last):
+  File "/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/clipboard_monitor/menu_bar_app.py", line 140, in <module>
+    ClipboardMonitorMenuBar().run()
+  File "/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/clipboard_monitor/menu_bar_app.py", line 24, in __init__
+    self.menu = [
+  File "/Users/omair.aslam/Library/Python/3.9/lib/python/site-packages/rumps/rumps.py", line 1119, in menu
+    self._menu.update(iterable)
+  File "/Users/omair.aslam/Library/Python/3.9/lib/python/site-packages/rumps/rumps.py", line 333, in update
+    parse_menu(iterable, self, 0)
+  File "/Users/omair.aslam/Library/Python/3.9/lib/python/site-packages/rumps/rumps.py", line 328, in parse_menu
+    parse_menu(submenu, menuitem, depth+1)
+  File "/Users/omair.aslam/Library/Python/3.9/lib/python/site-packages/rumps/rumps.py", line 328, in parse_menu
+    parse_menu(submenu, menuitem, depth+1)
+  File "/Users/omair.aslam/Library/Python/3.9/lib/python/site-packages/rumps/rumps.py", line 312, in parse_menu
+    for n, ele in enumerate(iteritems(iterable) if isinstance(iterable, collections_abc.Mapping) else iterable):
+TypeError: 'method' object is not iterable
+Traceback (most recent call last):
+  File "/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/clipboard_monitor/menu_bar_app.py", line 140, in <module>
+    ClipboardMonitorMenuBar().run()
+  File "/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/clipboard_monitor/menu_bar_app.py", line 24, in __init__
+    self.menu = [
+  File "/Users/omair.aslam/Library/Python/3.9/lib/python/site-packages/rumps/rumps.py", line 1119, in menu
+    self._menu.update(iterable)
+  File "/Users/omair.aslam/Library/Python/3.9/lib/python/site-packages/rumps/rumps.py", line 333, in update
+    parse_menu(iterable, self, 0)
+  File "/Users/omair.aslam/Library/Python/3.9/lib/python/site-packages/rumps/rumps.py", line 328, in parse_menu
+    parse_menu(submenu, menuitem, depth+1)
+  File "/Users/omair.aslam/Library/Python/3.9/lib/python/site-packages/rumps/rumps.py", line 328, in parse_menu
+    parse_menu(submenu, menuitem, depth+1)
+  File "/Users/omair.aslam/Library/Python/3.9/lib/python/site-packages/rumps/rumps.py", line 312, in parse_menu
+    for n, ele in enumerate(iteritems(iterable) if isinstance(iterable, collections_abc.Mapping) else iterable):
+TypeError: 'method' object is not iterable
+Traceback (most recent call last):
+  File "/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/clipboard_monitor/menu_bar_app.py", line 140, in <module>
+    ClipboardMonitorMenuBar().run()
+  File "/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/clipboard_monitor/menu_bar_app.py", line 24, in __init__
+    self.menu = [
+  File "/Users/omair.aslam/Library/Python/3.9/lib/python/site-packages/rumps/rumps.py", line 1119, in menu
+    self._menu.update(iterable)
+  File "/Users/omair.aslam/Library/Python/3.9/lib/python/site-packages/rumps/rumps.py", line 333, in update
+    parse_menu(iterable, self, 0)
+  File "/Users/omair.aslam/Library/Python/3.9/lib/python/site-packages/rumps/rumps.py", line 328, in parse_menu
+    parse_menu(submenu, menuitem, depth+1)
+  File "/Users/omair.aslam/Library/Python/3.9/lib/python/site-packages/rumps/rumps.py", line 328, in parse_menu
+    parse_menu(submenu, menuitem, depth+1)
+  File "/Users/omair.aslam/Library/Python/3.9/lib/python/site-packages/rumps/rumps.py", line 312, in parse_menu
+    for n, ele in enumerate(iteritems(iterable) if isinstance(iterable, collections_abc.Mapping) else iterable):
+TypeError: 'method' object is not iterable
+Traceback (most recent call last):
+  File "/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/clipboard_monitor/menu_bar_app.py", line 140, in <module>
+    ClipboardMonitorMenuBar().run()
+  File "/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/clipboard_monitor/menu_bar_app.py", line 24, in __init__
+    self.menu = [
+  File "/Users/omair.aslam/Library/Python/3.9/lib/python/site-packages/rumps/rumps.py", line 1119, in menu
+    self._menu.update(iterable)
+  File "/Users/omair.aslam/Library/Python/3.9/lib/python/site-packages/rumps/rumps.py", line 333, in update
+    parse_menu(iterable, self, 0)
+  File "/Users/omair.aslam/Library/Python/3.9/lib/python/site-packages/rumps/rumps.py", line 328, in parse_menu
+    parse_menu(submenu, menuitem, depth+1)
+  File "/Users/omair.aslam/Library/Python/3.9/lib/python/site-packages/rumps/rumps.py", line 328, in parse_menu
+    parse_menu(submenu, menuitem, depth+1)
+  File "/Users/omair.aslam/Library/Python/3.9/lib/python/site-packages/rumps/rumps.py", line 312, in parse_menu
+    for n, ele in enumerate(iteritems(iterable) if isinstance(iterable, collections_abc.Mapping) else iterable):
+TypeError: 'method' object is not iterable
+Traceback (most recent call last):
+  File "/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/clipboard_monitor/menu_bar_app.py", line 140, in <module>
+    ClipboardMonitorMenuBar().run()
+  File "/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/clipboard_monitor/menu_bar_app.py", line 24, in __init__
+    self.menu = [
+  File "/Users/omair.aslam/Library/Python/3.9/lib/python/site-packages/rumps/rumps.py", line 1119, in menu
+    self._menu.update(iterable)
+  File "/Users/omair.aslam/Library/Python/3.9/lib/python/site-packages/rumps/rumps.py", line 333, in update
+    parse_menu(iterable, self, 0)
+  File "/Users/omair.aslam/Library/Python/3.9/lib/python/site-packages/rumps/rumps.py", line 328, in parse_menu
+    parse_menu(submenu, menuitem, depth+1)
+  File "/Users/omair.aslam/Library/Python/3.9/lib/python/site-packages/rumps/rumps.py", line 328, in parse_menu
+    parse_menu(submenu, menuitem, depth+1)
+  File "/Users/omair.aslam/Library/Python/3.9/lib/python/site-packages/rumps/rumps.py", line 312, in parse_menu
+    for n, ele in enumerate(iteritems(iterable) if isinstance(iterable, collections_abc.Mapping) else iterable):
+TypeError: 'method' object is not iterable
+Traceback (most recent call last):
+  File "/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/clipboard_monitor/menu_bar_app.py", line 140, in <module>
+    ClipboardMonitorMenuBar().run()
+  File "/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/clipboard_monitor/menu_bar_app.py", line 24, in __init__
+    self.menu = [
+  File "/Users/omair.aslam/Library/Python/3.9/lib/python/site-packages/rumps/rumps.py", line 1119, in menu
+    self._menu.update(iterable)
+  File "/Users/omair.aslam/Library/Python/3.9/lib/python/site-packages/rumps/rumps.py", line 333, in update
+    parse_menu(iterable, self, 0)
+  File "/Users/omair.aslam/Library/Python/3.9/lib/python/site-packages/rumps/rumps.py", line 328, in parse_menu
+    parse_menu(submenu, menuitem, depth+1)
+  File "/Users/omair.aslam/Library/Python/3.9/lib/python/site-packages/rumps/rumps.py", line 328, in parse_menu
+    parse_menu(submenu, menuitem, depth+1)
+  File "/Users/omair.aslam/Library/Python/3.9/lib/python/site-packages/rumps/rumps.py", line 312, in parse_menu
+    for n, ele in enumerate(iteritems(iterable) if isinstance(iterable, collections_abc.Mapping) else iterable):
+TypeError: 'method' object is not iterable
+Traceback (most recent call last):
+  File "/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/clipboard_monitor/menu_bar_app.py", line 140, in <module>
+    ClipboardMonitorMenuBar().run()
+  File "/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/clipboard_monitor/menu_bar_app.py", line 24, in __init__
+    self.menu = [
+  File "/Users/omair.aslam/Library/Python/3.9/lib/python/site-packages/rumps/rumps.py", line 1119, in menu
+    self._menu.update(iterable)
+  File "/Users/omair.aslam/Library/Python/3.9/lib/python/site-packages/rumps/rumps.py", line 333, in update
+    parse_menu(iterable, self, 0)
+  File "/Users/omair.aslam/Library/Python/3.9/lib/python/site-packages/rumps/rumps.py", line 328, in parse_menu
+    parse_menu(submenu, menuitem, depth+1)
+  File "/Users/omair.aslam/Library/Python/3.9/lib/python/site-packages/rumps/rumps.py", line 328, in parse_menu
+    parse_menu(submenu, menuitem, depth+1)
+  File "/Users/omair.aslam/Library/Python/3.9/lib/python/site-packages/rumps/rumps.py", line 312, in parse_menu
+    for n, ele in enumerate(iteritems(iterable) if isinstance(iterable, collections_abc.Mapping) else iterable):
+TypeError: 'method' object is not iterable
+Traceback (most recent call last):
+  File "/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/clipboard_monitor/menu_bar_app.py", line 140, in <module>
+    ClipboardMonitorMenuBar().run()
+  File "/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/clipboard_monitor/menu_bar_app.py", line 24, in __init__
+    self.menu = [
+  File "/Users/omair.aslam/Library/Python/3.9/lib/python/site-packages/rumps/rumps.py", line 1119, in menu
+    self._menu.update(iterable)
+  File "/Users/omair.aslam/Library/Python/3.9/lib/python/site-packages/rumps/rumps.py", line 333, in update
+    parse_menu(iterable, self, 0)
+  File "/Users/omair.aslam/Library/Python/3.9/lib/python/site-packages/rumps/rumps.py", line 328, in parse_menu
+    parse_menu(submenu, menuitem, depth+1)
+  File "/Users/omair.aslam/Library/Python/3.9/lib/python/site-packages/rumps/rumps.py", line 328, in parse_menu
+    parse_menu(submenu, menuitem, depth+1)
+  File "/Users/omair.aslam/Library/Python/3.9/lib/python/site-packages/rumps/rumps.py", line 312, in parse_menu
+    for n, ele in enumerate(iteritems(iterable) if isinstance(iterable, collections_abc.Mapping) else iterable):
+TypeError: 'method' object is not iterable
+Exception in thread Thread-1:
+Traceback (most recent call last):
+  File "/Users/omair.aslam/Library/Python/3.9/lib/python/site-packages/rumps/rumps.py", line 114, in _nsimage_from_file
+    with open(filename):
+FileNotFoundError: [Errno 2] No such file or directory: '🟡'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/clipboard_monitor/menu_bar_app.py", line 99, in update_status
+    self.icon = "🟡"
+  File "/Users/omair.aslam/Library/Python/3.9/lib/python/site-packages/rumps/rumps.py", line 1089, in icon
+    new_icon = _nsimage_from_file(icon_path, template=self._template) if icon_path is not None else None
+  File "/Users/omair.aslam/Library/Python/3.9/lib/python/site-packages/rumps/rumps.py", line 124, in _nsimage_from_file
+    with open(filename):  # file doesn't exist
+FileNotFoundError: [Errno 2] No such file or directory: '/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/clipboard_monitor/🟡'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/omair.aslam/Library/Python/3.9/lib/python/site-packages/rumps/rumps.py", line 114, in _nsimage_from_file
+    with open(filename):
+FileNotFoundError: [Errno 2] No such file or directory: '🟢'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/clipboard_monitor/menu_bar_app.py", line 102, in update_status
+    self.icon = "🟢"
+  File "/Users/omair.aslam/Library/Python/3.9/lib/python/site-packages/rumps/rumps.py", line 1089, in icon
+    new_icon = _nsimage_from_file(icon_path, template=self._template) if icon_path is not None else None
+  File "/Users/omair.aslam/Library/Python/3.9/lib/python/site-packages/rumps/rumps.py", line 124, in _nsimage_from_file
+    with open(filename):  # file doesn't exist
+FileNotFoundError: [Errno 2] No such file or directory: '/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/clipboard_monitor/🟢'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/omair.aslam/Library/Python/3.9/lib/python/site-packages/rumps/rumps.py", line 114, in _nsimage_from_file
+    with open(filename):
+FileNotFoundError: [Errno 2] No such file or directory: '⚠️'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/threading.py", line 973, in _bootstrap_inner
+    self.run()
+  File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/threading.py", line 910, in run
+    self._target(*self._args, **self._kwargs)
+  File "/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/clipboard_monitor/menu_bar_app.py", line 77, in update_status_periodically
+    self.update_status()
+  File "/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/clipboard_monitor/menu_bar_app.py", line 108, in update_status
+    self.icon = "⚠️"
+  File "/Users/omair.aslam/Library/Python/3.9/lib/python/site-packages/rumps/rumps.py", line 1089, in icon
+    new_icon = _nsimage_from_file(icon_path, template=self._template) if icon_path is not None else None
+  File "/Users/omair.aslam/Library/Python/3.9/lib/python/site-packages/rumps/rumps.py", line 124, in _nsimage_from_file
+    with open(filename):  # file doesn't exist
+FileNotFoundError: [Errno 2] No such file or directory: '/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/clipboard_monitor/⚠️'
+Exception in thread Thread-1:
+Traceback (most recent call last):
+  File "/Users/omair.aslam/Library/Python/3.9/lib/python/site-packages/rumps/rumps.py", line 114, in _nsimage_from_file
+    with open(filename):
+FileNotFoundError: [Errno 2] No such file or directory: '🟡'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/clipboard_monitor/menu_bar_app.py", line 99, in update_status
+    self.icon = "🟡"
+  File "/Users/omair.aslam/Library/Python/3.9/lib/python/site-packages/rumps/rumps.py", line 1089, in icon
+    new_icon = _nsimage_from_file(icon_path, template=self._template) if icon_path is not None else None
+  File "/Users/omair.aslam/Library/Python/3.9/lib/python/site-packages/rumps/rumps.py", line 124, in _nsimage_from_file
+    with open(filename):  # file doesn't exist
+FileNotFoundError: [Errno 2] No such file or directory: '/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/clipboard_monitor/🟡'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/omair.aslam/Library/Python/3.9/lib/python/site-packages/rumps/rumps.py", line 114, in _nsimage_from_file
+    with open(filename):
+FileNotFoundError: [Errno 2] No such file or directory: '🟢'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/clipboard_monitor/menu_bar_app.py", line 102, in update_status
+    self.icon = "🟢"
+  File "/Users/omair.aslam/Library/Python/3.9/lib/python/site-packages/rumps/rumps.py", line 1089, in icon
+    new_icon = _nsimage_from_file(icon_path, template=self._template) if icon_path is not None else None
+  File "/Users/omair.aslam/Library/Python/3.9/lib/python/site-packages/rumps/rumps.py", line 124, in _nsimage_from_file
+    with open(filename):  # file doesn't exist
+FileNotFoundError: [Errno 2] No such file or directory: '/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/clipboard_monitor/🟢'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/omair.aslam/Library/Python/3.9/lib/python/site-packages/rumps/rumps.py", line 114, in _nsimage_from_file
+    with open(filename):
+FileNotFoundError: [Errno 2] No such file or directory: '⚠️'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/threading.py", line 973, in _bootstrap_inner
+    self.run()
+  File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/threading.py", line 910, in run
+    self._target(*self._args, **self._kwargs)
+  File "/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/clipboard_monitor/menu_bar_app.py", line 77, in update_status_periodically
+    self.update_status()
+  File "/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/clipboard_monitor/menu_bar_app.py", line 108, in update_status
+    self.icon = "⚠️"
+  File "/Users/omair.aslam/Library/Python/3.9/lib/python/site-packages/rumps/rumps.py", line 1089, in icon
+    new_icon = _nsimage_from_file(icon_path, template=self._template) if icon_path is not None else None
+  File "/Users/omair.aslam/Library/Python/3.9/lib/python/site-packages/rumps/rumps.py", line 124, in _nsimage_from_file
+    with open(filename):  # file doesn't exist
+FileNotFoundError: [Errno 2] No such file or directory: '/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/clipboard_monitor/⚠️'
+Unload failed: 5: Input/output error
+Try running `launchctl bootout` as root for richer errors.
+Load failed: 5: Input/output error
+Try running `launchctl bootstrap` as root for richer errors.
+Exception in thread Thread-1:
+Traceback (most recent call last):
+  File "/Users/omair.aslam/Library/Python/3.9/lib/python/site-packages/rumps/rumps.py", line 114, in _nsimage_from_file
+    with open(filename):
+FileNotFoundError: [Errno 2] No such file or directory: '🟢'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/clipboard_monitor/menu_bar_app.py", line 96, in update_status
+    self.icon = "🟢"
+  File "/Users/omair.aslam/Library/Python/3.9/lib/python/site-packages/rumps/rumps.py", line 1089, in icon
+    new_icon = _nsimage_from_file(icon_path, template=self._template) if icon_path is not None else None
+  File "/Users/omair.aslam/Library/Python/3.9/lib/python/site-packages/rumps/rumps.py", line 124, in _nsimage_from_file
+    with open(filename):  # file doesn't exist
+FileNotFoundError: [Errno 2] No such file or directory: '/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/clipboard_monitor/🟢'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/omair.aslam/Library/Python/3.9/lib/python/site-packages/rumps/rumps.py", line 114, in _nsimage_from_file
+    with open(filename):
+FileNotFoundError: [Errno 2] No such file or directory: '🟢'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/clipboard_monitor/menu_bar_app.py", line 102, in update_status
+    self.icon = "🟢"
+  File "/Users/omair.aslam/Library/Python/3.9/lib/python/site-packages/rumps/rumps.py", line 1089, in icon
+    new_icon = _nsimage_from_file(icon_path, template=self._template) if icon_path is not None else None
+  File "/Users/omair.aslam/Library/Python/3.9/lib/python/site-packages/rumps/rumps.py", line 124, in _nsimage_from_file
+    with open(filename):  # file doesn't exist
+FileNotFoundError: [Errno 2] No such file or directory: '/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/clipboard_monitor/🟢'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/omair.aslam/Library/Python/3.9/lib/python/site-packages/rumps/rumps.py", line 114, in _nsimage_from_file
+    with open(filename):
+FileNotFoundError: [Errno 2] No such file or directory: '⚠️'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/threading.py", line 973, in _bootstrap_inner
+    self.run()
+  File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/threading.py", line 910, in run
+    self._target(*self._args, **self._kwargs)
+  File "/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/clipboard_monitor/menu_bar_app.py", line 77, in update_status_periodically
+    self.update_status()
+  File "/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/clipboard_monitor/menu_bar_app.py", line 108, in update_status
+    self.icon = "⚠️"
+  File "/Users/omair.aslam/Library/Python/3.9/lib/python/site-packages/rumps/rumps.py", line 1089, in icon
+    new_icon = _nsimage_from_file(icon_path, template=self._template) if icon_path is not None else None
+  File "/Users/omair.aslam/Library/Python/3.9/lib/python/site-packages/rumps/rumps.py", line 124, in _nsimage_from_file
+    with open(filename):  # file doesn't exist
+FileNotFoundError: [Errno 2] No such file or directory: '/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/clipboard_monitor/⚠️'
+/Library/Developer/CommandLineTools/usr/bin/python3: can't open file '/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/clipboard_monitor/menu_bar_app.py': [Errno 1] Operation not permitted
+/Library/Developer/CommandLineTools/usr/bin/python3: can't open file '/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/clipboard_monitor/menu_bar_app.py': [Errno 1] Operation not permitted
+/Library/Developer/CommandLineTools/usr/bin/python3: can't open file '/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/clipboard_monitor/menu_bar_app.py': [Errno 1] Operation not permitted
+/Library/Developer/CommandLineTools/usr/bin/python3: can't open file '/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/clipboard_monitor/menu_bar_app.py': [Errno 1] Operation not permitted
+/Library/Developer/CommandLineTools/usr/bin/python3: can't open file '/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/clipboard_monitor/menu_bar_app.py': [Errno 1] Operation not permitted
+/Library/Developer/CommandLineTools/usr/bin/python3: can't open file '/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/clipboard_monitor/menu_bar_app.py': [Errno 1] Operation not permitted
+/Library/Developer/CommandLineTools/usr/bin/python3: can't open file '/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/clipboard_monitor/menu_bar_app.py': [Errno 1] Operation not permitted

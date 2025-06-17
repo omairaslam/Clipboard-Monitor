@@ -4,218 +4,194 @@ A Python script that monitors the macOS clipboard for changes and processes them
 
 ## Features
 
-- **Enhanced Monitoring**: Uses pyobjc for efficient clipboard monitoring (0.1-second intervals)
-- **Modular Processing**: Supports custom modules for processing different clipboard content types
-- **Automatic Fallback**: Falls back to polling mode if pyobjc is not available
-- **Rich Logging**: Beautiful console output with rich formatting
-- **Service Integration**: Runs as a macOS LaunchAgent for automatic startup
-- **Error Handling**: Robust error handling and automatic restart capabilities
-
-## Prerequisites
-
-*   macOS
-*   Python 3.x
-*   pip (Python package installer)
+- **Enhanced Clipboard Monitoring**: Uses native macOS APIs for efficient clipboard change detection
+- **Modular Plugin System**: Process clipboard content through specialized modules with robust error handling
+- **Menu Bar Application**: Control the service and access features through a convenient menu bar icon with comprehensive configuration options
+- **Clipboard History**: Track and browse your clipboard history with deduplication
+- **Markdown Processing**: Automatically convert markdown to rich text with comprehensive formatting support
+- **Mermaid Diagram Detection**: Open Mermaid diagrams in the Mermaid Live Editor with multiple diagram types
+- **Code Formatting**: Automatically format code snippets with language detection
+- **Thread Safety**: Prevent race conditions and processing loops with advanced content tracking
+- **Loop Prevention**: Intelligent content hashing to prevent infinite processing cycles
+- **Robust Error Handling**: Comprehensive exception handling with graceful degradation
+- **Security Features**: Input validation and AppleScript injection prevention
+- **Configurable Settings**: Customize behavior with flexible configuration options
+- **Performance Optimized**: Efficient polling with consecutive error tracking and automatic recovery
 
 ## Installation
 
-1.  **Clone the Repository (Optional)**
-    If you've cloned this project from a Git repository:
-    ```bash
-    git clone <repository-url>
-    cd clipboard-monitor # Or your project directory
-    ```
+1. **Clone the Repository**
+   ```bash
+   git clone https://github.com/yourusername/clipboard-monitor.git
+   cd clipboard_monitor
+   ```
 
-2.  **Install Dependencies**
-    This script requires the following Python libraries:
-    *   `pyperclip` - Cross-platform clipboard access
-    *   `rich` - Rich console output and logging
-    *   `pyobjc-framework-Cocoa` - macOS integration for enhanced clipboard monitoring
+2. **Install Dependencies**
+   This script requires the following Python libraries:
+   * `pyperclip` - Cross-platform clipboard access
+   * `rich` - Rich console output and logging
+   * `pyobjc-framework-Cocoa` - macOS integration for enhanced clipboard monitoring
+   * `rumps` - Menu bar application support
 
-    **Easy Installation (Recommended):**
-    Use the provided installation script:
-    ```bash
-    cd clipboard_monitor
-    ./install_dependencies.sh
-    ```
+   **Easy Installation (Recommended):**
+   Use the provided installation script:
+   ```bash
+   cd clipboard_monitor
+   ./install_dependencies.sh
+   ```
 
-    **Manual Installation:**
-    The project includes a `requirements.txt` file with all dependencies:
-    ```bash
-    python3 -m pip install --user -r requirements.txt
-    ```
+   **Manual Installation:**
+   The project includes a `requirements.txt` file with all dependencies:
+   ```bash
+   python3 -m pip install --user -r requirements.txt
+   ```
 
-    **Virtual Environment (Alternative):**
-    If you prefer using a virtual environment:
-    ```bash
-    python3 -m venv venv
-    source venv/bin/activate
-    pip install -r requirements.txt
-    ```
+3. **Configure the LaunchAgent**
+   Update the paths in `com.omairaslam.clipboardmonitor.plist`:
+   - Replace `/path/to/your/venv/bin/python` with your Python interpreter path
+   - Replace `/path/to/your/project/main.py` with the absolute path to the main script
+   - Replace `/path/to/your/project/` with your project directory
 
-## Configuration: Setting up the LaunchAgent
+4. **Install the LaunchAgent**
+   ```bash
+   cp com.omairaslam.clipboardmonitor.plist ~/Library/LaunchAgents/
+   launchctl load ~/Library/LaunchAgents/com.omairaslam.clipboardmonitor.plist
+   ```
 
-To run the clipboard monitor script as a background service, you need to create a `.plist` file in `~/Library/LaunchAgents/`.
+## Modules
 
-1.  **Create the `.plist` file:**
-    Create a file named `com.omairaslam.clipboardmonitor.plist` (you can customize the label, but ensure it's unique) in `~/Library/LaunchAgents/` with the following content.
+The Clipboard Monitor includes several processing modules:
 
-    **Important:** You **must** replace the placeholder paths in the XML below with the correct absolute paths for your system.
-    *   Update `/path/to/your/venv/bin/python` to the absolute path of your Python interpreter. If you're using a virtual environment (recommended), this will be something like `/Users/your_username/path/to/your/project/venv/bin/python`. If using a system Python, it might be `/usr/bin/python3` or `/usr/local/bin/python3`.
-    *   Update `/path/to/your/project/clipboard_monitor_script.py` to the absolute path of your main Python script.
-    *   Update `/path/to/your/project/` for `WorkingDirectory` to the absolute path of the directory containing your script.
-    *   The log file paths `~/Library/Logs/ClipboardMonitor.out.log` and `~/Library/Logs/ClipboardMonitor.err.log` use `~` to refer to the current user's home directory. `launchd` typically resolves this correctly. Ensure the `~/Library/Logs` directory exists and is writable by your user.
+### Markdown Module
+Detects and converts markdown content to rich text format (RTF).
 
-    ```xml
-    <?xml version="1.0" encoding="UTF-8"?>
-    <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-    <plist version="1.0">
-    <dict>
-        <key>Label</key>
-        <string>com.omairaslam.clipboardmonitor</string> <!-- Must be unique. Convention: reverse domain name. -->
+### Mermaid Module
+Detects Mermaid diagram syntax, sanitizes content for safe processing, and opens it in the Mermaid Live Editor with automatic character escaping.
 
-        <key>ProgramArguments</key>
-        <array>
-            <!-- IMPORTANT: Replace with the ABSOLUTE path to your Python interpreter -->
-            <string>/path/to/your/venv/bin/python</string>
-            <!-- IMPORTANT: Replace with the ABSOLUTE path to your script -->
-            <string>/path/to/your/project/clipboard_monitor_script.py</string>
-        </array>
+### History Module
+Tracks clipboard history with timestamps and content hashing for deduplication.
 
-        <key>RunAtLoad</key>
-        <true/> <!-- Start the agent when it's loaded (e.g., at login) -->
+### Code Formatter Module
+Detects and formats code snippets using language-specific formatters.
 
-        <key>KeepAlive</key>
-        <true/> <!-- Restart the agent if it exits unexpectedly -->
+## Menu Bar App
 
-        <!-- Log paths. Ensure ~/Library/Logs is writable. -->
-        <key>StandardOutPath</key>
-        <string>~/Library/Logs/ClipboardMonitor.out.log</string>
+The Clipboard Monitor includes a menu bar app that allows you to:
 
-        <key>StandardErrorPath</key>
-        <string>~/Library/Logs/ClipboardMonitor.err.log</string>
+- Check the service status (running/stopped, enhanced/polling mode)
+- Start, stop, and restart the service
+- View output and error logs
+- Clear logs
+- Enable/disable specific modules
+- Access clipboard history
+- Configure application settings
 
-        <!-- IMPORTANT: Replace with the ABSOLUTE path to your script's working directory -->
-        <key>WorkingDirectory</key>
-        <string>/path/to/your/project/</string>
+### Installing the Menu Bar App
 
-        <key>EnvironmentVariables</key>
-        <dict>
-            <key>PYTHONUNBUFFERED</key>
-            <string>1</string> <!-- Ensures Python output is not buffered -->
-        </dict>
-    </dict>
-    </plist>
-    ```
+1. Make sure you've installed the required dependencies:
+   ```bash
+   ./install_dependencies.sh
+   ```
 
-2.  **Explanation of `.plist` Keys:**
-    *   `Label`: A unique name for your agent (e.g., `com.yourusername.clipboardmonitor`).
-    *   `ProgramArguments`: An array where the first string is the executable (your Python interpreter) and subsequent strings are arguments passed to it (your script path).
-    *   `RunAtLoad`: If `true`, the agent starts when it's loaded by `launchd` (typically at login).
-    *   `KeepAlive`: If `true`, `launchd` will restart your script if it exits unexpectedly.
-    *   `StandardOutPath`: File where standard output (e.g., `print()` statements, `rich` logger output) will be redirected.
-    *   `StandardErrorPath`: File where standard error output will be redirected.
-    *   `WorkingDirectory`: Sets the current working directory for your script. This is important for your script to correctly find relative paths, like a `modules` subdirectory if you have one.
-    *   `EnvironmentVariables`:
-        *   `PYTHONUNBUFFERED`: Setting this to `1` is good practice for services, as it ensures that Python's output is not buffered and gets written to the log files more immediately.
+2. Update the paths in `com.omairaslam.clipboardmonitor.menubar.plist`:
+   - Replace `/path/to/your/venv/bin/python` with your Python interpreter path
+   - Replace `/path/to/your/project/menu_bar_app.py` with the absolute path to the menu bar script
+   - Replace `/path/to/your/project/` with your project directory
 
-3.  **Ensure Script Dependencies are Met by the Interpreter:**
-    The Python interpreter specified in the `.plist` file (`ProgramArguments`) must have access to the required libraries (`pyperclip`, `rich`, `pyobjc-framework-Cocoa`).
-    *   **Virtual Environment:** If you used a virtual environment for installing dependencies (recommended), ensure the `ProgramArguments` path points to the Python executable *inside* that `venv` (e.g., `/path/to/your/project_directory/venv/bin/python`). The libraries installed in that `venv` will then be available.
-    *   **Global/System Python:** If you installed these libraries globally for a specific Python interpreter, ensure that's the interpreter you're using in the `.plist`.
+3. Copy the plist file to your LaunchAgents directory:
+   ```bash
+   cp com.omairaslam.clipboardmonitor.menubar.plist ~/Library/LaunchAgents/
+   ```
 
-## Running the Service
+4. Load the LaunchAgent:
+   ```bash
+   launchctl load ~/Library/LaunchAgents/com.omairaslam.clipboardmonitor.menubar.plist
+   ```
 
-Once the `.plist` file is configured and saved in `~/Library/LaunchAgents/`:
+## Configuration
 
-1.  **Load the Agent:**
-    Open Terminal and run:
-    ```bash
-    launchctl load ~/Library/LaunchAgents/com.omairaslam.clipboardmonitor.plist
-    ```
-    If `RunAtLoad` is `true` in your `.plist`, this command will also attempt to start the agent.
+The application can be configured in two convenient ways:
 
-2.  **Manually Start (if needed):**
-    To manually start it for testing or if `RunAtLoad` was initially `false`:
-    ```bash
-    launchctl start com.omairaslam.clipboardmonitor
-    ```
-    Your script should now be running in the background and will start automatically on login (if `RunAtLoad` is `true`).
+### 1. Menu Bar Configuration (Recommended)
 
-## Checking Logs and Status
+All settings can be easily configured through the menu bar application:
 
-*   **View Logs:**
-    You can monitor the output and error logs defined in your `.plist` file:
-    ```bash
-    tail -f ~/Library/Logs/ClipboardMonitor.out.log
-    tail -f ~/Library/Logs/ClipboardMonitor.err.log
-    ```
-    (Adjust paths if you changed them from the defaults in the `.plist`.)
+#### **Preferences Menu**
+- **General Settings**: Debug mode, notification title, polling intervals
+- **Performance Settings**: Lazy loading, adaptive checking, memory optimization
+- **History Settings**: Max items, content length, file location
+- **Security Settings**: Clipboard sanitization, size limits
+- **Configuration Management**: Reset, export, import, and view settings
 
-*   **Check Agent Status:**
-    To see if your agent is loaded and its status (e.g., PID if running):
-    ```bash
-    launchctl list | grep com.omairaslam.clipboardmonitor # Replace with your Label or part of it
-    ```
+**Access**: Click the menu bar icon → Preferences → Choose your setting category
 
-## Managing the Service
+**Benefits**:
+- No file editing required
+- Automatic service restart after changes
+- Input validation and user-friendly dialogs
+- Real-time configuration updates
 
-*   **Stop the Agent Temporarily:**
-    (If `KeepAlive` is `true`, `launchd` might try to restart it. If `RunAtLoad` is `true`, it will start on next login.)
-    ```bash
-    launchctl stop com.omairaslam.clipboardmonitor
-    ```
+### 2. Manual Configuration File
 
-*   **Unload the Agent (Stop and Prevent Autostart):**
-    This stops the agent and prevents it from loading at the next login.
-    ```bash
-    launchctl unload ~/Library/LaunchAgents/com.omairaslam.clipboardmonitor.plist
-    ```
+You can also manually edit the `config.json` file:
 
-*   **Applying Changes:**
-    If you make changes to your `.plist` file or the Python script itself, you'll generally need to unload and then load the agent again for the changes to take effect:
-    ```bash
-    launchctl unload ~/Library/LaunchAgents/com.omairaslam.clipboardmonitor.plist
-    launchctl load ~/Library/LaunchAgents/com.omairaslam.clipboardmonitor.plist
-    # You might need to manually start it again if RunAtLoad was false or for immediate effect
-    # launchctl start com.omairaslam.clipboardmonitor
-    ```
-
-## Quick Commands Reference
-
-Here are the most commonly used commands for managing your clipboard monitor service:
-
-### **Check Service Status**
-```bash
-# Check if the service is running
-launchctl list | grep clipboardmonitor
-
-# View recent output logs
-tail -n 10 /Users/omair.aslam/Library/Logs/ClipboardMonitor.out.log
-
-# View recent error logs
-tail -n 10 /Users/omair.aslam/Library/Logs/ClipboardMonitor.err.log
-
-# Follow logs in real-time
-tail -f /Users/omair.aslam/Library/Logs/ClipboardMonitor.out.log
+```json
+{
+  "general": {
+    "polling_interval": 1.0,
+    "enhanced_check_interval": 0.1,
+    "notification_title": "Clipboard Monitor",
+    "debug_mode": false
+  },
+  "performance": {
+    "lazy_module_loading": true,
+    "adaptive_checking": true,
+    "memory_optimization": true,
+    "process_large_content": true,
+    "max_module_execution_time": 500
+  },
+  "modules": {
+    "markdown_module": true,
+    "mermaid_module": true,
+    "history_module": true,
+    "code_formatter_module": true
+  },
+  "history": {
+    "max_items": 100,
+    "max_content_length": 10000,
+    "save_location": "~/Library/Application Support/ClipboardMonitor/clipboard_history.json"
+  },
+  "security": {
+    "sanitize_clipboard": true,
+    "max_clipboard_size": 10485760
+  }
+}
 ```
 
-### **Restart Service**
+**Note**: Manual changes require service restart to take effect.
+
+## Quick Reference
+
+### Service Management
+
 ```bash
+# Start the service
+launchctl load ~/Library/LaunchAgents/com.omairaslam.clipboardmonitor.plist
+
 # Stop the service
 launchctl unload ~/Library/LaunchAgents/com.omairaslam.clipboardmonitor.plist
 
-# Start the service
+# Restart the service
+launchctl unload ~/Library/LaunchAgents/com.omairaslam.clipboardmonitor.plist
 launchctl load ~/Library/LaunchAgents/com.omairaslam.clipboardmonitor.plist
+
+# View logs
+tail -f ~/Library/Logs/ClipboardMonitor.out.log
+tail -f ~/Library/Logs/ClipboardMonitor.err.log
 ```
 
-### **One-liner Restart**
-```bash
-# Restart in one command
-launchctl unload ~/Library/LaunchAgents/com.omairaslam.clipboardmonitor.plist && launchctl load ~/Library/LaunchAgents/com.omairaslam.clipboardmonitor.plist
-```
+### Dependencies
 
-### **Install Dependencies**
 ```bash
 # Run the installation script (if available)
 ./install_dependencies.sh
@@ -226,19 +202,28 @@ python3 -m pip install --user -r requirements.txt
 
 ## Troubleshooting Tips
 
-*   **Check Paths:** The most common issue. Double-check all absolute paths in your `.plist` file: Python interpreter, script path, and working directory.
-*   **Permissions:** Ensure your Python script is executable (`chmod +x /path/to/your/script.py`). Also, ensure the directory for log files (`~/Library/Logs/`) is writable by your user.
-*   **Python Environment:** Verify that the Python interpreter specified in the `.plist` can run your script and import all required modules. Test this directly from the terminal:
-    ```bash
-    /path/to/your/venv/bin/python /path/to/your/project/clipboard_monitor_script.py
-    ```
-    (Replace with your actual paths). Check for any import errors.
-*   **System Logs:** For more in-depth `launchd` issues, open the Console app (Applications > Utilities > Console) and search for messages related to your agent's label.
-*   **Typos in `.plist`:** XML is picky. Ensure your `.plist` file is well-formed.
+### Service Not Starting
+- Check the error logs: `tail -f ~/Library/Logs/ClipboardMonitor.err.log`
+- Verify the paths in your plist file are correct
+- Ensure Python and all dependencies are installed
+- Try running the script manually to see any errors: `python3 main.py`
 
-By following these steps, your clipboard monitor should run reliably as a background service on your Mac.
+### Enhanced Monitoring Not Working
+- Verify pyobjc is installed: `pip3 list | grep pyobjc`
+- Check if the service is running in polling mode
+- Try reinstalling pyobjc: `pip3 install --upgrade pyobjc-framework-Cocoa`
+- Check the logs for import errors
 
----
-*Remember to replace all placeholder paths and `com.omairaslam.clipboardmonitor` (if you chose a different label) with your actual values.*
+### Module Not Processing Content
+- Check if the module is enabled in config.json
+- Verify the module's process function is working correctly
+- Check the logs for any errors related to the module
+- Try running the module directly for testing
 
-```
+## Creating Custom Modules
+
+See the [Module Development Guide](MODULE_DEVELOPMENT.md) for information on creating your own processing modules.
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.

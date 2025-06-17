@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.omairaslam.clipboardmonitor.menubar</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <!-- IMPORTANT: Replace with the ABSOLUTE path to your Python interpreter -->
+        <string>/usr/bin/python3</string>
+        <!-- IMPORTANT: Replace with the ABSOLUTE path to the menu bar script -->
+        <string>/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/clipboard_monitor/menu_bar_app.py</string>
+    </array>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>KeepAlive</key>
+    <true/>
+
+    <key>StandardOutPath</key>
+    <string>~/Library/Logs/ClipboardMonitorMenuBar.out.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>~/Library/Logs/ClipboardMonitorMenuBar.err.log</string>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/clipboard_monitor/</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PYTHONUNBUFFERED</key>
+        <string>1</string>
+        <key>PATH</key>
+        <string>/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+    </dict>
+    
+    <!-- Add program permissions -->
+    <key>ProcessType</key>
+    <string>Interactive</string>
+    
+    <key>LimitLoadToSessionType</key>
+    <string>Aqua</string>
+</dict>
+</plist>

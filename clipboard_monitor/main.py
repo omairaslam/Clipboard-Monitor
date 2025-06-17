@@ -8,13 +8,53 @@ import time
 import pyperclip # Cross-platform clipboard library
 import threading
 from utils import show_notification
+import json
+import subprocess
+import re
 
-# Configuration
-CONFIG = {
-    'notification_title': 'Clipboard Monitor',
-    'polling_interval': 1.0,
-    'module_validation_timeout': 5.0
-}
+def load_config():
+    """Load configuration from config.json if available"""
+    config_path = os.path.join(os.path.dirname(__file__), 'config.json')
+    
+    # Default configuration
+    config = {
+        'notification_title': 'Clipboard Monitor',
+        'polling_interval': 1.0,
+        'module_validation_timeout': 5.0,
+        'enhanced_check_interval': 0.1,
+        'max_clipboard_size': 10 * 1024 * 1024,
+        'debug_mode': False
+    }
+    
+    try:
+        if os.path.exists(config_path):
+            with open(config_path, 'r') as f:
+                user_config = json.load(f)
+                
+            # Update general settings
+            if 'general' in user_config:
+                for key, value in user_config['general'].items():
+                    if key in config:
+                        config[key] = value
+
+            # Add support for performance, history, and security sections
+            for section in ['performance', 'history', 'security']:
+                if section in user_config:
+                    config[section] = user_config[section]
+                        
+            # Note: Debug mode will be applied after logger is set up
+            
+            print(f"Loaded configuration from {config_path}")
+        else:
+            print("No config.json found, using defaults")
+    except Exception as e:
+        print(f"Error loading config: {e}")
+        print("Using default configuration")
+    
+    return config
+
+# Load configuration
+CONFIG = load_config()
 
 # Set up rich logging
 console = Console()
@@ -26,10 +66,15 @@ logging.basicConfig(
 ) # Configure basic logging with RichHandler for pretty console output.
 logger = logging.getLogger("clipboard_monitor")
 
+# Apply debug mode if enabled in config
+if CONFIG.get('debug_mode', False):
+    logging.getLogger().setLevel(logging.DEBUG)
+    logger.info("[bold yellow]Debug mode enabled[/bold yellow]")
+
 # Attempt to import pyobjc for enhanced clipboard monitoring on macOS.
 try:
-    from AppKit import NSPasteboard, NSApplication, NSObject
-    from Foundation import NSNotificationCenter, NSTimer, NSRunLoop, NSDefaultRunLoopMode
+    from AppKit import NSPasteboard, NSApplication, NSObject, NSThread
+    from Foundation import NSTimer, NSDate
     import objc # For @objc.selector decorator
     MACOS_ENHANCED = True
     logger.debug("pyobjc loaded successfully. Enhanced monitoring enabled for macOS.")
@@ -63,48 +108,51 @@ class ClipboardMonitor:
 
         return True
 
-    def load_modules(self, module_dir: str) -> None:
-        """
-        Dynamically loads Python modules from the specified directory.
-        Each module is expected to have a 'process(clipboard_content)' function.
-        """
-        if not os.path.exists(module_dir):
-            logger.error(f"[bold red]Module directory does not exist:[/bold red] {module_dir}")
+    def load_modules(self, modules_dir):
+        """Load all modules from the specified directory with lazy initialization."""
+        self.modules = []
+        self.module_specs = []  # Store module specs for lazy loading
+        
+        # Load module configuration
+        module_config = self._load_module_config()
+        
+        if not os.path.exists(modules_dir) or not os.path.isdir(modules_dir):
+            logger.error(f"[bold red]Module directory issue:[/bold red] {modules_dir}")
             return
 
-        if not os.path.isdir(module_dir):
-            logger.error(f"[bold red]Module path is not a directory:[/bold red] {module_dir}")
-            return
+        # First pass: just collect module specs without importing
+        for filename in os.listdir(modules_dir):
+            if filename.endswith('_module.py'):
+                module_path = os.path.join(modules_dir, filename)
+                module_name = filename[:-3]  # Remove .py
+                
+                # Check if module is enabled
+                if module_config.get(module_name, {}).get('enabled', True):
+                    # Store module spec for lazy loading
+                    spec = importlib.util.spec_from_file_location(module_name, module_path)
+                    self.module_specs.append((module_name, spec))
+                    logger.info(f"[bold green]Found module:[/bold green] {module_name}")
+                else:
+                    logger.info(f"[bold yellow]Module disabled in config:[/bold yellow] {module_name}")
 
-        try:
-            module_files = [f for f in os.listdir(module_dir) if f.endswith('.py') and not f.startswith('__')]
-        except OSError as e:
-            logger.error(f"[bold red]Error reading module directory:[/bold red] {e}")
-            return
+    def _load_module_config(self):
+        """Load module configuration from a file."""
+        config_path = os.path.expanduser('~/Library/Application Support/ClipboardMonitor/modules_config.json')
+        if os.path.exists(config_path):
+            with open(config_path, 'r') as f:
+                return json.load(f)
+        return {}
 
-        for module_file in module_files:
-            module_name = module_file[:-3]
-            module_path = os.path.join(module_dir, module_file)
-
-            try:
-                # Create a module spec from the file location.
-                spec = importlib.util.spec_from_file_location(module_name, module_path)
-                if spec is None or spec.loader is None:
-                    logger.error(f"[bold red]Could not create module spec for:[/bold red] {module_name}")
-                    continue
-
-                module = importlib.util.module_from_spec(spec)
-                spec.loader.exec_module(module) # Execute the module to make its content available.
-
-                # Validate module interface
-                if not self._validate_module(module):
-                    continue
-
-                self.modules.append(module) # Add the loaded module to the list.
-                logger.info(f"[bold green]Loaded module:[/bold green] {module_name}")
-
-            except Exception as e:
-                logger.error(f"[bold red]Error loading module {module_name}:[/bold red] {e}")
+    def _load_module_if_needed(self, module_name, spec):
+        """Lazy load a module only when needed."""
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        
+        # Validate module has process function
+        if not hasattr(module, 'process') or not callable(module.process):
+            raise AttributeError(f"Module {module_name} missing required 'process' function")
+            
+        return module
 
     def _get_content_hash(self, content) -> str:
         """Generate a hash of the content to detect processing loops."""
@@ -114,8 +162,15 @@ class ClipboardMonitor:
         return hashlib.md5(str(content).encode()).hexdigest()
 
     def process_clipboard(self, clipboard_content) -> bool:
-        """Process clipboard content with all modules. Returns True if any module processed it."""
-        # Prevent concurrent processing and infinite loops
+        """Process clipboard content with memory optimization."""
+        # Prevent processing extremely large content
+        if clipboard_content and len(clipboard_content) > CONFIG.get('security', {}).get('max_clipboard_size', 10485760):
+            logger.warning(f"[bold yellow]Skipping oversized clipboard content ({len(clipboard_content)} bytes)[/bold yellow]")
+            return False
+        
+        # Process with memory optimization (avoid duplicate copies)
+        
+        # Process with memory optimization
         with self.processing_lock:
             content_hash = self._get_content_hash(clipboard_content)
             if content_hash == self.last_processed_hash:
@@ -124,31 +179,33 @@ class ClipboardMonitor:
 
             self.last_processed_hash = content_hash
             processed = False
-
+            
+            # Lazy load modules if not already loaded
+            if not self.modules and self.module_specs:
+                for module_name, spec in self.module_specs:
+                    try:
+                        module = self._load_module_if_needed(module_name, spec)
+                        self.modules.append(module)
+                    except Exception as e:
+                        logger.error(f"[bold red]Error loading module {module_name}:[/bold red] {e}")
+            
+            # Process with loaded modules
             for module in self.modules:
                 try:
-                    # Call the 'process' function of each loaded module.
                     if module.process(clipboard_content):
                         processed = True
-                        logger.info(f"[cyan]Processed clipboard content with module:[/cyan] {getattr(module, '__name__', 'unknown')}")
+                        logger.info(f"[cyan]Processed with module:[/cyan] {getattr(module, '__name__', 'unknown')}")
                 except Exception as e:
-                    logger.error(f"[bold red]Error processing with module {getattr(module, '__name__', 'unknown')}:[/bold red] {e}")
-
-            # If no module processed the content, and the original content was not None
-            # (i.e., it was actual text), ensure it's still in the clipboard.
-            # This avoids issues like trying to pyperclip.copy(None) if paste() returned None
-            # for non-text content like an image.
-            if not processed and clipboard_content is not None:
-                try:
-                    pyperclip.copy(clipboard_content)
-                except pyperclip.PyperclipException as e:
-                    logger.error(f"[bold red]Error restoring clipboard content:[/bold red] {e}")
-            elif not processed and clipboard_content is None:
-                # If content was None (e.g., an image was copied) and no module processed it,
-                # log this but don't try to copy 'None' back to the clipboard.
-                logger.debug("Non-text or empty content from clipboard was not processed; clipboard unchanged by script.")
-
-            return processed
+                    logger.error(f"[bold red]Error processing with module:[/bold red] {e}")
+                    
+            # Processing complete
+        
+        # Suggest garbage collection for very large content
+        if clipboard_content and len(clipboard_content) > 1000000:
+            import gc
+            gc.collect()
+        
+        return processed
 
 # Check if enhanced monitoring is enabled (pyobjc was successfully imported).
 if MACOS_ENHANCED:
@@ -177,11 +234,24 @@ if MACOS_ENHANCED:
             return self
 
         @objc.selector
-        def checkClipboardChange_(self, timer):
+        def checkClipboardChange_(self, _):
             """
             Timer callback method that checks for clipboard changes using changeCount.
             This is more efficient than polling the actual clipboard content.
             """
+            # Skip checks when system is idle
+            if self.processing_in_progress:
+                return
+            
+            # Adaptive checking interval based on system activity
+            idle_time = self._get_system_idle_time()
+            if idle_time > 60:  # seconds
+                # Reduce check frequency during idle periods
+                self.timer.setFireDate_(NSDate.dateWithTimeIntervalSinceNow_(1.0))
+            else:
+                # Normal frequency during active use
+                self.timer.setFireDate_(NSDate.dateWithTimeIntervalSinceNow_(CONFIG['enhanced_check_interval']))
+            
             # Prevent recursive processing if a module modifies the clipboard
             if self.processing_in_progress:
                 return
@@ -212,7 +282,17 @@ if MACOS_ENHANCED:
                     self.last_processed_clipboard_content = current_clipboard_content
 
                     logger.info("[bold blue]Clipboard changed (enhanced monitoring)![/bold blue]")
-                    show_notification(CONFIG['notification_title'], "Clipboard changed (enhanced)!")
+                    
+                    # Use performSelectorOnMainThread to show notification on main thread
+                    if NSThread.isMainThread():
+                        show_notification(CONFIG['notification_title'], "Clipboard changed (enhanced)!")
+                    else:
+                        # Schedule notification on main thread
+                        NSApplication.sharedApplication().performSelectorOnMainThread_withObject_waitUntilDone_(
+                            lambda: show_notification(CONFIG['notification_title'], "Clipboard changed (enhanced)!"),
+                            None,
+                            False
+                        )
 
                     # If the monitor instance is available, process the new clipboard content.
                     if self.monitor_instance:
@@ -249,6 +329,20 @@ if MACOS_ENHANCED:
             self.monitor_instance = None
             self.last_processed_clipboard_content = None
             self.pasteboard = None
+
+        def _get_system_idle_time(self):
+            # Get system idle time in seconds
+            try:
+                idle_secs = subprocess.check_output(
+                    ["/usr/sbin/ioreg", "-c", "IOHIDSystem"], 
+                    universal_newlines=True
+                )
+                idle_match = re.search(r'"HIDIdleTime" = (\d+)', idle_secs)
+                if idle_match:
+                    return int(idle_match.group(1)) / 1000000000  # Convert to seconds
+            except:
+                pass
+            return 0
 
 def main():
     monitor = ClipboardMonitor()

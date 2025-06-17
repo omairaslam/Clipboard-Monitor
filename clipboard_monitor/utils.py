@@ -1,134 +1,189 @@
 """
-Shared utilities for the clipboard monitor application.
+Shared utilities for the Clipboard Monitor application.
 """
+
 import subprocess
+import hashlib
 import logging
-from typing import Optional
+import re
+import threading
+from rich.console import Console
 
-logger = logging.getLogger(__name__)
+# Set up rich console
+console = Console()
+logger = logging.getLogger("utils")
 
-def show_notification(title: str, message: str) -> None:
+def show_notification(title, message):
     """
-    Displays a macOS notification using AppleScript with proper error handling.
+    Show a notification using AppleScript (macOS).
     
     Args:
-        title: The notification title
-        message: The notification message
+        title (str): The notification title
+        message (str): The notification message
     """
     try:
+        # Sanitize inputs to prevent AppleScript injection
+        title = validate_string_input(title, "title", default="Notification")
+        message = validate_string_input(message, "message", default="")
+        
         # Escape quotes to prevent AppleScript injection
-        safe_title = title.replace('"', '\\"').replace("'", "\\'")
-        safe_message = message.replace('"', '\\"').replace("'", "\\'")
+        title = title.replace('"', '\\"')
+        message = message.replace('"', '\\"')
         
-        script = f'display notification "{safe_message}" with title "{safe_title}"'
+        # Show notification using AppleScript
+        subprocess.run([
+            "osascript", "-e",
+            f'display notification "{message}" with title "{title}"'
+        ], check=True, timeout=3)
         
-        result = subprocess.run(
-            ['osascript', '-e', script],
-            check=False,
-            timeout=5,
-            capture_output=True,
-            text=True
-        )
-        
-        if result.returncode != 0 and result.stderr:
-            logger.warning(f"AppleScript warning: {result.stderr.strip()}")
-            
+        logger.debug(f"Notification shown: {title} - {message}")
     except subprocess.TimeoutExpired:
-        logger.warning("Notification timeout - AppleScript took too long")
-    except FileNotFoundError:
-        logger.error("osascript not found - notifications not available")
+        logger.error("Notification timed out")
     except Exception as e:
-        logger.error(f"Error showing notification: {e}")
+        logger.error(f"Notification error: {str(e)}")
 
-def validate_string_input(value, name: str = "input") -> bool:
+def validate_string_input(value, param_name, default=None):
     """
     Validate that a value is a non-empty string.
     
     Args:
         value: The value to validate
-        name: Name of the value for error messages
+        param_name (str): The parameter name for error messages
+        default: Default value to return if validation fails
         
     Returns:
-        True if valid, False otherwise
+        str: The validated string or default value
     """
     if value is None:
-        logger.debug(f"{name} is None")
-        return False
-        
+        logger.warning(f"Parameter '{param_name}' is None, using default")
+        return default
+    
     if not isinstance(value, str):
-        logger.debug(f"{name} is not a string: {type(value)}")
-        return False
-        
+        logger.warning(f"Parameter '{param_name}' is not a string, using default")
+        return default
+    
     if not value.strip():
-        logger.debug(f"{name} is empty or whitespace-only")
-        return False
-        
-    return True
+        logger.warning(f"Parameter '{param_name}' is empty, using default")
+        return default
+    
+    return value
 
-def safe_subprocess_run(cmd: list, timeout: int = 30, **kwargs) -> Optional[subprocess.CompletedProcess]:
+def safe_subprocess_run(cmd, timeout=5, check=True):
     """
-    Safely run a subprocess with timeout and error handling.
+    Safely run a subprocess command with timeout.
     
     Args:
-        cmd: Command to run as a list
-        timeout: Timeout in seconds
-        **kwargs: Additional arguments for subprocess.run
+        cmd (list): Command and arguments
+        timeout (int): Timeout in seconds
+        check (bool): Whether to check return code
         
     Returns:
-        CompletedProcess object or None if failed
+        subprocess.CompletedProcess: The completed process
+        
+    Raises:
+        subprocess.TimeoutExpired: If the command times out
+        subprocess.CalledProcessError: If the command fails and check=True
     """
     try:
         return subprocess.run(
             cmd,
+            check=check,
             timeout=timeout,
-            check=False,
-            **kwargs
+            capture_output=True,
+            text=True
         )
-    except subprocess.TimeoutExpired:
+    except subprocess.TimeoutExpired as e:
         logger.error(f"Command timed out after {timeout}s: {' '.join(cmd)}")
-        return None
-    except FileNotFoundError:
-        logger.error(f"Command not found: {cmd[0]}")
-        return None
+        raise e
+    except subprocess.CalledProcessError as e:
+        logger.error(f"Command failed with code {e.returncode}: {' '.join(cmd)}")
+        logger.error(f"Error output: {e.stderr}")
+        raise e
     except Exception as e:
-        logger.error(f"Error running command {' '.join(cmd)}: {e}")
-        return None
+        logger.error(f"Error running command: {' '.join(cmd)}")
+        logger.error(f"Exception: {str(e)}")
+        raise e
 
 class ContentTracker:
     """
-    Utility class to track processed content and prevent loops.
+    Track content to prevent processing loops.
+    
+    This class maintains a history of processed content hashes
+    to prevent the same content from being processed multiple times.
     """
-    def __init__(self, max_history: int = 10):
+    
+    def __init__(self, max_history=10):
+        """
+        Initialize the content tracker.
+        
+        Args:
+            max_history (int): Maximum number of content hashes to track
+        """
         self.max_history = max_history
-        self.history = []
+        self.content_hashes = []
+        self.lock = threading.Lock()
+        self.content_sizes = {}  # Track content sizes
         
-    def add_content(self, content: str) -> None:
-        """Add content to the history."""
+    def add_content(self, content):
+        """
+        Add content to the tracker.
+        
+        Args:
+            content (str): The content to track
+        """
+        if not content:
+            return
+        
         content_hash = self._hash_content(content)
+        content_size = len(content)
         
-        # Remove if already exists
-        if content_hash in self.history:
-            self.history.remove(content_hash)
+        with self.lock:
+            # Add to the front of the list
+            self.content_hashes.insert(0, content_hash)
+            self.content_sizes[content_hash] = content_size
             
-        # Add to front
-        self.history.insert(0, content_hash)
+            # Trim the list if needed
+            if len(self.content_hashes) > self.max_history:
+                old_hash = self.content_hashes.pop()
+                if old_hash in self.content_sizes:
+                    del self.content_sizes[old_hash]
+    
+    def has_processed(self, content):
+        """
+        Check if content has been processed recently.
         
-        # Trim to max size
-        if len(self.history) > self.max_history:
-            self.history = self.history[:self.max_history]
-    
-    def has_processed(self, content: str) -> bool:
-        """Check if content has been processed recently."""
+        Args:
+            content (str): The content to check
+            
+        Returns:
+            bool: True if the content has been processed recently
+        """
+        if not content:
+            return False
+        
         content_hash = self._hash_content(content)
-        return content_hash in self.history
+        
+        with self.lock:
+            return content_hash in self.content_hashes
     
-    def _hash_content(self, content: str) -> str:
-        """Generate a hash of the content."""
-        import hashlib
-        if content is None:
-            return "none"
-        return hashlib.md5(str(content).encode()).hexdigest()[:16]  # Short hash
+    def _hash_content(self, content):
+        """
+        Create a hash of the content.
+        
+        Args:
+            content (str): The content to hash
+            
+        Returns:
+            str: The content hash
+        """
+        # Use faster hashing for large content
+        if len(content) > 10000:
+            # Only hash first and last 5000 chars for very large content
+            return hashlib.md5((content[:5000] + content[-5000:]).encode('utf-8')).hexdigest()
+        return hashlib.md5(content.encode('utf-8')).hexdigest()
     
-    def clear(self) -> None:
-        """Clear the history."""
-        self.history.clear()
+    def clear(self):
+        """Clear all tracked content."""
+        with self.lock:
+            self.content_hashes = []
+            self.content_sizes.clear()
