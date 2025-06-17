@@ -550,25 +550,27 @@ Timer-based enhanced monitoring → Polling fallback
 #### 5.5.1 Mermaid Content Sanitization Implementation
 - **Challenge**: Mermaid diagrams with parentheses in node text caused parsing errors
 - **Technical Solution**:
-  - Regex pattern matching to identify node text in brackets `[text]` and quotes `"text"`
-  - Automatic escaping of parentheses: `(` → `\(` and `)` → `\)`
+  - Regex pattern matching to identify node text in brackets `[text]`, curly braces `{text}`, and quotes `"text"`
+  - Smart replacement of parentheses: `(` → ` - ` and `)` → `` (removed)
+  - Whitespace cleanup to maintain formatting
   - Graceful error handling with fallback to original content
   - Debug logging for troubleshooting sanitization issues
 - **Code Example**:
   ```python
   def sanitize_mermaid_content(mermaid_code):
-      # Pattern to find node text (content inside square brackets or quotes)
-      node_text_pattern = r'(\[[^\]]*\]|"[^"]*")'
+      # Pattern to find node text (content inside square brackets, curly braces, or quotes)
+      node_text_pattern = r'(\[[^\]]*\]|\{[^}]*\}|"[^"]*")'
 
-      def escape_node_text(match):
+      def sanitize_node_text(match):
           text = match.group(0)
           if text.startswith('[') and text.endswith(']'):
               inner_text = text[1:-1]
-              escaped_text = inner_text.replace('(', '\\(').replace(')', '\\)')
-              return f"[{escaped_text}]"
-          # Similar handling for quoted text...
+              sanitized_text = inner_text.replace('(', ' - ').replace(')', '')
+              sanitized_text = re.sub(r'\s+', ' ', sanitized_text).strip()
+              return f"[{sanitized_text}]"
+          # Similar handling for curly braces and quoted text...
 
-      return re.sub(node_text_pattern, escape_node_text, mermaid_code)
+      return re.sub(node_text_pattern, sanitize_node_text, mermaid_code)
   ```
 - **Benefits**:
   - Prevents Mermaid Live Editor parsing errors

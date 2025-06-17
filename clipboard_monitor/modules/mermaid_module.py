@@ -121,7 +121,7 @@ def process(clipboard_content):
                 "Processing Mermaid diagram..."
             )
             
-            # Escape parentheses in node text to prevent Mermaid parsing errors
+            # Sanitize parentheses in node text to prevent Mermaid parsing errors
             sanitized_content = sanitize_mermaid_content(clipboard_content)
             
             return launch_mermaid_chart(sanitized_content)
@@ -131,30 +131,44 @@ def process(clipboard_content):
     return False
 
 def sanitize_mermaid_content(mermaid_code):
-    """Sanitize Mermaid content to escape problematic characters"""
+    """Sanitize Mermaid content to handle problematic characters"""
     try:
-        # Pattern to find node text (content inside square brackets or quotes)
-        node_text_pattern = r'(\[[^\]]*\]|"[^"]*")'
-        
-        def escape_node_text(match):
+        # Pattern to find node text (content inside square brackets, curly braces, or quotes)
+        node_text_pattern = r'(\[[^\]]*\]|\{[^}]*\}|"[^"]*")'
+
+        def sanitize_node_text(match):
             text = match.group(0)
             # If it's a bracketed text [like this]
             if text.startswith('[') and text.endswith(']'):
-                # Escape parentheses inside the brackets
+                # Replace parentheses with dashes for better readability
                 inner_text = text[1:-1]
-                escaped_text = inner_text.replace('(', '\\(').replace(')', '\\)')
-                return f"[{escaped_text}]"
+                # Replace parentheses with dashes - more readable and Mermaid-compatible
+                sanitized_text = inner_text.replace('(', ' - ').replace(')', '')
+                # Clean up any double spaces
+                sanitized_text = re.sub(r'\s+', ' ', sanitized_text).strip()
+                return f"[{sanitized_text}]"
+            # If it's a curly brace text {like this}
+            elif text.startswith('{') and text.endswith('}'):
+                # Replace parentheses with dashes inside the curly braces
+                inner_text = text[1:-1]
+                sanitized_text = inner_text.replace('(', ' - ').replace(')', '')
+                # Clean up any double spaces
+                sanitized_text = re.sub(r'\s+', ' ', sanitized_text).strip()
+                return f"{{{sanitized_text}}}"
             # If it's quoted text "like this"
             elif text.startswith('"') and text.endswith('"'):
-                # Escape parentheses inside the quotes
+                # Replace parentheses with dashes inside the quotes
                 inner_text = text[1:-1]
-                escaped_text = inner_text.replace('(', '\\(').replace(')', '\\)')
-                return f'"{escaped_text}"'
+                sanitized_text = inner_text.replace('(', ' - ').replace(')', '')
+                # Clean up any double spaces
+                sanitized_text = re.sub(r'\s+', ' ', sanitized_text).strip()
+                return f'"{sanitized_text}"'
             return text
-        
-        # Replace node text with escaped version
-        sanitized_code = re.sub(node_text_pattern, escape_node_text, mermaid_code)
-        
+
+        # Replace node text with sanitized version
+        sanitized_code = re.sub(node_text_pattern, sanitize_node_text, mermaid_code)
+
+        logger.debug(f"Original Mermaid content: {mermaid_code}")
         logger.debug(f"Sanitized Mermaid content: {sanitized_code}")
         return sanitized_code
     except Exception as e:
@@ -164,17 +178,24 @@ def sanitize_mermaid_content(mermaid_code):
 
 # For testing
 if __name__ == '__main__':
-    # Test cases
+    # Test cases including problematic parentheses
     test_cases = [
         """graph TD
         A[Start] --> B{Is it?}
         B -- Yes --> C[OK]
         B -- No --> D[End]""",
-        
+
+        """graph TD
+        A[Start (Begin)] --> B{Is it sunny (outside)?}
+        B -- Yes (Y) --> C[Go outside (park)]
+        B -- No (N) --> D[Stay indoors (home)]
+        C --> E[Have fun (enjoy)!]
+        D --> E""",
+
         """sequenceDiagram
         Alice->>John: Hello John, how are you?
         John-->>Alice: Great!""",
-        
+
         """pie title What Pie Chart
         "Dogs" : 386
         "Cats" : 85

@@ -107,28 +107,36 @@ import re
 def sanitize_content(content):
     """Sanitize content to escape problematic characters"""
     try:
-        # Example: Escape parentheses in Mermaid node text
-        # Pattern to find node text (content inside square brackets or quotes)
-        node_text_pattern = r'(\[[^\]]*\]|"[^"]*")'
+        # Example: Sanitize parentheses in Mermaid node text
+        # Pattern to find node text (content inside square brackets, curly braces, or quotes)
+        node_text_pattern = r'(\[[^\]]*\]|\{[^}]*\}|"[^"]*")'
 
-        def escape_node_text(match):
+        def sanitize_node_text(match):
             text = match.group(0)
             # If it's a bracketed text [like this]
             if text.startswith('[') and text.endswith(']'):
-                # Escape parentheses inside the brackets
+                # Replace parentheses with dashes for better readability
                 inner_text = text[1:-1]
-                escaped_text = inner_text.replace('(', '\\(').replace(')', '\\)')
-                return f"[{escaped_text}]"
+                sanitized_text = inner_text.replace('(', ' - ').replace(')', '')
+                # Clean up any double spaces
+                sanitized_text = re.sub(r'\s+', ' ', sanitized_text).strip()
+                return f"[{sanitized_text}]"
+            # If it's a curly brace text {like this}
+            elif text.startswith('{') and text.endswith('}'):
+                inner_text = text[1:-1]
+                sanitized_text = inner_text.replace('(', ' - ').replace(')', '')
+                sanitized_text = re.sub(r'\s+', ' ', sanitized_text).strip()
+                return f"{{{sanitized_text}}}"
             # If it's quoted text "like this"
             elif text.startswith('"') and text.endswith('"'):
-                # Escape parentheses inside the quotes
                 inner_text = text[1:-1]
-                escaped_text = inner_text.replace('(', '\\(').replace(')', '\\)')
-                return f'"{escaped_text}"'
+                sanitized_text = inner_text.replace('(', ' - ').replace(')', '')
+                sanitized_text = re.sub(r'\s+', ' ', sanitized_text).strip()
+                return f'"{sanitized_text}"'
             return text
 
-        # Replace node text with escaped version
-        sanitized_content = re.sub(node_text_pattern, escape_node_text, content)
+        # Replace node text with sanitized version
+        sanitized_content = re.sub(node_text_pattern, sanitize_node_text, content)
 
         logger.debug(f"Sanitized content: {sanitized_content}")
         return sanitized_content
@@ -150,7 +158,9 @@ def process(clipboard_content) -> bool:
 ```
 
 **Key Sanitization Principles:**
-- **Escape special characters** that could break parsing
+- **Replace problematic characters** with safe alternatives (e.g., parentheses → dashes)
+- **Support all node types** (square brackets, curly braces, quotes)
+- **Maintain readability** by using meaningful replacements
 - **Validate input format** before processing
 - **Handle sanitization errors gracefully** by returning original content
 - **Log sanitization actions** for debugging

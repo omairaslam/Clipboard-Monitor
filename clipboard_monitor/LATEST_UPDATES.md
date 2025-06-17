@@ -153,10 +153,11 @@ CONFIG = {
 - Encoding validation for text content
 
 ### **Content Sanitization**
-- **Mermaid Diagram Sanitization**: Automatic escaping of parentheses in node text
-- **Character Escaping**: Prevents Mermaid parsing errors from special characters
+- **Mermaid Diagram Sanitization**: Smart replacement of parentheses in node text with readable alternatives
+- **Multi-Node Support**: Handles square brackets `[]`, curly braces `{}`, and quotes `""`
+- **Character Replacement**: Converts `(text)` to ` - text` for better Mermaid compatibility
 - **Safe Processing**: Graceful fallback to original content if sanitization fails
-- **Pattern Matching**: Intelligent detection of node text in brackets and quotes
+- **Pattern Matching**: Intelligent regex-based detection of all node text types
 - **Debug Logging**: Detailed logging of sanitization actions for troubleshooting
 
 ### **AppleScript Security**

@@ -376,9 +376,10 @@ This document provides a detailed analysis of bugs identified and fixed in the c
 - Added security logging
 
 ### Content Sanitization
-- **Mermaid Diagram Sanitization**: Automatic escaping of parentheses in node text to prevent parsing errors
-- **Pattern-based Processing**: Intelligent regex-based detection of node text in brackets `[text]` and quotes `"text"`
-- **Character Escaping**: Converts `(` to `\(` and `)` to `\)` within node text
+- **Mermaid Diagram Sanitization**: Smart replacement of parentheses in node text to prevent parsing errors
+- **Multi-Node Support**: Handles square brackets `[text]`, curly braces `{text}`, and quotes `"text"`
+- **Character Replacement**: Converts `(text)` to ` - text` for better readability and Mermaid compatibility
+- **Whitespace Cleanup**: Automatic removal of extra spaces and formatting normalization
 - **Error Recovery**: Graceful fallback to original content if sanitization fails
 - **Debug Support**: Comprehensive logging of sanitization actions for troubleshooting
 - **Transparent Operation**: Sanitization is automatic and invisible to users
