@@ -87,6 +87,7 @@ The Clipboard Monitor provides three different ways to access your clipboard his
 - **Content Preview**: Click any item to see full content in preview pane
 - **Copy to Clipboard**: Double-click or use button to copy items back to clipboard
 - **Delete Items**: Remove unwanted items from history
+- **Clear History**: Clear all clipboard history with confirmation dialog
 - **Keyboard Shortcuts**: Navigate and interact using keyboard
 - **Window Management**: Always appears on top with proper focus handling
 
@@ -95,6 +96,7 @@ The Clipboard Monitor provides three different ways to access your clipboard his
 - **Responsive Design**: Works on any screen size with modern styling
 - **Search and Filter**: Find specific items quickly
 - **Export Options**: Save history to various formats
+- **Clear History**: Clear all clipboard history with instructions for proper clearing
 - **Shareable**: Can be accessed from any device on the same network
 - **Auto-refresh**: Automatically updates when clipboard changes
 
@@ -103,6 +105,7 @@ The Clipboard Monitor provides three different ways to access your clipboard his
 - **Colorized Output**: Rich formatting with syntax highlighting
 - **Pagination**: Handle large histories efficiently
 - **Quick Actions**: Copy, delete, and search from terminal
+- **Clear History**: Clear all clipboard history with confirmation prompt
 - **Scriptable**: Can be integrated into shell scripts and automation
 - **Minimal Resource Usage**: Lightweight for server environments
 
@@ -142,6 +145,7 @@ The Clipboard Monitor includes a menu bar app that allows you to:
 - **Module Control**: Enable/disable specific modules
 - **Clipboard History**: Access clipboard history through multiple viewer options:
   - **Recent History**: Quick access to last 10 items in menu bar - click any item to copy to clipboard
+  - **Clear History**: Clear all clipboard history directly from menu bar or recent items menu
   - **GUI Viewer**: Native macOS interface with full functionality
   - **Web Viewer**: Browser-based interface with advanced features
   - **CLI Viewer**: Terminal-based interface for command-line users
@@ -265,6 +269,29 @@ The Clipboard Monitor includes a convenient pause/resume feature that allows you
 - Automatic cleanup when service stops
 - Thread-safe implementation with proper state management
 
+## 🗑️ Clear History Functionality
+
+The Clipboard Monitor provides multiple convenient ways to clear your clipboard history:
+
+### **Clear History Options**
+- **Menu Bar App**: Access through "View Clipboard History" → "🗑️ Clear History"
+- **Recent Items Menu**: Direct access from "Recent Clipboard Items" → "🗑️ Clear History"
+- **CLI Command**: Use `python3 cli_history_viewer.py clear` for terminal access
+- **Interactive CLI**: Type "clear" in interactive mode
+- **Web Viewer**: Click "🗑️ Clear History" button (shows instructions)
+
+### **Safety Features**
+- **Confirmation Dialogs**: All clear operations require user confirmation
+- **Item Count Display**: Shows how many items will be cleared
+- **Cannot Be Undone Warning**: Clear warning about irreversible action
+- **Automatic Menu Updates**: All interfaces refresh after clearing
+
+### **User Experience**
+- **Consistent Interface**: Same 🗑️ icon and behavior across all viewers
+- **Immediate Feedback**: Success notifications and visual confirmation
+- **Error Handling**: Graceful handling of file access issues
+- **Thread Safety**: Safe operation from any interface
+
 ## 🔔 Enhanced Notifications
 
 The application features a robust notification system with multiple fallback mechanisms:
@@ -369,6 +396,14 @@ The application includes a shared utilities module (`utils.py`) that provides co
 - **Input Validation**: Comprehensive validation for all user inputs and clipboard content
 - **Timeout Handling**: All subprocess operations include timeout protection
 - **Path Safety**: Secure file path handling with proper expansion and validation
+
+## Known Issues
+
+### RTF Content History Tracking
+- **Issue**: When Markdown is converted to RTF, the RTF content is correctly copied to the system clipboard and works when pasted into applications. However, the RTF content does not appear as an additional entry in this application's clipboard history viewers.
+- **Impact**: Users can successfully use RTF content by pasting, but cannot see it in the application's history.
+- **Workaround**: The original Markdown content remains visible in history, and RTF conversion works correctly for pasting purposes.
+- **Status**: Under investigation - multiple attempts to resolve this clipboard monitoring limitation have not been successful.
 
 ## Creating Custom Modules
 

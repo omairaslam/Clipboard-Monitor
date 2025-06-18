@@ -133,10 +133,15 @@ def create_html_viewer():
             padding: 40px;
             color: #666;
         }}
-        .refresh-btn {{
+        .action-buttons {{
             position: fixed;
             bottom: 20px;
             right: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 1000;
+        }}
+        .refresh-btn, .clear-btn {{
             background: #007AFF;
             color: white;
             border: none;
@@ -144,9 +149,18 @@ def create_html_viewer():
             border-radius: 25px;
             cursor: pointer;
             box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
         }}
-        .refresh-btn:hover {{
+        .refresh-btn:hover, .clear-btn:hover {{
             background: #0056CC;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }}
+        .clear-btn {{
+            background: #dc3545;
+        }}
+        .clear-btn:hover {{
+            background: #c82333;
         }}
         .instructions {{
             background: #E3F2FD;
@@ -159,6 +173,31 @@ def create_html_viewer():
         .instructions h4 {{
             margin: 0 0 10px 0;
             color: #1976D2;
+        }}
+        .rtf-content {{
+            background: #FFF3E0;
+            border: 1px solid #FFB74D;
+            border-radius: 6px;
+            padding: 12px;
+            margin: 8px 0;
+        }}
+        .rtf-content strong {{
+            color: #E65100;
+        }}
+        .rtf-content code {{
+            background: #F5F5F5;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 12px;
+            display: block;
+            margin: 8px 0;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }}
+        .rtf-content em {{
+            color: #FF6F00;
+            font-style: italic;
         }}
     </style>
 </head>
@@ -189,13 +228,27 @@ def create_html_viewer():
             try:
                 timestamp = datetime.datetime.fromtimestamp(item.get('timestamp', 0))
                 content = item.get('content', '').strip()
-                
+
+                # Detect content type
+                content_type = "text"
+                content_icon = "📄"
+                if content.startswith('{\\rtf') or (content.startswith('{') and 'deff0' in content and 'ttbl' in content):
+                    content_type = "rtf"
+                    content_icon = "🎨"
+                elif content.startswith(('http://', 'https://')):
+                    content_type = "url"
+                    content_icon = "🔗"
+
                 # Escape HTML characters
                 content_html = content.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
-                
-                # Truncate very long content for display
-                if len(content_html) > 2000:
-                    content_html = content_html[:2000] + "... (truncated)"
+
+                # Special handling for RTF content
+                if content_type == "rtf":
+                    content_html = f'<div class="rtf-content"><strong>🎨 RTF Content (converted from Markdown)</strong><br><code>{content_html}</code><br><em>💡 This RTF content will appear formatted when pasted into compatible applications.</em></div>'
+                else:
+                    # Truncate very long content for display
+                    if len(content_html) > 2000:
+                        content_html = content_html[:2000] + "... (truncated)"
                 
                 time_str = timestamp.strftime('%Y-%m-%d %H:%M:%S')
                 
@@ -224,8 +277,11 @@ def create_html_viewer():
     html_content += """
         </div>
     </div>
-    
-    <button class="refresh-btn" onclick="location.reload()">🔄 Refresh</button>
+
+    <div class="action-buttons">
+        <button class="refresh-btn" onclick="location.reload()">🔄 Refresh</button>
+        <button class="clear-btn" onclick="clearHistory()">🗑️ Clear History</button>
+    </div>
     
     <script>
         function copyToClipboard(itemIndex) {
@@ -317,6 +373,14 @@ def create_html_viewer():
         setTimeout(function() {
             location.reload();
         }, 30000);
+
+        function clearHistory() {
+            if (confirm('Are you sure you want to clear all clipboard history? This action cannot be undone.')) {
+                // Note: This is a web interface, so we can't directly clear the history file
+                // Instead, we'll show instructions to the user
+                alert('To clear history:\\n\\n1. Use the menu bar app: Click the clipboard icon → View Clipboard History → Clear History\\n2. Or use the terminal: Run "python3 cli_history_viewer.py clear"\\n\\nThen refresh this page.');
+            }
+        }
 
         // Add keyboard shortcuts
         document.addEventListener('keydown', function(e) {

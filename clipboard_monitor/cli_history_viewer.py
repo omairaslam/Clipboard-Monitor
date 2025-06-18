@@ -74,10 +74,14 @@ def display_history(history):
             time_str = timestamp.strftime('%m/%d %H:%M')
             colored_time = Colors.colorize(time_str, Colors.CYAN)
 
-            # Truncate content for list view
-            display_content = content[:70].replace('\n', ' ').replace('\r', ' ')
-            if len(content) > 70:
-                display_content += '...'
+            # Truncate content for list view with special handling for RTF
+            if content.startswith('{\\rtf') or (content.startswith('{') and 'deff0' in content and 'ttbl' in content):
+                # For RTF content, show a more user-friendly preview
+                display_content = "🎨 RTF Content (converted from Markdown)"
+            else:
+                display_content = content[:70].replace('\n', ' ').replace('\r', ' ')
+                if len(content) > 70:
+                    display_content += '...'
 
             # Color coding based on item age and type
             if i == 0:
@@ -133,6 +137,8 @@ def show_item_detail(history, item_num):
         content_type = "🔗 URL"
     elif content.startswith('file://'):
         content_type = "📁 File Path"
+    elif content.startswith('{\\rtf') or (content.startswith('{') and 'deff0' in content and 'ttbl' in content):
+        content_type = "🎨 RTF (Rich Text Format)"
     elif '\n' in content and len(content.split('\n')) > 3:
         content_type = "📝 Multi-line Text"
     elif any(keyword in content.lower() for keyword in ['password', 'token', 'key', 'secret']):
@@ -147,6 +153,12 @@ def show_item_detail(history, item_num):
         print(Colors.colorize(content, Colors.BLUE + Colors.UNDERLINE))
     elif content.startswith('file://'):
         print(Colors.colorize(content, Colors.MAGENTA))
+    elif content.startswith('{\\rtf') or (content.startswith('{') and 'deff0' in content and 'ttbl' in content):
+        # RTF content - show both raw and a note about conversion
+        print(Colors.colorize("Raw RTF Content:", Colors.YELLOW))
+        print(Colors.colorize(content, Colors.DIM))
+        print(Colors.colorize("\n💡 This is RTF (Rich Text Format) content, likely converted from Markdown.", Colors.CYAN))
+        print(Colors.colorize("   When pasted into applications that support RTF, it will appear formatted.", Colors.CYAN))
     else:
         print(Colors.colorize(content, Colors.WHITE))
 
@@ -192,6 +204,48 @@ def copy_item(history, item_num):
         print(Colors.colorize(error_msg, Colors.RED))
         return False
 
+def clear_history():
+    """Clear all clipboard history with confirmation"""
+    try:
+        # Load current history to show count
+        history = load_history()
+        if not history:
+            print(Colors.colorize("📭 No history to clear.", Colors.YELLOW))
+            return
+
+        # Show confirmation with colors
+        print(Colors.colorize(f"\n🗑️  CLEAR CLIPBOARD HISTORY", Colors.BOLD + Colors.RED))
+        print(Colors.colorize("═" * 50, Colors.RED))
+        print(Colors.colorize(f"📊 Current history: {len(history)} items", Colors.WHITE))
+        print(Colors.colorize("⚠️  This action cannot be undone!", Colors.YELLOW))
+
+        # Get confirmation
+        prompt = Colors.colorize("\n❓ Are you sure you want to clear all history? (y/N): ", Colors.CYAN)
+        response = input(prompt).strip().lower()
+
+        if response in ['y', 'yes']:
+            # Clear the history file
+            history_path = safe_expanduser("~/Library/Application Support/ClipboardMonitor/clipboard_history.json")
+
+            try:
+                with open(history_path, 'w') as f:
+                    json.dump([], f)
+
+                # Success message
+                print(Colors.colorize("\n✅ History cleared successfully!", Colors.GREEN))
+                print(Colors.colorize("📭 All clipboard history has been removed.", Colors.GREEN))
+                print(Colors.colorize("💡 Copy something to start tracking again.", Colors.CYAN))
+
+            except Exception as file_error:
+                error_msg = f"❌ Failed to clear history file: {file_error}"
+                print(Colors.colorize(error_msg, Colors.RED))
+        else:
+            print(Colors.colorize("\n🚫 Clear operation cancelled.", Colors.YELLOW))
+
+    except Exception as e:
+        error_msg = f"❌ Error during clear operation: {e}"
+        print(Colors.colorize(error_msg, Colors.RED))
+
 def interactive_mode():
     """Run interactive clipboard history manager with enhanced UI"""
     # Clear screen for better presentation
@@ -221,6 +275,7 @@ def interactive_mode():
             ("  d [number]", "Show detailed view", "(e.g., 'd 1')"),
             ("  r", "Refresh history manually", ""),
             ("  w", "Open web viewer", ""),
+            ("  clear", "Clear all history", ""),
             ("  c", "Clear screen", ""),
             ("  q", "Quit", "")
         ]
@@ -240,6 +295,10 @@ def interactive_mode():
             break
         elif choice == 'r':
             print(Colors.colorize("🔄 Refreshing history...", Colors.YELLOW))
+            continue
+        elif choice == 'clear':
+            clear_history()
+            input(Colors.colorize("\nPress Enter to continue...", Colors.DIM))
             continue
         elif choice == 'c':
             os.system('clear' if os.name == 'posix' else 'cls')
@@ -329,6 +388,8 @@ def main():
             except Exception as e:
                 error_msg = f"❌ Failed to open web viewer: {e}"
                 print(Colors.colorize(error_msg, Colors.RED))
+        elif command == 'clear':
+            clear_history()
         else:
             # Enhanced usage display with colors
             print(Colors.colorize("📋 Clipboard History Viewer - Usage:", Colors.BOLD + Colors.BLUE))
@@ -339,7 +400,8 @@ def main():
                 ("python3 cli_history_viewer.py list", "List all items", "📋"),
                 ("python3 cli_history_viewer.py copy [num]", "Copy item to clipboard", "📄"),
                 ("python3 cli_history_viewer.py show [num]", "Show item details", "🔍"),
-                ("python3 cli_history_viewer.py web", "Open web viewer", "🌐")
+                ("python3 cli_history_viewer.py web", "Open web viewer", "🌐"),
+                ("python3 cli_history_viewer.py clear", "Clear all history", "🗑️")
             ]
 
             for cmd, desc, icon in usage_items:

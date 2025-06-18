@@ -118,10 +118,18 @@ class ClipboardHistoryViewer:
                         time_str = timestamp.strftime('%m/%d %H:%M')
                         separator = "-" * 50
 
+                        # Detect content type for better display
+                        content_type = ""
+                        display_content = content
+                        if content.startswith('{\\rtf') or (content.startswith('{') and 'deff0' in content and 'ttbl' in content):
+                            content_type = " [🎨 RTF Content - converted from Markdown]"
+                            # Show a more user-friendly preview for RTF
+                            display_content = f"RTF Content (Rich Text Format)\n{content}\n\n💡 This RTF content will appear formatted when pasted into compatible applications."
+
                         # Add item
                         self.history_text.insert(tk.END, f"{separator}\n")
-                        self.history_text.insert(tk.END, f"[{i+1}] {time_str}\n")
-                        self.history_text.insert(tk.END, f"{content}\n")
+                        self.history_text.insert(tk.END, f"[{i+1}] {time_str}{content_type}\n")
+                        self.history_text.insert(tk.END, f"{display_content}\n")
                         self.history_text.insert(tk.END, f"{separator}\n\n")
 
                     except Exception as item_error:

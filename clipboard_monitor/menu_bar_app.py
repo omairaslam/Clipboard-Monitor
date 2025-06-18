@@ -118,6 +118,14 @@ class ClipboardMonitorMenuBar(rumps.App):
         cli_viewer_item.set_callback(self.open_cli_history_viewer)
         self.history_menu.add(cli_viewer_item)
 
+        # Add separator
+        self.history_menu.add(rumps.separator)
+
+        # Clear history option
+        clear_history_item = rumps.MenuItem("🗑️ Clear History")
+        clear_history_item.set_callback(self.clear_clipboard_history)
+        self.history_menu.add(clear_history_item)
+
         # Create recent history submenu
         self.recent_history_menu = rumps.MenuItem("Recent Clipboard Items")
         # Initialize with a loading message
@@ -1041,11 +1049,15 @@ read -n 1
                     if not content_stripped:
                         continue
 
-                    # Efficient cleanup and truncation in one pass
-                    if len(content_stripped) > 50:
-                        display_content = content_stripped[:50].replace('\n', ' ').replace('\r', ' ') + '...'
+                    # Detect RTF content for better display
+                    if content_stripped.startswith('{\\rtf') or (content_stripped.startswith('{') and 'deff0' in content_stripped and 'ttbl' in content_stripped):
+                        display_content = "🎨 RTF Content (from Markdown)"
                     else:
-                        display_content = content_stripped.replace('\n', ' ').replace('\r', ' ')
+                        # Efficient cleanup and truncation in one pass
+                        if len(content_stripped) > 50:
+                            display_content = content_stripped[:50].replace('\n', ' ').replace('\r', ' ') + '...'
+                        else:
+                            display_content = content_stripped.replace('\n', ' ').replace('\r', ' ')
 
                     # Fast timestamp formatting
                     timestamp = datetime.datetime.fromtimestamp(item.get('timestamp', 0))
@@ -1080,6 +1092,11 @@ read -n 1
             refresh_item = rumps.MenuItem("🔄 Refresh History")
             refresh_item.set_callback(self.refresh_history_menu)
             self.recent_history_menu.add(refresh_item)
+
+            # Add clear history option
+            clear_item = rumps.MenuItem("🗑️ Clear History")
+            clear_item.set_callback(self.clear_clipboard_history)
+            self.recent_history_menu.add(clear_item)
 
         except Exception as e:
             # Add error item safely
@@ -1127,6 +1144,38 @@ read -n 1
         """Refresh the history menu - called from menu click (already on main thread)"""
         self.update_recent_history_menu()
         rumps.notification("Clipboard Monitor", "History Refreshed", "Recent items menu updated")
+
+    def clear_clipboard_history(self, _):
+        """Clear all clipboard history with confirmation"""
+        try:
+            # Show confirmation dialog
+            response = rumps.alert(
+                title="Clear Clipboard History",
+                message="Are you sure you want to clear all clipboard history? This action cannot be undone.",
+                ok="Clear History",
+                cancel="Cancel"
+            )
+
+            if response == 1:  # OK clicked
+                # Get history file path
+                history_path = safe_expanduser("~/Library/Application Support/ClipboardMonitor/clipboard_history.json")
+
+                # Clear the history file by writing an empty array
+                try:
+                    with open(history_path, 'w') as f:
+                        json.dump([], f)
+
+                    # Update the recent history menu to reflect the cleared state
+                    self.update_recent_history_menu()
+
+                    # Show success notification
+                    rumps.notification("Clipboard Monitor", "History Cleared", "All clipboard history has been cleared.")
+
+                except Exception as file_error:
+                    rumps.notification("Error", "Failed to clear history", f"Could not clear history file: {str(file_error)}")
+
+        except Exception as e:
+            rumps.notification("Error", "Failed to clear history", str(e))
 
     def toggle_monitoring(self, sender):
         """Temporarily pause or resume clipboard monitoring without stopping the service"""

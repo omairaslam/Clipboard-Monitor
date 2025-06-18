@@ -602,15 +602,10 @@ cp com.omairaslam.clipboardmonitor.plist ~/Library/LaunchAgents/
 launchctl load ~/Library/LaunchAgents/com.omairaslam.clipboardmonitor.plist
 ```
 
-## Future Improvements
+## Known Issues
 
-The following improvements are planned for future releases:
-
-1. **GUI Configuration Editor**: A graphical interface for editing configuration
-2. **Cloud Synchronization**: Sync clipboard history across devices
-3. **Advanced Content Processing**: More specialized processing modules
-4. **Multi-Platform Support**: Windows and Linux compatibility
-5. **Mobile Companion App**: Access clipboard history from mobile devices
-6. **Encryption**: End-to-end encryption for sensitive clipboard content
-7. **Plugin Marketplace**: Community-contributed processing modules
-8. **Advanced Search**: Full-text search of clipboard history
+### RTF Content History Display
+- **Issue**: When Markdown is converted to RTF, the RTF content is correctly copied to the system clipboard and appears in other clipboard managers and when pasted into documents. However, the RTF content does not appear as an additional entry in this application's clipboard history (menu bar, CLI viewer, or web viewer).
+- **Impact**: Users can successfully use the RTF content by pasting it, but cannot see it in the application's history viewers.
+- **Workaround**: The original Markdown content remains visible in history, and the RTF conversion is successful for pasting purposes.
+- **Status**: Under investigation - multiple attempts to fix this issue have not resolved the underlying clipboard monitoring limitation.

@@ -167,6 +167,47 @@ class ClipboardMonitor:
             return "none"
         return hashlib.md5(str(content).encode()).hexdigest()
 
+    def _get_clipboard_content(self):
+        """Get clipboard content, trying multiple formats to capture RTF content."""
+        try:
+            # Try to get plain text first (most common case)
+            try:
+                text_content = subprocess.check_output(['pbpaste'],
+                                                     universal_newlines=True,
+                                                     timeout=2)
+                if text_content and text_content.strip():
+                    logger.debug("Found plain text content in clipboard")
+                    return text_content
+            except (subprocess.SubprocessError, subprocess.TimeoutExpired):
+                pass
+
+            # If no plain text, try RTF content
+            try:
+                rtf_content = subprocess.check_output(['pbpaste', '-Prefer', 'rtf'],
+                                                    universal_newlines=True,
+                                                    timeout=2)
+                if rtf_content and rtf_content.strip():
+                    logger.debug("Found RTF content in clipboard")
+                    return rtf_content
+            except (subprocess.SubprocessError, subprocess.TimeoutExpired):
+                pass
+
+            # Fallback to pyperclip
+            try:
+                pyperclip_content = pyperclip.paste()
+                if pyperclip_content and pyperclip_content.strip():
+                    logger.debug("Found content via pyperclip")
+                    return pyperclip_content
+            except pyperclip.PyperclipException:
+                pass
+
+            logger.debug("No clipboard content found")
+            return None
+
+        except Exception as e:
+            logger.error(f"Error getting clipboard content: {e}")
+            return None
+
     def process_clipboard(self, clipboard_content) -> bool:
         """Process clipboard content with memory optimization."""
         # Prevent processing extremely large content
@@ -201,6 +242,32 @@ class ClipboardMonitor:
                     if module.process(clipboard_content):
                         processed = True
                         logger.info(f"[cyan]Processed with module:[/cyan] {getattr(module, '__name__', 'unknown')}")
+
+                        # Check if clipboard content changed after processing
+                        try:
+                            import time
+                            time.sleep(0.1)  # Small delay to let clipboard settle
+                            new_clipboard_content = self._get_clipboard_content()
+
+                            # If content changed, process the new content with remaining modules
+                            if new_clipboard_content and new_clipboard_content != clipboard_content:
+                                logger.info("[cyan]Clipboard content changed after module processing, processing new content[/cyan]")
+
+                                # Process new content with remaining modules (excluding the one that just processed)
+                                remaining_modules = [m for m in self.modules if m != module]
+                                for remaining_module in remaining_modules:
+                                    try:
+                                        remaining_module.process(new_clipboard_content)
+                                    except Exception as e:
+                                        logger.error(f"[bold red]Error processing new content with module:[/bold red] {e}")
+
+                                # Update our tracking to the new content
+                                clipboard_content = new_clipboard_content
+                                self.last_processed_hash = self._get_content_hash(new_clipboard_content)
+
+                        except Exception as e:
+                            logger.error(f"[yellow]Error checking for clipboard changes after processing: {e}[/yellow]")
+
                 except Exception as e:
                     logger.error(f"[bold red]Error processing with module:[/bold red] {e}")
                     
@@ -267,12 +334,13 @@ if MACOS_ENHANCED:
                 self.last_change_count = current_change_count
 
                 try:
-                    current_clipboard_content = pyperclip.paste()
-                except pyperclip.PyperclipException as e:
-                    logger.error(f"[bold red]Error reading clipboard via pyperclip in timer handler:[/bold red] {e}")
-                    return
+                    # Try to get clipboard content, preferring text but also checking for RTF
+                    current_clipboard_content = self._get_clipboard_content()
+                    if current_clipboard_content is None:
+                        logger.debug("No clipboard content available")
+                        return
                 except Exception as e:
-                    logger.error(f"[bold red]Unexpected error reading clipboard in timer handler:[/bold red] {e}")
+                    logger.error(f"[bold red]Error reading clipboard in timer handler:[/bold red] {e}")
                     return
 
                 # Avoid processing if content hasn't actually changed
@@ -325,11 +393,52 @@ if MACOS_ENHANCED:
             self.last_processed_clipboard_content = None
             self.pasteboard = None
 
+        def _get_clipboard_content(self):
+            """Get clipboard content, trying multiple formats to capture RTF content."""
+            try:
+                # Try to get plain text first (most common case)
+                try:
+                    text_content = subprocess.check_output(['pbpaste'],
+                                                         universal_newlines=True,
+                                                         timeout=2)
+                    if text_content and text_content.strip():
+                        logger.debug("Found plain text content in clipboard")
+                        return text_content
+                except (subprocess.SubprocessError, subprocess.TimeoutExpired):
+                    pass
+
+                # If no plain text, try RTF content
+                try:
+                    rtf_content = subprocess.check_output(['pbpaste', '-Prefer', 'rtf'],
+                                                        universal_newlines=True,
+                                                        timeout=2)
+                    if rtf_content and rtf_content.strip():
+                        logger.debug("Found RTF content in clipboard")
+                        return rtf_content
+                except (subprocess.SubprocessError, subprocess.TimeoutExpired):
+                    pass
+
+                # Fallback to pyperclip
+                try:
+                    pyperclip_content = pyperclip.paste()
+                    if pyperclip_content and pyperclip_content.strip():
+                        logger.debug("Found content via pyperclip")
+                        return pyperclip_content
+                except pyperclip.PyperclipException:
+                    pass
+
+                logger.debug("No clipboard content found")
+                return None
+
+            except Exception as e:
+                logger.error(f"Error getting clipboard content: {e}")
+                return None
+
         def _get_system_idle_time(self):
             # Get system idle time in seconds
             try:
                 idle_secs = subprocess.check_output(
-                    ["/usr/sbin/ioreg", "-c", "IOHIDSystem"], 
+                    ["/usr/sbin/ioreg", "-c", "IOHIDSystem"],
                     universal_newlines=True
                 )
                 idle_match = re.search(r'"HIDIdleTime" = (\d+)', idle_secs)
@@ -358,15 +467,13 @@ def main():
         initial_clipboard_content = None
         try:
             # Get the initial clipboard content when the script starts.
-            initial_clipboard_content = pyperclip.paste()
+            initial_clipboard_content = monitor._get_clipboard_content()
             if initial_clipboard_content: # Only process if there's something initially
                 logger.info("Processing initial clipboard content (enhanced mode)...")
                 # Process this initial content once.
                 monitor.process_clipboard(initial_clipboard_content)
-        except pyperclip.PyperclipException as e:
-            logger.error(f"[bold red]Error reading initial clipboard content (enhanced):[/bold red] {e}")
         except Exception as e:
-            logger.error(f"[bold red]Error processing initial clipboard content (enhanced):[/bold red] {e}")
+            logger.error(f"[bold red]Error reading initial clipboard content (enhanced):[/bold red] {e}")
 
         try:
             app = NSApplication.sharedApplication() # Get a shared NSApplication instance
@@ -406,16 +513,14 @@ def main():
 
     try:
         # Process initial clipboard content for polling mode too
-        initial_clipboard_content = pyperclip.paste()
+        initial_clipboard_content = monitor._get_clipboard_content()
         if initial_clipboard_content:
             # Process the initial content once.
             logger.info("Processing initial clipboard content (polling)...")
             last_clipboard = initial_clipboard_content # Set for the first comparison
             monitor.process_clipboard(initial_clipboard_content)
-    except pyperclip.PyperclipException as e:
-        logger.error(f"[bold red]Error reading initial clipboard content (polling):[/bold red] {e}")
     except Exception as e:
-        logger.error(f"[bold red]Error processing initial clipboard content (polling):[/bold red] {e}")
+        logger.error(f"[bold red]Error reading initial clipboard content (polling):[/bold red] {e}")
 
     # Main polling loop.
     try:
@@ -428,9 +533,9 @@ def main():
                     time.sleep(1)
                     continue
                 
-                clipboard_content = pyperclip.paste()
+                clipboard_content = monitor._get_clipboard_content()
                 # If the current clipboard content is different from the last known content.
-                if clipboard_content != last_clipboard:
+                if clipboard_content and clipboard_content != last_clipboard:
                     last_clipboard = clipboard_content
                     monitor.process_clipboard(clipboard_content)
 

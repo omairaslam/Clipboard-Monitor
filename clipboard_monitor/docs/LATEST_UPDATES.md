@@ -1,6 +1,32 @@
 # Latest Updates - Clipboard Monitor (2025-06-18)
 
-## 🎯 **Recent Simplification (Current)**
+## 🗑️ **Clear History & RTF Features (Current)**
+
+### **Comprehensive Clear History Implementation**
+Added clear history functionality across all interfaces for consistent user experience:
+
+#### **Clear History Features**
+- ✅ **Menu Bar Integration**: Available in both "View Clipboard History" and "Recent Clipboard Items" menus
+- ✅ **CLI Command**: `python3 cli_history_viewer.py clear` with colorized confirmation
+- ✅ **Interactive CLI**: Type "clear" in interactive mode with rich formatting
+- ✅ **Web Viewer**: Clear history button with user instructions
+- ✅ **Safety Features**: Confirmation dialogs, item count display, "cannot be undone" warnings
+
+#### **RTF Content Display Enhancement**
+Improved RTF content handling in clipboard history viewers:
+
+- ✅ **RTF Detection**: Proper identification of RTF content across all viewers when RTF is present
+- ✅ **User-Friendly Labels**: Shows "🎨 RTF Content (converted from Markdown)" instead of raw RTF codes
+- ⚠️ **Known Issue**: RTF content from markdown conversion does not appear in application history
+- ✅ **Consistent Display**: Same RTF handling across CLI, web, and menu bar interfaces when RTF is detected
+
+#### **Technical Implementation**
+- **Atomic Clear Operations**: Safe file operations with error handling
+- **Thread-Safe Updates**: Proper menu refresh after clearing
+- **RTF Detection Improvements**: Enhanced RTF content identification when present in history
+- **Consistent UI**: Same 🗑️ icon and behavior across all interfaces
+
+## 🎯 **Recent Simplification**
 
 ### **Popup Preview Feature Removed**
 Based on user feedback prioritizing simplicity and reliability, the clipboard content preview popup functionality has been completely removed:
@@ -245,12 +271,10 @@ All improvements maintain **100% backward compatibility**:
 3. **Test functionality** with various content types
 4. **Enjoy improved performance** and reliability
 
-### **Future Enhancements**
-1. **Advanced Content Analysis**: Machine learning integration
-2. **Cloud Synchronization**: Cross-device clipboard sharing
-3. **Enhanced Security**: Encryption for sensitive content
-4. **Performance Analytics**: Detailed usage metrics
-5. **Plugin Marketplace**: Community-contributed modules
+### **Known Issues**
+1. **RTF History Tracking**: RTF content from markdown conversion does not appear in application history viewers
+2. **Clipboard Monitoring Limitations**: Some clipboard content types may not trigger change detection
+3. **System Integration**: Behavior may vary across different macOS versions
 
 ## 🏆 **Success Metrics**
 

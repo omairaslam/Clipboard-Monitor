@@ -66,10 +66,11 @@ def process(clipboard_content) -> bool:
                         _content_tracker.add_content(clipboard_content)
 
                         # Use pbcopy to set RTF content directly (macOS specific)
+                        # pbcopy automatically detects RTF if content starts with RTF header
                         logger.info("[bold blue]ATTEMPTING TO USE PBCOPY METHOD FOR RTF CLIPBOARD HANDLING[/bold blue]")
                         try:
                             subprocess.run(
-                                ['pbcopy', '-Prefer', 'rtf'],
+                                ['pbcopy'],
                                 input=rtf_text.encode('utf-8'),
                                 check=True,
                                 timeout=5
@@ -77,6 +78,22 @@ def process(clipboard_content) -> bool:
                             logger.info("[green]SUCCESS: Used pbcopy for RTF clipboard handling[/green]")
                             logger.info("[green]Converted to RTF and copied to clipboard![/green]")
                             show_notification("Markdown Converted", "Rich text copied to clipboard!")
+
+                            # Manually add RTF content to history since clipboard monitoring might not detect RTF-only content
+                            try:
+                                import importlib.util
+                                import os
+                                history_module_path = os.path.join(os.path.dirname(__file__), 'history_module.py')
+                                spec = importlib.util.spec_from_file_location("history_module", history_module_path)
+                                history_module = importlib.util.module_from_spec(spec)
+                                spec.loader.exec_module(history_module)
+
+                                logger.info("[cyan]Manually adding RTF content to history...[/cyan]")
+                                history_module.add_to_history(rtf_text)
+                                logger.info("[green]RTF content added to history successfully![/green]")
+                            except Exception as history_error:
+                                logger.error(f"[yellow]Failed to add RTF content to history: {history_error}[/yellow]")
+
                             return True  # Indicate that content was processed
                         except subprocess.SubprocessError as e:
                             logger.error(f"[bold red]Error using pbcopy for RTF:[/bold red] {e}")
@@ -84,6 +101,22 @@ def process(clipboard_content) -> bool:
                             logger.info("[yellow]FALLING BACK TO PYPERCLIP METHOD FOR RTF CLIPBOARD HANDLING[/yellow]")
                             pyperclip.copy(rtf_text)
                             logger.info("[yellow]Used pyperclip fallback for RTF copy[/yellow]")
+
+                            # Manually add RTF content to history for fallback method too
+                            try:
+                                import importlib.util
+                                import os
+                                history_module_path = os.path.join(os.path.dirname(__file__), 'history_module.py')
+                                spec = importlib.util.spec_from_file_location("history_module", history_module_path)
+                                history_module = importlib.util.module_from_spec(spec)
+                                spec.loader.exec_module(history_module)
+
+                                logger.info("[cyan]Manually adding RTF content to history (fallback)...[/cyan]")
+                                history_module.add_to_history(rtf_text)
+                                logger.info("[green]RTF content added to history successfully (fallback)![/green]")
+                            except Exception as history_error:
+                                logger.error(f"[yellow]Failed to add RTF content to history (fallback): {history_error}[/yellow]")
+
                             return True
 
                     except pyperclip.PyperclipException as e:
