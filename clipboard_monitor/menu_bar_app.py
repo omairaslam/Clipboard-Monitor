@@ -901,47 +901,47 @@ class ClipboardMonitorMenuBar(rumps.App):
                 # Create pause flag file
                 with open(pause_flag_path, 'w') as f:
                     f.write("paused")
-            
-            sender.title = "Resume Monitoring"
-            self.status_item.title = "Status: Paused"
-            
-            # Show notification using direct AppleScript
-            self.show_mac_notification(
-                "Clipboard Monitor", 
-                "Monitoring Paused", 
-                "Clipboard monitoring has been temporarily paused."
-            )
-            
-            # Also try the rumps notification as backup
-            rumps.notification(
-                "Clipboard Monitor", 
-                "Monitoring Paused", 
-                "Clipboard monitoring has been temporarily paused."
-            )
-        else:
-            # Remove pause flag file
-            if os.path.exists(pause_flag_path):
-                os.remove(pause_flag_path)
-            
-            sender.title = "Pause Monitoring"
-            self.status_item.title = "Status: Running"
-            
-            # Show notification using direct AppleScript
-            self.show_mac_notification(
-                "Clipboard Monitor", 
-                "Monitoring Resumed", 
-                "Clipboard monitoring has been resumed."
-            )
-            
-            # Also try the rumps notification as backup
-            rumps.notification(
-                "Clipboard Monitor", 
-                "Monitoring Resumed", 
-                "Clipboard monitoring has been resumed."
-            )
-            
-            # Update status after a short delay to get accurate status
-            threading.Timer(1.0, self.update_status).start()
+
+                sender.title = "Resume Monitoring"
+                self.status_item.title = "Status: Paused"
+
+                # Show notification using direct AppleScript
+                self.show_mac_notification(
+                    "Clipboard Monitor",
+                    "Monitoring Paused",
+                    "Clipboard monitoring has been temporarily paused."
+                )
+
+                # Also try the rumps notification as backup
+                rumps.notification(
+                    "Clipboard Monitor",
+                    "Monitoring Paused",
+                    "Clipboard monitoring has been temporarily paused."
+                )
+            else:
+                # Remove pause flag file
+                if os.path.exists(pause_flag_path):
+                    os.remove(pause_flag_path)
+
+                sender.title = "Pause Monitoring"
+                self.status_item.title = "Status: Running"
+
+                # Show notification using direct AppleScript
+                self.show_mac_notification(
+                    "Clipboard Monitor",
+                    "Monitoring Resumed",
+                    "Clipboard monitoring has been resumed."
+                )
+
+                # Also try the rumps notification as backup
+                rumps.notification(
+                    "Clipboard Monitor",
+                    "Monitoring Resumed",
+                    "Clipboard monitoring has been resumed."
+                )
+
+                # Update status after a short delay to get accurate status
+                threading.Timer(1.0, self.update_status).start()
         
         except Exception as e:
             # Try to show error notification

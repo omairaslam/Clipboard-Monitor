@@ -217,6 +217,24 @@ This document provides a detailed analysis of bugs identified and fixed in the c
   - Reliable copy-to-clipboard and delete operations
   - Configuration-aware history file location
 
+### 15. **Menu Bar App Syntax Error**
+- **Issue**: Syntax error in menu_bar_app.py at line 921 preventing the application from running, caused by:
+  1. Missing indentation in the `else` block of the toggle_monitoring function
+  2. Incorrect code block structure in the pause/resume functionality
+  3. Misaligned indentation levels causing Python syntax errors
+  4. Application failing to start due to compilation errors
+- **Fix**:
+  - Fixed indentation in the `else` block of the toggle_monitoring function
+  - Properly aligned all code within the if/else structure
+  - Ensured consistent 4-space indentation throughout the function
+  - Verified syntax correctness with py_compile
+  - Tested import functionality to ensure no remaining syntax issues
+- **Result**:
+  - Menu bar application now starts without syntax errors
+  - Pause/resume monitoring functionality works correctly
+  - All Python files compile successfully
+  - Application can be imported and run without issues
+
 ### 10. **Enhanced Monitoring Issues**
 - **Issue**: Enhanced monitoring using pyobjc was failing with import errors, leading to:
   1. Fallback to less efficient polling mode

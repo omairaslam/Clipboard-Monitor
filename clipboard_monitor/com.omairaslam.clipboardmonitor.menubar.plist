@@ -20,10 +20,10 @@
     <true/>
 
     <key>StandardOutPath</key>
-    <string>~/Library/Logs/ClipboardMonitorMenuBar.out.log</string>
+    <string>/Users/omair.aslam/Library/Logs/ClipboardMonitorMenuBar.out.log</string>
 
     <key>StandardErrorPath</key>
-    <string>~/Library/Logs/ClipboardMonitorMenuBar.err.log</string>
+    <string>/Users/omair.aslam/Library/Logs/ClipboardMonitorMenuBar.err.log</string>
 
     <key>WorkingDirectory</key>
     <string>/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/clipboard_monitor/</string>
