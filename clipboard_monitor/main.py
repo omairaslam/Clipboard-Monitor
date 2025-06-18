@@ -7,7 +7,7 @@ import logging
 import time
 import pyperclip # Cross-platform clipboard library
 import threading
-from utils import show_notification
+from utils import show_notification, safe_expanduser
 import json
 import subprocess
 import re
@@ -137,7 +137,7 @@ class ClipboardMonitor:
 
     def _load_module_config(self):
         """Load module configuration from a file."""
-        config_path = os.path.expanduser('~/Library/Application Support/ClipboardMonitor/modules_config.json')
+        config_path = safe_expanduser('~/Library/Application Support/ClipboardMonitor/modules_config.json')
         if os.path.exists(config_path):
             with open(config_path, 'r') as f:
                 return json.load(f)
@@ -424,7 +424,7 @@ def main():
         while True:
             try:
                 # Check for pause flag
-                pause_flag_path = os.path.expanduser("~/Library/Application Support/ClipboardMonitor/pause_flag")
+                pause_flag_path = safe_expanduser("~/Library/Application Support/ClipboardMonitor/pause_flag")
                 if os.path.exists(pause_flag_path):
                     # Service is paused, just sleep and continue
                     time.sleep(1)

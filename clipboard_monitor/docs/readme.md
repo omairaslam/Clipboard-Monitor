@@ -7,15 +7,18 @@ A Python script that monitors the macOS clipboard for changes and processes them
 - **Enhanced Clipboard Monitoring**: Uses native macOS APIs for efficient clipboard change detection
 - **Modular Plugin System**: Process clipboard content through specialized modules with robust error handling
 - **Menu Bar Application**: Control the service and access features through a convenient menu bar icon with comprehensive configuration options
-- **Clipboard History**: Track and browse your clipboard history with deduplication
+- **Multiple History Viewers**: Access clipboard history through GUI, web browser, or command-line interfaces
+- **Clipboard History**: Track and browse your clipboard history with deduplication and configurable limits
 - **Markdown Processing**: Automatically convert markdown to rich text with comprehensive formatting support
 - **Mermaid Diagram Detection**: Open Mermaid diagrams in the Mermaid Live Editor with multiple diagram types
-- **Code Formatting**: Automatically format code snippets with language detection
+- **Code Formatting**: Automatically format code snippets with language detection (read-only by default)
 - **Thread Safety**: Prevent race conditions and processing loops with advanced content tracking
 - **Loop Prevention**: Intelligent content hashing to prevent infinite processing cycles
 - **Robust Error Handling**: Comprehensive exception handling with graceful degradation
 - **Security Features**: Input validation and AppleScript injection prevention
-- **Configurable Settings**: Customize behavior with flexible configuration options
+- **Path Safety**: Secure tilde expansion with fallback mechanisms for all file operations
+- **Shared Utilities**: Centralized utility functions for notifications, validation, and content tracking
+- **Configurable Settings**: Customize behavior with flexible configuration options through menu bar or config file
 - **Performance Optimized**: Efficient polling with consecutive error tracking and automatic recovery
 
 ## Installation
@@ -74,6 +77,35 @@ Tracks clipboard history with timestamps and content hashing for deduplication. 
 ### Code Formatter Module
 Detects and formats code snippets using language-specific formatters. **Read-only by default** - only detects and notifies, doesn't modify clipboard unless explicitly enabled.
 
+## History Viewers
+
+The Clipboard Monitor provides three different ways to access your clipboard history:
+
+### GUI History Viewer (`history_viewer.py`)
+- **Native macOS Interface**: Clean, native Tkinter-based GUI
+- **Real-time Updates**: Automatically refreshes when new items are added
+- **Content Preview**: Click any item to see full content in preview pane
+- **Copy to Clipboard**: Double-click or use button to copy items back to clipboard
+- **Delete Items**: Remove unwanted items from history
+- **Keyboard Shortcuts**: Navigate and interact using keyboard
+- **Window Management**: Always appears on top with proper focus handling
+
+### Web History Viewer (`web_history_viewer.py`)
+- **Browser-based Interface**: Opens in your default web browser
+- **Responsive Design**: Works on any screen size with modern styling
+- **Search and Filter**: Find specific items quickly
+- **Export Options**: Save history to various formats
+- **Shareable**: Can be accessed from any device on the same network
+- **Auto-refresh**: Automatically updates when clipboard changes
+
+### CLI History Viewer (`cli_history_viewer.py`)
+- **Terminal Interface**: Perfect for command-line workflows
+- **Colorized Output**: Rich formatting with syntax highlighting
+- **Pagination**: Handle large histories efficiently
+- **Quick Actions**: Copy, delete, and search from terminal
+- **Scriptable**: Can be integrated into shell scripts and automation
+- **Minimal Resource Usage**: Lightweight for server environments
+
 ## 🛡️ Clipboard Safety
 
 **Your clipboard content is protected!** The Clipboard Monitor follows strict safety principles:
@@ -108,7 +140,11 @@ The Clipboard Monitor includes a menu bar app that allows you to:
 - **Pause/Resume**: Temporarily pause monitoring without stopping the service
 - **Log Management**: View output and error logs, clear logs
 - **Module Control**: Enable/disable specific modules
-- **Clipboard History**: Access clipboard history
+- **Clipboard History**: Access clipboard history through multiple viewer options:
+  - **Recent History**: Quick access to last 10 items in menu bar
+  - **GUI Viewer**: Native macOS interface with full functionality
+  - **Web Viewer**: Browser-based interface with advanced features
+  - **CLI Viewer**: Terminal-based interface for command-line users
 - **Configuration**: Configure all application settings through user-friendly interface
 - **Enhanced Notifications**: Reliable notification system with AppleScript integration
 
@@ -167,6 +203,7 @@ You can also manually edit the `config.json` file:
   "general": {
     "polling_interval": 1.0,
     "enhanced_check_interval": 0.1,
+    "idle_check_interval": 1.0,
     "notification_title": "Clipboard Monitor",
     "debug_mode": false
   },
@@ -302,12 +339,31 @@ python3 -m pip install --user -r requirements.txt
 - Check the logs for any errors related to the module
 - Try running the module directly for testing
 
-### History Viewer Appears Blank
-- Verify the history file exists: `~/Library/Application Support/ClipboardMonitor/clipboard_history.json`
-- Check if the clipboard monitor service is running and tracking history
-- Try refreshing the history viewer using the "Refresh" button
-- Ensure the history module is enabled in the configuration
-- Check the error logs for any history-related issues
+### History Viewer Issues
+- **Blank Display**: Verify the history file exists at `~/Library/Application Support/ClipboardMonitor/clipboard_history.json`
+- **GUI Viewer Not Opening**: Check if Tkinter is properly installed: `python3 -m tkinter`
+- **Web Viewer Not Loading**: Ensure no other service is using port 8000, or try a different port
+- **CLI Viewer Errors**: Verify the Rich library is installed: `pip3 list | grep rich`
+- **History Not Updating**: Ensure the history module is enabled in configuration
+- **Path Expansion Issues**: Check that the `utils.py` module is properly imported and `safe_expanduser` is being used
+
+## Shared Utilities
+
+The application includes a shared utilities module (`utils.py`) that provides common functionality:
+
+### Key Utilities
+- **`show_notification(title, message)`**: Secure notification system with AppleScript injection prevention
+- **`validate_string_input(value, name)`**: Input validation for all clipboard content
+- **`safe_expanduser(path)`**: Secure tilde expansion with fallback mechanisms
+- **`safe_subprocess_run(cmd, timeout=30)`**: Safe subprocess execution with timeout handling
+- **`ContentTracker(max_history=10)`**: Content tracking to prevent processing loops
+- **`ensure_directory_exists(path)`**: Safe directory creation with proper error handling
+
+### Security Features
+- **AppleScript Injection Prevention**: All notifications are sanitized to prevent code injection
+- **Input Validation**: Comprehensive validation for all user inputs and clipboard content
+- **Timeout Handling**: All subprocess operations include timeout protection
+- **Path Safety**: Secure file path handling with proper expansion and validation
 
 ## Creating Custom Modules
 

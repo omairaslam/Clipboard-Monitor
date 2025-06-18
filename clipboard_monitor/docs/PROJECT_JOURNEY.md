@@ -936,12 +936,94 @@ def show_mac_notification(self, title, subtitle, message):
 - Provide automation tools and clear documentation
 - Ensure user can maintain and extend the solution independently
 
+## Recent Developments (June 2025)
+
+### 🔧 **Critical Path Expansion Fix**
+
+#### **Issue Discovery**
+During routine testing, a critical issue was discovered with file path handling when running as a macOS LaunchAgent:
+
+**Problem**: The `HOME` environment variable was undefined in LaunchAgent context, causing `os.path.expanduser("~/path")` to return literal `~/path` instead of expanded paths.
+
+**Impact**:
+- History saving failed silently
+- Configuration loading errors
+- Log file creation issues
+- Inconsistent behavior between interactive and service modes
+
+#### **Solution Implementation**
+Created a comprehensive `safe_expanduser()` utility function with multiple fallback mechanisms:
+
+```python
+def safe_expanduser(path):
+    """Safely expand user path with fallback mechanisms"""
+    try:
+        expanded = os.path.expanduser(path)
+        if expanded.startswith('~'):
+            # Fallback: construct path manually
+            home_dir = os.environ.get('HOME') or str(Path.home())
+            expanded = path.replace('~', home_dir, 1)
+        return expanded
+    except Exception:
+        # Ultimate fallback
+        return path.replace('~', '/Users/' + os.getlogin(), 1)
+```
+
+#### **Comprehensive Updates**
+- ✅ **14 file path references** updated across all components
+- ✅ **LaunchAgent plist files** updated with explicit HOME environment variable
+- ✅ **Comprehensive testing** with unit tests and integration tests
+- ✅ **Documentation** updated with troubleshooting guides
+
+### 🖥️ **Multiple History Viewer Interfaces**
+
+#### **GUI History Viewer Enhancement**
+- **Fixed blank display issue**: Corrected list ordering and index calculations
+- **Improved user experience**: Always-on-top windows with proper focus
+- **Enhanced functionality**: Preview pane, copy operations, delete capabilities
+
+#### **New Web History Viewer**
+- **Browser-based interface**: Modern HTML/CSS/JavaScript implementation
+- **Responsive design**: Works on any screen size
+- **Advanced features**: Search, filter, export, auto-refresh
+- **Network accessibility**: Can be accessed from other devices
+
+#### **New CLI History Viewer**
+- **Terminal interface**: Perfect for command-line workflows
+- **Rich formatting**: Colorized output with syntax highlighting
+- **Efficient navigation**: Pagination and search capabilities
+- **Automation friendly**: Scriptable for integration workflows
+
+### 🛠️ **Enhanced Shared Utilities**
+
+#### **New Utility Functions**
+- **`safe_expanduser()`**: Secure path expansion with fallbacks
+- **`ensure_directory_exists()`**: Safe directory creation
+- **`safe_subprocess_run()`**: Timeout-protected subprocess execution
+- **Enhanced `ContentTracker`**: Improved loop prevention
+- **Enhanced `validate_string_input()`**: Comprehensive input validation
+
+#### **Security Improvements**
+- **AppleScript injection prevention**: All notifications sanitized
+- **Input validation**: Comprehensive validation for all inputs
+- **Timeout protection**: All subprocess operations protected
+- **Error recovery**: Graceful fallback mechanisms
+
+### 📚 **Documentation Organization**
+
+#### **Documentation Structure**
+- **Moved to `docs/` folder**: Organized all documentation files
+- **Updated cross-references**: All internal links updated
+- **Enhanced content**: Added recent changes and improvements
+- **Comprehensive guides**: Installation, troubleshooting, development
+
 ---
 
-**Project Status**: ✅ Successfully Enhanced
-**Monitoring Mode**: Enhanced (pyobjc-based)
+**Project Status**: ✅ Successfully Enhanced & Secured
+**Monitoring Mode**: Enhanced (pyobjc-based) with path safety
 **Performance**: 10x improvement in responsiveness
-**Reliability**: Significantly improved with modern APIs
-**Documentation**: Comprehensive with quick reference guides
+**Reliability**: Significantly improved with modern APIs and secure path handling
+**Documentation**: Comprehensive with organized structure in `docs/` folder
 **Maintainability**: High, with automation scripts and clear processes
-**New Features**: Clipboard history, code formatting, configurable settings
+**New Features**: Multiple history viewers, enhanced utilities, secure path handling
+**Security**: Hardened with input validation and injection prevention

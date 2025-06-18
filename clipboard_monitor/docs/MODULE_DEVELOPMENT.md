@@ -1,6 +1,6 @@
 # Module Development Guide
 
-This guide explains how to create custom modules for the Clipboard Monitor application.
+This guide explains how to create custom modules for the Clipboard Monitor application. The module system has been enhanced with shared utilities, improved security, and comprehensive safety guidelines.
 
 ## Module Structure
 
@@ -40,6 +40,29 @@ The `process` function should:
 4. Valid modules are added to the processing pipeline
 5. Invalid modules are logged and skipped
 
+## Shared Utilities
+
+The application provides a comprehensive `utils.py` module with essential utilities for module development:
+
+### Available Utilities
+
+```python
+from utils import (
+    show_notification,           # Secure notification system
+    validate_string_input,       # Input validation
+    safe_expanduser,            # Secure path expansion
+    safe_subprocess_run,        # Safe subprocess execution
+    ContentTracker,             # Loop prevention
+    ensure_directory_exists     # Safe directory creation
+)
+```
+
+### Key Features
+- **Security Hardened**: All utilities include security measures and input validation
+- **Thread Safe**: Proper locking and synchronization for concurrent operations
+- **Error Resilient**: Comprehensive error handling with graceful degradation
+- **Performance Optimized**: Efficient implementations with minimal overhead
+
 ## Best Practices
 
 ### Thread Safety
@@ -73,17 +96,17 @@ def process(clipboard_content) -> bool:
     # Check if content was recently processed
     if _content_tracker.has_processed(clipboard_content):
         return False
-        
+
     # Process content
     # ...
-    
+
     # Track this content to prevent reprocessing
     _content_tracker.add_content(clipboard_content)
 ```
 
 ### Input Validation
 
-Always validate input:
+Always validate input using the shared utility:
 
 ```python
 from utils import validate_string_input
@@ -92,9 +115,29 @@ def process(clipboard_content) -> bool:
     # Validate input
     if not validate_string_input(clipboard_content, "clipboard_content"):
         return False
-        
+
     # Process content
     # ...
+```
+
+### Path Handling
+
+Use secure path expansion for all file operations:
+
+```python
+from utils import safe_expanduser, ensure_directory_exists
+
+def save_data(data, filename):
+    # Secure path expansion
+    file_path = safe_expanduser(f"~/Library/Application Support/ClipboardMonitor/{filename}")
+
+    # Ensure directory exists
+    directory = os.path.dirname(file_path)
+    ensure_directory_exists(directory)
+
+    # Save data
+    with open(file_path, 'w') as f:
+        f.write(data)
 ```
 
 ### Content Sanitization
@@ -334,9 +377,10 @@ Here's a complete example module that processes text by converting it to upperca
 ```python
 import threading
 import logging
+import json
+import os
 from rich.console import Console
 import sys
-import os
 
 # Add parent directory to path to import utils
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -350,9 +394,21 @@ logger = logging.getLogger("uppercase_module")
 _content_tracker = ContentTracker(max_history=5)
 _processing_lock = threading.Lock()
 
+def load_module_config():
+    """Load module configuration from config.json"""
+    try:
+        config_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'config.json')
+        if os.path.exists(config_path):
+            with open(config_path, 'r') as f:
+                config = json.load(f)
+                return config.get('modules', {})
+    except Exception as e:
+        logger.error(f"Error loading module config: {e}")
+    return {}
+
 def process(clipboard_content) -> bool:
-    """Convert clipboard text to uppercase"""
-    
+    """Convert clipboard text to uppercase (with safety controls)"""
+
     # Prevent concurrent processing and loops
     with _processing_lock:
         # Safety check for None or empty content
@@ -365,29 +421,40 @@ def process(clipboard_content) -> bool:
             return False
 
         try:
+            # Check if clipboard modification is enabled for this module
+            module_config = load_module_config()
+            modify_clipboard = module_config.get('uppercase_modify_clipboard', False)  # Default to read-only
+
             # Convert to uppercase
             uppercase_text = clipboard_content.upper()
-            
+
             # Only process if the content actually changed
             if uppercase_text != clipboard_content:
-                logger.info("[cyan]Converting text to uppercase...[/cyan]")
-                show_notification("Text Conversion", "Converting text to uppercase...")
-                
                 # Track this content to prevent reprocessing
                 _content_tracker.add_content(clipboard_content)
-                
-                # Copy uppercase text back to clipboard
-                import pyperclip
-                pyperclip.copy(uppercase_text)
-                
-                logger.info("[green]Text converted to uppercase and copied to clipboard![/green]")
-                show_notification("Text Converted", "Uppercase text copied to clipboard!")
-                return True  # Indicate that content was processed
-            
+
+                if modify_clipboard:
+                    # Modification mode: actually change clipboard
+                    logger.info("[cyan]Converting text to uppercase...[/cyan]")
+                    show_notification("Text Conversion", "Converting text to uppercase...")
+
+                    # Copy uppercase text back to clipboard
+                    import pyperclip
+                    pyperclip.copy(uppercase_text)
+
+                    logger.info("[green]Text converted to uppercase and copied to clipboard![/green]")
+                    show_notification("Text Converted", "Uppercase text copied to clipboard!")
+                    return True  # Indicate that content was processed
+                else:
+                    # Read-only mode: detect and notify only
+                    logger.info("[cyan]Uppercase conversion available (read-only mode)[/cyan]")
+                    show_notification("Text Detected", "Uppercase conversion available (read-only mode)")
+                    return False  # Don't modify clipboard
+
             return False  # Content didn't change
-            
+
         except Exception as e:
-            logger.error(f"[bold red]Error converting text to uppercase:[/bold red] {e}")
+            logger.error(f"[bold red]Error processing text:[/bold red] {e}")
             return False
 ```
 

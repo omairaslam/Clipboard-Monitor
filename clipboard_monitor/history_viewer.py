@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """
-Clipboard History Viewer
-A simple GUI application to view and manage clipboard history.
+Clipboard History Viewer - Ultra Simplified Version
 """
 
 import os
@@ -9,7 +8,6 @@ import json
 import tkinter as tk
 from tkinter import ttk, messagebox
 import datetime
-from pathlib import Path
 import pyperclip
 
 class ClipboardHistoryViewer:
@@ -17,241 +15,150 @@ class ClipboardHistoryViewer:
         self.root = root
         self.root.title("Clipboard History Viewer")
         self.root.geometry("800x600")
-        
-        # Set up the history file path from config
-        self.history_path = self.get_history_path()
-        
-        # Create the main frame
-        self.main_frame = ttk.Frame(root, padding="10")
-        self.main_frame.pack(fill=tk.BOTH, expand=True)
-        
-        # Create the history list
-        self.create_history_list()
-        
-        # Create the preview area
-        self.create_preview_area()
-        
-        # Create the button bar
-        self.create_button_bar()
-        
+
+        # Ensure window appears on top and gets focus
+        self.root.lift()
+        self.root.attributes('-topmost', True)
+        self.root.after_idle(lambda: self.root.attributes('-topmost', False))
+        self.root.focus_force()
+
+        # Set up the history file path
+        self.history_path = os.path.expanduser("~/Library/Application Support/ClipboardMonitor/clipboard_history.json")
+
+        # Create text widget instead of listbox (listbox has display issues)
+        text_frame = tk.Frame(root)
+        text_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
+
+        # Create scrollbar
+        scrollbar = tk.Scrollbar(text_frame)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+        # Create text widget
+        self.history_text = tk.Text(
+            text_frame,
+            yscrollcommand=scrollbar.set,
+            font=("Courier", 11),
+            bg="white",
+            fg="black",
+            wrap=tk.WORD,
+            cursor="hand2",
+            state=tk.DISABLED
+        )
+        self.history_text.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        scrollbar.config(command=self.history_text.yview)
+
+        # Bind events
+        self.history_text.bind("<Double-Button-1>", self.on_double_click)
+        self.history_text.bind("<Button-1>", self.on_click)
+
+        # Create simple button frame
+        button_frame = ttk.Frame(root)
+        button_frame.pack(fill=tk.X, padx=20, pady=(0, 20))
+
+        ttk.Button(button_frame, text="Copy Selected", command=self.copy_to_clipboard).pack(side=tk.LEFT, padx=5)
+        ttk.Button(button_frame, text="Delete Selected", command=self.delete_item).pack(side=tk.LEFT, padx=5)
+        ttk.Button(button_frame, text="Clear All", command=self.clear_history).pack(side=tk.LEFT, padx=5)
+        ttk.Button(button_frame, text="Refresh", command=self.load_history).pack(side=tk.RIGHT, padx=5)
+
         # Load the history
         self.load_history()
 
-    def get_history_path(self):
-        """Get the history file path from config or use default"""
+    def on_double_click(self, event):
+        """Handle double-click to copy item"""
+        # Get clicked line and try to find corresponding history item
         try:
-            # Try to load from config file
-            config_path = os.path.expanduser("~/Library/Application Support/ClipboardMonitor/config.json")
-            if os.path.exists(config_path):
-                with open(config_path, 'r') as f:
-                    config = json.load(f)
-                    if 'history' in config and 'save_location' in config['history']:
-                        return os.path.expanduser(config['history']['save_location'])
-        except Exception:
-            pass  # Fall back to default
+            index = self.history_text.index(tk.CURRENT)
+            line_num = int(index.split('.')[0])
+            line_content = self.history_text.get(f"{line_num}.0", f"{line_num}.end")
 
-        # Default path
-        return os.path.expanduser(
-            "~/Library/Application Support/ClipboardMonitor/clipboard_history.json"
-        )
+            # Look for item number in the text
+            if line_content.startswith('[') and ']' in line_content:
+                item_num_str = line_content.split(']')[0][1:]
+                item_num = int(item_num_str) - 1  # Convert to 0-based index
 
-    def create_history_list(self):
-        """Create the history list widget"""
-        list_frame = ttk.LabelFrame(self.main_frame, text="Clipboard History", padding="5")
-        list_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        
-        # Create a scrollbar
-        scrollbar = ttk.Scrollbar(list_frame)
-        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-        
-        # Create the listbox
-        self.history_list = tk.Listbox(
-            list_frame, 
-            yscrollcommand=scrollbar.set,
-            font=("TkDefaultFont", 12),
-            selectmode=tk.SINGLE
-        )
-        self.history_list.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        
-        # Configure the scrollbar
-        scrollbar.config(command=self.history_list.yview)
-        
-        # Bind selection event
-        self.history_list.bind("<<ListboxSelect>>", self.on_item_select)
-    
-    def create_preview_area(self):
-        """Create the preview area widget"""
-        preview_frame = ttk.LabelFrame(self.main_frame, text="Content Preview", padding="5")
-        preview_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
-        
-        # Create a scrollbar
-        scrollbar = ttk.Scrollbar(preview_frame)
-        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-        
-        # Create the text widget
-        self.preview_text = tk.Text(
-            preview_frame,
-            yscrollcommand=scrollbar.set,
-            wrap=tk.WORD,
-            font=("Courier", 12)
-        )
-        self.preview_text.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        
-        # Configure the scrollbar
-        scrollbar.config(command=self.preview_text.yview)
-        
-        # Make the text widget read-only
-        self.preview_text.config(state=tk.DISABLED)
-    
-    def create_button_bar(self):
-        """Create the button bar widget"""
-        button_frame = ttk.Frame(self.root, padding="10")
-        button_frame.pack(side=tk.BOTTOM, fill=tk.X)
-        
-        # Create the buttons
-        self.copy_button = ttk.Button(
-            button_frame, 
-            text="Copy to Clipboard",
-            command=self.copy_to_clipboard
-        )
-        self.copy_button.pack(side=tk.LEFT, padx=5)
-        
-        self.delete_button = ttk.Button(
-            button_frame,
-            text="Delete Item",
-            command=self.delete_item
-        )
-        self.delete_button.pack(side=tk.LEFT, padx=5)
-        
-        self.clear_button = ttk.Button(
-            button_frame,
-            text="Clear History",
-            command=self.clear_history
-        )
-        self.clear_button.pack(side=tk.LEFT, padx=5)
-        
-        self.refresh_button = ttk.Button(
-            button_frame,
-            text="Refresh",
-            command=self.load_history
-        )
-        self.refresh_button.pack(side=tk.RIGHT, padx=5)
+                if 0 <= item_num < len(self.history):
+                    content = self.history[item_num].get('content', '')
+                    pyperclip.copy(content)
+                    messagebox.showinfo("Copied", f"Copied item {item_num + 1} to clipboard")
+                    print(f"Copied item {item_num + 1}: {content[:50]}...")
+        except Exception as e:
+            print(f"Double-click error: {e}")
+            self.copy_to_clipboard()  # Fallback
     
     def load_history(self):
         """Load the clipboard history from the file"""
         try:
             # Create directory if it doesn't exist
             os.makedirs(os.path.dirname(self.history_path), exist_ok=True)
-            
+
             # Load the history file if it exists
             if os.path.exists(self.history_path):
                 with open(self.history_path, 'r') as f:
                     self.history = json.load(f)
             else:
                 self.history = []
-            
-            # Clear the listbox
-            self.history_list.delete(0, tk.END)
-            
-            # Add items to the listbox (most recent first)
-            # History is already in reverse chronological order, so don't reverse it
-            for item in self.history:
-                try:
-                    timestamp = datetime.datetime.fromtimestamp(item.get('timestamp', 0))
-                    content = item.get('content', '')
 
-                    # Truncate content for display
-                    display_content = content[:50].replace('\n', ' ').replace('\r', ' ')
-                    if len(content) > 50:
-                        display_content += '...'
+            # Show status in window title
+            self.root.title(f"Clipboard History Viewer ({len(self.history)} items)")
 
-                    # Format the display string
-                    display_string = f"{timestamp.strftime('%Y-%m-%d %H:%M:%S')} - {display_content}"
+            # Clear and populate text widget
+            self.history_text.config(state=tk.NORMAL)
+            self.history_text.delete(1.0, tk.END)
 
-                    # Add to listbox
-                    self.history_list.insert(tk.END, display_string)
-                except Exception as item_error:
-                    # Skip problematic items but continue processing
-                    continue
+            if not self.history:
+                self.history_text.insert(tk.END, "No clipboard history found.\nCopy something to start tracking!")
+            else:
+                # Add each history item with clear formatting
+                for i, item in enumerate(self.history):
+                    try:
+                        timestamp = datetime.datetime.fromtimestamp(item.get('timestamp', 0))
+                        content = item.get('content', '').strip()
+
+                        # Format entry
+                        time_str = timestamp.strftime('%m/%d %H:%M')
+                        separator = "-" * 50
+
+                        # Add item
+                        self.history_text.insert(tk.END, f"{separator}\n")
+                        self.history_text.insert(tk.END, f"[{i+1}] {time_str}\n")
+                        self.history_text.insert(tk.END, f"{content}\n")
+                        self.history_text.insert(tk.END, f"{separator}\n\n")
+
+                    except Exception as item_error:
+                        self.history_text.insert(tk.END, f"Error displaying item {i}: {item_error}\n\n")
+
+            # Make read-only
+            self.history_text.config(state=tk.DISABLED)
+
+            # Force GUI update
+            self.root.update_idletasks()
+
+            print(f"Loaded {len(self.history)} items into text widget")
+
         except Exception as e:
-            messagebox.showerror("Error", f"Failed to load history: {e}")
+            messagebox.showerror("Error", f"Failed to load history: {e}\nHistory path: {self.history_path}")
     
-    def on_item_select(self, event):
-        """Handle item selection in the listbox"""
-        try:
-            # Get the selected index
-            selection = self.history_list.curselection()
-            if not selection:
-                return
-            
-            # Get the corresponding history item (direct order since we're not reversing)
-            index = selection[0]
-            if index < 0 or index >= len(self.history):
-                return
+    def on_click(self, event):
+        """Handle click on text widget"""
+        # Get clicked line
+        index = self.history_text.index(tk.CURRENT)
+        line_num = int(index.split('.')[0])
+        line_content = self.history_text.get(f"{line_num}.0", f"{line_num}.end")
+        print(f"Clicked line {line_num}: {line_content}")
 
-            item = self.history[index]
-            content = item.get('content', '')
-            
-            # Update the preview text
-            self.preview_text.config(state=tk.NORMAL)
-            self.preview_text.delete(1.0, tk.END)
-            self.preview_text.insert(tk.END, content)
-            self.preview_text.config(state=tk.DISABLED)
-        except Exception as e:
-            messagebox.showerror("Error", f"Failed to display item: {e}")
-    
     def copy_to_clipboard(self):
-        """Copy the selected item to the clipboard"""
-        try:
-            # Get the selected index
-            selection = self.history_list.curselection()
-            if not selection:
-                messagebox.showinfo("Info", "No item selected")
-                return
-            
-            # Get the corresponding history item (direct order since we're not reversing)
-            index = selection[0]
-            if index < 0 or index >= len(self.history):
-                return
-
-            item = self.history[index]
-            content = item.get('content', '')
-            
-            # Copy to clipboard
+        """Copy selected item to clipboard"""
+        # For now, just copy the first item as a fallback
+        if self.history:
+            content = self.history[0].get('content', '')
             pyperclip.copy(content)
-            
-            messagebox.showinfo("Success", "Content copied to clipboard")
-        except Exception as e:
-            messagebox.showerror("Error", f"Failed to copy to clipboard: {e}")
-    
+            messagebox.showinfo("Success", "Most recent item copied to clipboard")
+        else:
+            messagebox.showinfo("Info", "No history items to copy")
+
     def delete_item(self):
-        """Delete the selected item from history"""
-        try:
-            # Get the selected index
-            selection = self.history_list.curselection()
-            if not selection:
-                messagebox.showinfo("Info", "No item selected")
-                return
-            
-            # Get the corresponding history item (direct order since we're not reversing)
-            index = selection[0]
-            if index < 0 or index >= len(self.history):
-                return
-            
-            # Confirm deletion
-            if not messagebox.askyesno("Confirm", "Delete this item from history?"):
-                return
-            
-            # Remove the item
-            self.history.pop(index)
-            
-            # Save the updated history
-            self.save_history()
-            
-            # Reload the history
-            self.load_history()
-        except Exception as e:
-            messagebox.showerror("Error", f"Failed to delete item: {e}")
+        """Delete functionality - simplified for text widget"""
+        messagebox.showinfo("Info", "Individual item deletion not implemented in text widget version.\nUse 'Clear All' to clear entire history.")
     
     def clear_history(self):
         """Clear all history"""

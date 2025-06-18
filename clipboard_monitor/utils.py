@@ -7,6 +7,9 @@ import hashlib
 import logging
 import re
 import threading
+import os
+import pwd
+from pathlib import Path
 from rich.console import Console
 
 # Set up rich console
@@ -103,6 +106,126 @@ def safe_subprocess_run(cmd, timeout=5, check=True):
         logger.error(f"Error running command: {' '.join(cmd)}")
         logger.error(f"Exception: {str(e)}")
         raise e
+
+def get_home_directory():
+    """
+    Get the user's home directory using multiple fallback methods.
+    This is more robust than os.path.expanduser("~") when working directory
+    is set to something other than the home directory.
+
+    Returns:
+        str: The absolute path to the user's home directory
+    """
+    try:
+        # Method 1: Use pathlib.Path.home() (most reliable)
+        home_path = str(Path.home())
+        if home_path and os.path.isdir(home_path):
+            logger.debug(f"Home directory found via Path.home(): {home_path}")
+            return home_path
+    except Exception as e:
+        logger.debug(f"Path.home() failed: {e}")
+
+    try:
+        # Method 2: Use HOME environment variable
+        home_env = os.environ.get('HOME')
+        if home_env and os.path.isdir(home_env):
+            logger.debug(f"Home directory found via HOME env: {home_env}")
+            return home_env
+    except Exception as e:
+        logger.debug(f"HOME environment variable failed: {e}")
+
+    try:
+        # Method 3: Use pwd module to get user info
+        user_info = pwd.getpwuid(os.getuid())
+        home_pwd = user_info.pw_dir
+        if home_pwd and os.path.isdir(home_pwd):
+            logger.debug(f"Home directory found via pwd: {home_pwd}")
+            return home_pwd
+    except Exception as e:
+        logger.debug(f"pwd module failed: {e}")
+
+    try:
+        # Method 4: Fallback to os.path.expanduser (original method)
+        home_expand = os.path.expanduser("~")
+        # Only use this if it doesn't create a literal ~ path
+        if home_expand != "~" and os.path.isdir(home_expand):
+            logger.debug(f"Home directory found via expanduser: {home_expand}")
+            return home_expand
+    except Exception as e:
+        logger.debug(f"expanduser failed: {e}")
+
+    # If all methods fail, raise an error
+    raise RuntimeError("Unable to determine user home directory using any method")
+
+def safe_expanduser(path):
+    """
+    Safely expand user home directory in paths, with robust fallback methods.
+    This prevents the creation of literal ~ folders when working directory
+    is set incorrectly.
+
+    Args:
+        path (str): Path that may contain ~ for home directory
+
+    Returns:
+        str: Path with ~ properly expanded to home directory
+
+    Raises:
+        RuntimeError: If home directory cannot be determined
+    """
+    if not isinstance(path, str):
+        raise ValueError("Path must be a string")
+
+    # If path doesn't start with ~, return as-is
+    if not path.startswith("~"):
+        return path
+
+    try:
+        # Get the home directory using our robust method
+        home_dir = get_home_directory()
+
+        # Handle different tilde patterns
+        if path == "~":
+            return home_dir
+        elif path.startswith("~/"):
+            return os.path.join(home_dir, path[2:])
+        elif path.startswith("~"):
+            # Handle ~username patterns (though less common)
+            return os.path.expanduser(path)
+        else:
+            return path
+
+    except Exception as e:
+        logger.error(f"Failed to expand path '{path}': {e}")
+        raise RuntimeError(f"Unable to expand user path: {path}")
+
+def ensure_directory_exists(path):
+    """
+    Ensure that a directory exists, creating it if necessary.
+
+    Args:
+        path (str): Directory path to ensure exists
+
+    Returns:
+        bool: True if directory exists or was created successfully
+    """
+    try:
+        # Expand any ~ in the path first
+        expanded_path = safe_expanduser(path)
+
+        # Create directory if it doesn't exist
+        os.makedirs(expanded_path, exist_ok=True)
+
+        # Verify it exists and is a directory
+        if os.path.isdir(expanded_path):
+            logger.debug(f"Directory ensured: {expanded_path}")
+            return True
+        else:
+            logger.error(f"Path exists but is not a directory: {expanded_path}")
+            return False
+
+    except Exception as e:
+        logger.error(f"Failed to ensure directory exists: {path} -> {e}")
+        return False
 
 class ContentTracker:
     """

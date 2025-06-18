@@ -8,6 +8,7 @@ import time
 import json
 import logging
 from pathlib import Path
+from utils import safe_expanduser, ensure_directory_exists
 
 class ClipboardMonitorMenuBar(rumps.App):
     def __init__(self):
@@ -97,10 +98,29 @@ class ClipboardMonitorMenuBar(rumps.App):
                     if module_name not in self.module_status:
                         self.module_status[module_name] = True
         
-        # Add history viewer item
-        self.history_item = rumps.MenuItem("View Clipboard History")
-        self.history_item.set_callback(self.open_history_viewer)
-        
+        # Add history viewer submenu
+        self.history_menu = rumps.MenuItem("View Clipboard History")
+
+        # Web viewer option
+        web_viewer_item = rumps.MenuItem("Open in Browser")
+        web_viewer_item.set_callback(self.open_web_history_viewer)
+        self.history_menu.add(web_viewer_item)
+
+        # CLI viewer option
+        cli_viewer_item = rumps.MenuItem("Open in Terminal")
+        cli_viewer_item.set_callback(self.open_cli_history_viewer)
+        self.history_menu.add(cli_viewer_item)
+
+        # Create recent history submenu
+        self.recent_history_menu = rumps.MenuItem("Recent Clipboard Items")
+        # Initialize with a loading message
+        loading_item = rumps.MenuItem("🔄 Loading history...")
+        loading_item.set_callback(None)
+        self.recent_history_menu.add(loading_item)
+
+        # Schedule history menu update on main thread after initialization
+        rumps.Timer(self.initial_history_update, 3).start()
+
         # Add preferences submenu
         self.prefs_menu = rumps.MenuItem("Preferences")
 
@@ -268,7 +288,9 @@ class ClipboardMonitorMenuBar(rumps.App):
         self.menu.add(logs_menu)
         self.menu.add(rumps.separator)
         self.menu.add(self.module_menu)
-        self.menu.add(self.history_item)
+        self.menu.add(rumps.separator)
+        self.menu.add(self.recent_history_menu)
+        self.menu.add(self.history_menu)
         self.menu.add(self.prefs_menu)
         self.menu.add(rumps.separator)
         self.menu.add(self.quit_item)
@@ -350,7 +372,7 @@ class ClipboardMonitorMenuBar(rumps.App):
             )
             
             # Check for pause flag
-            pause_flag_path = os.path.expanduser("~/Library/Application Support/ClipboardMonitor/pause_flag")
+            pause_flag_path = safe_expanduser("~/Library/Application Support/ClipboardMonitor/pause_flag")
             is_paused = os.path.exists(pause_flag_path)
             
             # If return code is 0, service is running
@@ -759,7 +781,7 @@ class ClipboardMonitorMenuBar(rumps.App):
                 ).run()
 
                 if response.clicked and response.text.strip():
-                    export_path = os.path.expanduser(response.text.strip())
+                    export_path = safe_expanduser(response.text.strip())
 
                     # Copy config file
                     import shutil
@@ -786,7 +808,7 @@ class ClipboardMonitorMenuBar(rumps.App):
         ).run()
 
         if response.clicked and response.text.strip():
-            import_path = os.path.expanduser(response.text.strip())
+            import_path = safe_expanduser(response.text.strip())
 
             try:
                 if os.path.exists(import_path):
@@ -874,28 +896,242 @@ class ClipboardMonitorMenuBar(rumps.App):
         except Exception as e:
             rumps.notification("Error", "Failed to save module config", str(e))
     
-    def open_history_viewer(self, _):
-        """Open the clipboard history viewer"""
+    def open_web_history_viewer(self, _):
+        """Open the web-based clipboard history viewer"""
         try:
-            history_viewer = os.path.join(os.path.dirname(__file__), 'history_viewer.py')
-            if os.path.exists(history_viewer):
-                subprocess.Popen(["/usr/bin/python3", history_viewer])
+            web_viewer = os.path.join(os.path.dirname(__file__), 'web_history_viewer.py')
+            if os.path.exists(web_viewer):
+                # Launch the web-based history viewer
+                process = subprocess.Popen(
+                    ["/usr/bin/python3", web_viewer],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE
+                )
+
+                # Check if process started successfully
+                try:
+                    # Wait a short time to see if it fails immediately
+                    process.wait(timeout=2.0)
+                    if process.returncode == 0:
+                        rumps.notification("Success", "History Viewer", "Clipboard history opened in browser")
+                    else:
+                        stderr_output = process.stderr.read().decode('utf-8')
+                        rumps.notification("Error", "History Viewer Failed",
+                                          f"Exit code: {process.returncode}\n{stderr_output}")
+                except subprocess.TimeoutExpired:
+                    # Process is still running, which might be normal
+                    rumps.notification("Success", "History Viewer", "Clipboard history opened in browser")
             else:
-                rumps.notification("Error", "History Viewer Not Found", 
-                                  "Could not find history_viewer.py")
+                rumps.notification("Error", "History Viewer Not Found",
+                                  "Could not find web_history_viewer.py")
         except Exception as e:
             rumps.notification("Error", "Failed to open history viewer", str(e))
+
+    def open_cli_history_viewer(self, _):
+        """Open the command-line clipboard history viewer"""
+        try:
+            cli_viewer = os.path.join(os.path.dirname(__file__), 'cli_history_viewer.py')
+            if os.path.exists(cli_viewer):
+                # Use a simpler approach - open Terminal with the command
+                script_dir = os.path.dirname(cli_viewer)
+
+                # Create a temporary script to run
+                temp_script = f'''#!/bin/bash
+cd "{script_dir}"
+echo "📋 Clipboard History Viewer"
+echo "=========================="
+python3 cli_history_viewer.py
+echo ""
+echo "Press any key to close this window..."
+read -n 1
+'''
+
+                # Write temp script
+                import tempfile
+                with tempfile.NamedTemporaryFile(mode='w', suffix='.sh', delete=False) as f:
+                    f.write(temp_script)
+                    temp_script_path = f.name
+
+                # Make it executable
+                os.chmod(temp_script_path, 0o755)
+
+                # Open Terminal with the script
+                subprocess.run(['open', '-a', 'Terminal', temp_script_path])
+
+                rumps.notification("Success", "History Viewer", "Clipboard history opened in Terminal")
+            else:
+                rumps.notification("Error", "History Viewer Not Found",
+                                  "Could not find cli_history_viewer.py")
+        except Exception as e:
+            rumps.notification("Error", "Failed to open CLI history viewer", str(e))
+
+    def initial_history_update(self, _):
+        """Initial history menu update - called once on startup"""
+        self.update_recent_history_menu()
+        # Set up periodic updates using rumps Timer (runs on main thread)
+        self.history_timer = rumps.Timer(self.periodic_history_update, 30)
+        self.history_timer.start()
+
+    def periodic_history_update(self, _):
+        """Periodic history menu update - called every 30 seconds on main thread"""
+        self.update_recent_history_menu()
+
+    def update_recent_history_menu(self):
+        """Update the recent history menu with latest clipboard items"""
+        try:
+            # Ensure we're on the main thread (this should always be true now)
+            import threading
+            if threading.current_thread() != threading.main_thread():
+                # If somehow called from background thread, schedule on main thread
+                rumps.Timer(lambda _: self.update_recent_history_menu(), 0.1).start()
+                return
+
+            # Clear existing items
+            self.recent_history_menu.clear()
+
+            # Load history
+            history = self.load_clipboard_history()
+
+            if not history:
+                no_items = rumps.MenuItem("📭 No history items")
+                no_items.set_callback(None)  # Make it non-clickable
+                self.recent_history_menu.add(no_items)
+                return
+
+            # Add header
+            header = rumps.MenuItem(f"📋 All Items ({len(history)} total)")
+            header.set_callback(None)  # Make it non-clickable
+            self.recent_history_menu.add(header)
+            self.recent_history_menu.add(rumps.separator)
+
+            # Optimize for performance: limit processing, not display
+            # Process all items but with efficient string operations
+            max_items = len(history)  # Show all items
+
+            # Pre-allocate list for better performance
+            menu_items = []
+
+            # Batch process items for better performance
+            # Import datetime once for efficiency
+            import datetime
+
+            # Pre-calculate current time for relative timestamps
+            now = datetime.datetime.now()
+
+            for i in range(max_items):
+                item = history[i]
+                try:
+                    # Efficient content processing
+                    content = item.get('content', '')
+                    if not content:
+                        continue
+
+                    # Fast string operations
+                    content_stripped = content.strip()
+                    if not content_stripped:
+                        continue
+
+                    # Efficient cleanup and truncation in one pass
+                    if len(content_stripped) > 50:
+                        display_content = content_stripped[:50].replace('\n', ' ').replace('\r', ' ') + '...'
+                    else:
+                        display_content = content_stripped.replace('\n', ' ').replace('\r', ' ')
+
+                    # Fast timestamp formatting
+                    timestamp = datetime.datetime.fromtimestamp(item.get('timestamp', 0))
+                    time_str = timestamp.strftime('%H:%M')
+
+                    # Create menu text efficiently
+                    if i == 0:
+                        menu_text = f"📋 [{time_str}] {display_content}"
+                    elif i < 5:
+                        menu_text = f"🔸 [{time_str}] {display_content}"  # Recent items
+                    else:
+                        menu_text = f"   [{time_str}] {display_content}"  # Older items
+
+                    # Create and configure menu item
+                    menu_item = rumps.MenuItem(menu_text)
+                    menu_item._clipboard_content = content_stripped
+                    menu_item.set_callback(self.copy_history_item)
+
+                    # Add to batch list instead of immediately adding to menu
+                    menu_items.append(menu_item)
+
+                except Exception:
+                    # Skip problematic items silently for performance
+                    continue
+
+            # Batch add all items to menu (more efficient than individual adds)
+            for menu_item in menu_items:
+                self.recent_history_menu.add(menu_item)
+
+            # Add separator and refresh option
+            self.recent_history_menu.add(rumps.separator)
+            refresh_item = rumps.MenuItem("🔄 Refresh History")
+            refresh_item.set_callback(self.refresh_history_menu)
+            self.recent_history_menu.add(refresh_item)
+
+            # Add test item to verify menu is updating
+            test_item = rumps.MenuItem(f"✅ Updated at {datetime.datetime.now().strftime('%H:%M:%S')}")
+            test_item.set_callback(None)
+            self.recent_history_menu.add(test_item)
+
+        except Exception as e:
+            # Add error item safely
+            try:
+                self.recent_history_menu.clear()
+                error_item = rumps.MenuItem(f"❌ Error: {str(e)[:30]}...")
+                error_item.set_callback(None)
+                self.recent_history_menu.add(error_item)
+            except Exception as nested_e:
+                # If even error handling fails, just pass to prevent crashes
+                pass
+
+    def load_clipboard_history(self):
+        """Load clipboard history from file"""
+        try:
+            # Get history file path - use direct path since config loading is complex
+            history_path = safe_expanduser("~/Library/Application Support/ClipboardMonitor/clipboard_history.json")
+
+            if os.path.exists(history_path):
+                with open(history_path, 'r') as f:
+                    history = json.load(f)
+                    return history
+            else:
+                return []
+        except Exception as e:
+            return []
+
+    def copy_history_item(self, sender):
+        """Copy a history item to clipboard"""
+        try:
+            content = getattr(sender, '_clipboard_content', '')
+            if content:
+                import pyperclip
+                pyperclip.copy(content)
+
+                # Show brief notification
+                truncated = content[:50] + '...' if len(content) > 50 else content
+                rumps.notification("Clipboard", "Item Copied", f"Copied: {truncated}")
+            else:
+                rumps.notification("Error", "Copy Failed", "No content to copy")
+        except Exception as e:
+            rumps.notification("Error", "Copy Failed", str(e))
+
+    def refresh_history_menu(self, _):
+        """Refresh the history menu - called from menu click (already on main thread)"""
+        self.update_recent_history_menu()
+        rumps.notification("Clipboard Monitor", "History Refreshed", "Recent items menu updated")
 
     def toggle_monitoring(self, sender):
         """Temporarily pause or resume clipboard monitoring without stopping the service"""
         try:
             # Check if config file exists
-            config_path = os.path.expanduser("~/Library/Application Support/ClipboardMonitor/config.json")
-            if not os.path.exists(os.path.dirname(config_path)):
-                os.makedirs(os.path.dirname(config_path))
-            
+            config_path = safe_expanduser("~/Library/Application Support/ClipboardMonitor/config.json")
+            ensure_directory_exists(os.path.dirname(config_path))
+
             # Create pause flag file to communicate with the main process
-            pause_flag_path = os.path.expanduser("~/Library/Application Support/ClipboardMonitor/pause_flag")
+            pause_flag_path = safe_expanduser("~/Library/Application Support/ClipboardMonitor/pause_flag")
             
             if sender.title == "Pause Monitoring":
                 # Create pause flag file

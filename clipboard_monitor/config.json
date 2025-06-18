@@ -14,7 +14,7 @@
     "max_module_execution_time": 500
   },
   "modules": {
-    "markdown_module": true,
+    "markdown_module": 0,
     "mermaid_module": true,
     "history_module": true,
     "code_formatter_module": 0,

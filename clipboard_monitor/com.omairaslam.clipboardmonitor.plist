@@ -35,6 +35,8 @@
         <string>1</string> <!-- Ensures Python output is written to logs immediately -->
         <key>PATH</key>
         <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+        <key>HOME</key>
+        <string>/Users/omair.aslam</string> <!-- Explicitly set HOME to prevent tilde expansion issues -->
     </dict>
 
 </dict>

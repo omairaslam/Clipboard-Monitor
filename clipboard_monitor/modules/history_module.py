@@ -15,7 +15,7 @@ from rich.console import Console
 
 # Add parent directory to path to import utils
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from utils import show_notification, validate_string_input, ContentTracker
+from utils import show_notification, validate_string_input, ContentTracker, safe_expanduser, ensure_directory_exists
 
 # Set up rich logging
 console = Console()
@@ -50,7 +50,7 @@ def get_history_path():
     """Get the path to the history file"""
     config = load_config()
     path = config.get('save_location', DEFAULT_CONFIG['save_location'])
-    return os.path.expanduser(path)
+    return safe_expanduser(path)
 
 def load_history():
     """Load clipboard history from file"""
@@ -58,7 +58,7 @@ def load_history():
     
     try:
         # Create directory if it doesn't exist
-        os.makedirs(os.path.dirname(history_path), exist_ok=True)
+        ensure_directory_exists(os.path.dirname(history_path))
         
         # Load history if file exists
         if os.path.exists(history_path):
@@ -75,7 +75,7 @@ def save_history(history):
     
     try:
         # Create directory if it doesn't exist
-        os.makedirs(os.path.dirname(history_path), exist_ok=True)
+        ensure_directory_exists(os.path.dirname(history_path))
         
         # Save history
         with open(history_path, 'w') as f:

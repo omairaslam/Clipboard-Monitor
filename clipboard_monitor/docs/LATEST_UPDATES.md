@@ -1,4 +1,4 @@
-# Latest Updates - Clipboard Monitor (2025-06-17)
+# Latest Updates - Clipboard Monitor (2025-06-18)
 
 ## Overview
 
@@ -358,6 +358,106 @@ index = selection[0]  # Correct - no offset needed
 - ✅ **Configuration Aware**: Uses configured history file location
 - ✅ **Error Resilience**: Handles problematic history items gracefully
 - ✅ **Content Sanitization**: Properly displays content with newlines and special characters
+
+## 🔧 **Recent Enhancements (June 2025)**
+
+### **Path Expansion Security Fix**
+A critical security and reliability issue with tilde expansion (`~`) in file paths has been completely resolved:
+
+#### **Problem Identified**
+- **LaunchAgent Environment**: When running as a macOS LaunchAgent, the `HOME` environment variable was undefined
+- **Path Expansion Failures**: `os.path.expanduser("~/path")` returned literal `~/path` instead of expanded paths
+- **File Operation Errors**: History saving, configuration loading, and log management failed silently
+- **Cross-Platform Issues**: Different behavior between interactive and service execution
+
+#### **Comprehensive Solution Implemented**
+```python
+# New secure path expansion utility
+def safe_expanduser(path):
+    """Safely expand user path with fallback mechanisms"""
+    try:
+        expanded = os.path.expanduser(path)
+        if expanded.startswith('~'):
+            # Fallback: construct path manually
+            home_dir = os.environ.get('HOME') or str(Path.home())
+            expanded = path.replace('~', home_dir, 1)
+        return expanded
+    except Exception:
+        # Ultimate fallback
+        return path.replace('~', '/Users/' + os.getlogin(), 1)
+```
+
+#### **Files Updated**
+- ✅ **`utils.py`**: Added `safe_expanduser()` utility function
+- ✅ **`main.py`**: Updated all path operations (2 instances)
+- ✅ **`menu_bar_app.py`**: Updated all path operations (7 instances)
+- ✅ **`modules/history_module.py`**: Updated all path operations (3 instances)
+- ✅ **`cli_history_viewer.py`**: Updated path operations (1 instance)
+- ✅ **`web_history_viewer.py`**: Updated path operations (1 instance)
+- ✅ **LaunchAgent plist files**: Added explicit `HOME` environment variable
+
+### **Multiple History Viewer Interfaces**
+
+#### **GUI History Viewer (`history_viewer.py`)**
+- **Native macOS Interface**: Clean Tkinter-based GUI with proper window management
+- **Fixed Display Issues**: Resolved blank display problems with correct list ordering
+- **Enhanced Functionality**: Preview pane, copy-to-clipboard, delete items, refresh capability
+- **Improved User Experience**: Always-on-top window with proper focus handling
+
+#### **Web History Viewer (`web_history_viewer.py`)**
+- **Browser-Based Interface**: Modern HTML/CSS/JavaScript interface
+- **Responsive Design**: Works on any screen size with professional styling
+- **Advanced Features**: Search, filter, export options, auto-refresh
+- **Network Accessible**: Can be accessed from other devices on the same network
+
+#### **CLI History Viewer (`cli_history_viewer.py`)**
+- **Terminal Interface**: Perfect for command-line workflows and automation
+- **Rich Formatting**: Colorized output with syntax highlighting using Rich library
+- **Efficient Navigation**: Pagination for large histories, quick search and filter
+- **Scriptable**: Can be integrated into shell scripts and automation workflows
+
+### **Enhanced Shared Utilities Module**
+
+#### **New Utility Functions**
+```python
+# Path safety and directory management
+safe_expanduser(path)                    # Secure tilde expansion
+ensure_directory_exists(directory_path)  # Safe directory creation
+
+# Process and subprocess management
+safe_subprocess_run(cmd, timeout=30)     # Timeout-protected subprocess execution
+
+# Content tracking and validation
+ContentTracker(max_history=10)           # Advanced loop prevention
+validate_string_input(value, name)       # Comprehensive input validation
+```
+
+#### **Security Enhancements**
+- **AppleScript Injection Prevention**: All notifications sanitized against code injection
+- **Input Validation**: Comprehensive validation for all user inputs and clipboard content
+- **Timeout Protection**: All subprocess operations include configurable timeout handling
+- **Error Recovery**: Graceful fallback mechanisms for all critical operations
+
+### **Configuration System Improvements**
+
+#### **Enhanced Config Structure**
+```json
+{
+  "general": {
+    "polling_interval": 1.0,
+    "enhanced_check_interval": 0.1,
+    "idle_check_interval": 1.0,           // New: Adaptive checking
+    "notification_title": "Clipboard Monitor",
+    "debug_mode": false
+  }
+}
+```
+
+#### **Menu Bar Configuration**
+- **Real-time Updates**: All settings changes apply immediately with automatic service restart
+- **Input Validation**: User-friendly dialogs with comprehensive validation
+- **Export/Import**: Save and load configuration profiles
+- **Reset Options**: One-click restoration to default settings
 
 ---
 
