@@ -70,15 +70,27 @@ class ClipboardMonitorMenuBar(rumps.App):
         # Load module configuration
         self.load_module_config()
         
+        # Map of module filenames to friendly display names
+        self.module_display_names = {
+            "markdown_module": "Markdown Processor",
+            "mermaid_module": "Mermaid Diagram Detector",
+            "history_module": "Clipboard History Tracker",
+            "code_formatter_module": "Code Formatter"
+        }
+        
         # Dynamically load and add modules to the menu
         modules_dir = os.path.join(os.path.dirname(__file__), 'modules')
         if os.path.exists(modules_dir):
             for filename in os.listdir(modules_dir):
                 if filename.endswith('_module.py'):
                     module_name = filename[:-3]  # Remove .py
-                    module_item = rumps.MenuItem(module_name)
+                    # Use friendly name if available, otherwise use module_name
+                    display_name = self.module_display_names.get(module_name, module_name)
+                    module_item = rumps.MenuItem(display_name)
                     # Set state based on config or default to enabled
                     module_item.state = self.module_status.get(module_name, True)
+                    # Store the actual module name as an attribute for callback reference
+                    module_item._module_name = module_name
                     module_item.set_callback(self.toggle_module)
                     self.module_menu.add(module_item)
                     # Ensure it's in the status dict
@@ -437,14 +449,19 @@ class ClipboardMonitorMenuBar(rumps.App):
     def toggle_module(self, sender):
         """Toggle a module on or off"""
         sender.state = not sender.state
-        self.module_status[sender.title] = sender.state
+        # Use the stored module name instead of the display name
+        module_name = getattr(sender, '_module_name', sender.title)
+        self.module_status[module_name] = sender.state
         
         # Save module status to config
         self.save_module_config()
         
+        # Get friendly display name for notification
+        display_name = sender.title
+        
         # Notify the user
         rumps.notification("Clipboard Monitor", "Module Settings", 
-                          f"Module '{sender.title}' is now {'enabled' if sender.state else 'disabled'}")
+                          f"Module '{display_name}' is now {'enabled' if sender.state else 'disabled'}")
     
     def toggle_debug(self, sender):
         """Toggle debug mode"""
