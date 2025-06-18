@@ -302,6 +302,13 @@ python3 -m pip install --user -r requirements.txt
 - Check the logs for any errors related to the module
 - Try running the module directly for testing
 
+### History Viewer Appears Blank
+- Verify the history file exists: `~/Library/Application Support/ClipboardMonitor/clipboard_history.json`
+- Check if the clipboard monitor service is running and tracking history
+- Try refreshing the history viewer using the "Refresh" button
+- Ensure the history module is enabled in the configuration
+- Check the error logs for any history-related issues
+
 ## Creating Custom Modules
 
 See the [Module Development Guide](MODULE_DEVELOPMENT.md) for information on creating your own processing modules.

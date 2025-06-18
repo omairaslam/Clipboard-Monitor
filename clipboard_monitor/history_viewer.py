@@ -18,10 +18,8 @@ class ClipboardHistoryViewer:
         self.root.title("Clipboard History Viewer")
         self.root.geometry("800x600")
         
-        # Set up the history file path
-        self.history_path = os.path.expanduser(
-            "~/Library/Application Support/ClipboardMonitor/clipboard_history.json"
-        )
+        # Set up the history file path from config
+        self.history_path = self.get_history_path()
         
         # Create the main frame
         self.main_frame = ttk.Frame(root, padding="10")
@@ -38,7 +36,25 @@ class ClipboardHistoryViewer:
         
         # Load the history
         self.load_history()
-    
+
+    def get_history_path(self):
+        """Get the history file path from config or use default"""
+        try:
+            # Try to load from config file
+            config_path = os.path.expanduser("~/Library/Application Support/ClipboardMonitor/config.json")
+            if os.path.exists(config_path):
+                with open(config_path, 'r') as f:
+                    config = json.load(f)
+                    if 'history' in config and 'save_location' in config['history']:
+                        return os.path.expanduser(config['history']['save_location'])
+        except Exception:
+            pass  # Fall back to default
+
+        # Default path
+        return os.path.expanduser(
+            "~/Library/Application Support/ClipboardMonitor/clipboard_history.json"
+        )
+
     def create_history_list(self):
         """Create the history list widget"""
         list_frame = ttk.LabelFrame(self.main_frame, text="Clipboard History", padding="5")
@@ -138,20 +154,25 @@ class ClipboardHistoryViewer:
             self.history_list.delete(0, tk.END)
             
             # Add items to the listbox (most recent first)
-            for item in reversed(self.history):
-                timestamp = datetime.datetime.fromtimestamp(item.get('timestamp', 0))
-                content = item.get('content', '')
-                
-                # Truncate content for display
-                display_content = content[:50].replace('\n', ' ')
-                if len(content) > 50:
-                    display_content += '...'
-                
-                # Format the display string
-                display_string = f"{timestamp.strftime('%Y-%m-%d %H:%M:%S')} - {display_content}"
-                
-                # Add to listbox
-                self.history_list.insert(tk.END, display_string)
+            # History is already in reverse chronological order, so don't reverse it
+            for item in self.history:
+                try:
+                    timestamp = datetime.datetime.fromtimestamp(item.get('timestamp', 0))
+                    content = item.get('content', '')
+
+                    # Truncate content for display
+                    display_content = content[:50].replace('\n', ' ').replace('\r', ' ')
+                    if len(content) > 50:
+                        display_content += '...'
+
+                    # Format the display string
+                    display_string = f"{timestamp.strftime('%Y-%m-%d %H:%M:%S')} - {display_content}"
+
+                    # Add to listbox
+                    self.history_list.insert(tk.END, display_string)
+                except Exception as item_error:
+                    # Skip problematic items but continue processing
+                    continue
         except Exception as e:
             messagebox.showerror("Error", f"Failed to load history: {e}")
     
@@ -163,11 +184,11 @@ class ClipboardHistoryViewer:
             if not selection:
                 return
             
-            # Get the corresponding history item (reversed order)
-            index = len(self.history) - 1 - selection[0]
+            # Get the corresponding history item (direct order since we're not reversing)
+            index = selection[0]
             if index < 0 or index >= len(self.history):
                 return
-            
+
             item = self.history[index]
             content = item.get('content', '')
             
@@ -188,11 +209,11 @@ class ClipboardHistoryViewer:
                 messagebox.showinfo("Info", "No item selected")
                 return
             
-            # Get the corresponding history item (reversed order)
-            index = len(self.history) - 1 - selection[0]
+            # Get the corresponding history item (direct order since we're not reversing)
+            index = selection[0]
             if index < 0 or index >= len(self.history):
                 return
-            
+
             item = self.history[index]
             content = item.get('content', '')
             
@@ -212,8 +233,8 @@ class ClipboardHistoryViewer:
                 messagebox.showinfo("Info", "No item selected")
                 return
             
-            # Get the corresponding history item (reversed order)
-            index = len(self.history) - 1 - selection[0]
+            # Get the corresponding history item (direct order since we're not reversing)
+            index = selection[0]
             if index < 0 or index >= len(self.history):
                 return
             

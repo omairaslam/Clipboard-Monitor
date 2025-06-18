@@ -196,6 +196,27 @@ This document provides a detailed analysis of bugs identified and fixed in the c
   - Privacy control for sensitive work
   - Clear feedback with status updates and notifications
 
+### 14. **Clipboard History Viewer Blank Display Issue**
+- **Issue**: The clipboard history viewer appeared blank despite having history data, leading to:
+  1. Users unable to view their clipboard history
+  2. Confusion about whether history tracking was working
+  3. Inability to access previously copied content
+  4. Index calculation errors when selecting items
+  5. Incorrect display order of history items
+- **Fix**:
+  - Fixed incorrect use of `reversed()` on already reverse-chronological history data
+  - Corrected index calculations in selection handlers (removed unnecessary offset)
+  - Added proper error handling for individual history items
+  - Improved content sanitization (removed carriage returns and newlines)
+  - Added configuration-based history path loading instead of hardcoded path
+  - Enhanced robustness with try-catch blocks for item processing
+- **Result**:
+  - History viewer now displays all history items correctly
+  - Proper chronological order (most recent first)
+  - Correct item selection and preview functionality
+  - Reliable copy-to-clipboard and delete operations
+  - Configuration-aware history file location
+
 ### 10. **Enhanced Monitoring Issues**
 - **Issue**: Enhanced monitoring using pyobjc was failing with import errors, leading to:
   1. Fallback to less efficient polling mode

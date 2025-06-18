@@ -325,6 +325,40 @@ rumps.notification("Title", "Subtitle", "Message")
 - **Module Actions**: Markdown conversion, Mermaid detection, code formatting results
 - **Configuration**: Settings updates, validation results, and error notifications
 
+## 🔧 **History Viewer Fix**
+
+### **Blank Display Issue Resolved**
+The clipboard history viewer was appearing blank despite having history data due to several logic errors:
+
+#### **Root Causes Fixed**
+- **Incorrect List Reversal**: History data was already in reverse chronological order, but the viewer was reversing it again
+- **Index Calculation Errors**: Selection handlers used incorrect offset calculations for reversed lists
+- **Content Display Issues**: Newlines and carriage returns were not properly sanitized for display
+- **Hardcoded Paths**: History file path was hardcoded instead of using configuration
+
+#### **Technical Fixes Applied**
+```python
+# Before: Incorrect double reversal
+for item in reversed(self.history):  # Wrong - already reverse chronological
+
+# After: Direct iteration (history is already newest first)
+for item in self.history:  # Correct
+
+# Before: Incorrect index calculation
+index = len(self.history) - 1 - selection[0]  # Wrong offset
+
+# After: Direct index access
+index = selection[0]  # Correct - no offset needed
+```
+
+#### **Improvements Made**
+- ✅ **Correct Display Order**: Most recent items appear first as expected
+- ✅ **Proper Item Selection**: Clicking items now shows correct content in preview
+- ✅ **Reliable Operations**: Copy-to-clipboard and delete functions work correctly
+- ✅ **Configuration Aware**: Uses configured history file location
+- ✅ **Error Resilience**: Handles problematic history items gracefully
+- ✅ **Content Sanitization**: Properly displays content with newlines and special characters
+
 ---
 
 *For detailed technical information, see the individual documentation files: FIXES.md, PERFORMANCE_OPTIMIZATIONS.md, and PROJECT_JOURNEY.md.*
