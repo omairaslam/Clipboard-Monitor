@@ -485,7 +485,35 @@ Timer-based enhanced monitoring → Polling fallback
 
 ## Recent Enhancements
 
-### Phase 4: Advanced Feature Implementation
+### Phase 4: Simplification and Reliability Focus (Current)
+**Strategy**: Prioritize simplicity and reliability over complex features
+
+#### 4.1 Popup Preview Feature Removal
+- **Decision**: Removed clipboard content preview popup functionality entirely
+- **Rationale**: User feedback prioritized simplicity and reliability over complex features
+- **Technical Issues Resolved**:
+  - Threading violations causing crashes
+  - Complex PyObjC UI operations from non-main threads
+  - Timer conflicts and resource management issues
+  - Option key detection complexity
+- **Code Reduction**: Removed ~300 lines of complex popup-related code
+- **Benefits Achieved**:
+  - Eliminated all threading-related crashes
+  - Simplified user interaction (click always copies)
+  - Improved maintainability and debugging
+  - Better reliability with standard rumps behavior
+  - Consistent user experience across all menu interactions
+
+#### 4.2 Streamlined Menu Interface
+- **Approach**: Simplified clipboard history menu to focus on core functionality
+- **Changes Made**:
+  - Removed Option+Click preview mode
+  - Removed popup-related help text and information messages
+  - Simplified menu items to single-action (click to copy)
+  - Maintained truncated preview text (first 50 characters) for quick identification
+- **User Experience**: Clear, predictable behavior with immediate clipboard copying
+
+### Phase 5: Advanced Feature Implementation (Previous)
 **Strategy**: Extend functionality while maintaining core stability
 
 #### 4.1 Configuration System

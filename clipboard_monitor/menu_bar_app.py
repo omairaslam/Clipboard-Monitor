@@ -10,11 +10,16 @@ import logging
 from pathlib import Path
 from utils import safe_expanduser, ensure_directory_exists
 
+
+
+
 class ClipboardMonitorMenuBar(rumps.App):
     def __init__(self):
         # Use a simple title with an emoji that works in the menu bar
         super(ClipboardMonitorMenuBar, self).__init__("📋", quit_button=None)
-        
+
+
+
         # Configuration
         self.home_dir = str(Path.home())
         self.plist_path = f"{self.home_dir}/Library/LaunchAgents/com.omairaslam.clipboardmonitor.plist"
@@ -476,15 +481,18 @@ class ClipboardMonitorMenuBar(rumps.App):
         # Use the stored module name instead of the display name
         module_name = getattr(sender, '_module_name', sender.title)
         self.module_status[module_name] = sender.state
-        
+
         # Save module status to config
         self.save_module_config()
-        
+
         # Get friendly display name for notification
         display_name = sender.title
-        
+
+        # Restart service to apply module changes
+        self.restart_service(None)
+
         # Notify the user
-        rumps.notification("Clipboard Monitor", "Module Settings", 
+        rumps.notification("Clipboard Monitor", "Module Settings",
                           f"Module '{display_name}' is now {'enabled' if sender.state else 'disabled'}")
     
     def toggle_debug(self, sender):
@@ -1072,11 +1080,6 @@ read -n 1
             refresh_item = rumps.MenuItem("🔄 Refresh History")
             refresh_item.set_callback(self.refresh_history_menu)
             self.recent_history_menu.add(refresh_item)
-
-            # Add test item to verify menu is updating
-            test_item = rumps.MenuItem(f"✅ Updated at {datetime.datetime.now().strftime('%H:%M:%S')}")
-            test_item.set_callback(None)
-            self.recent_history_menu.add(test_item)
 
         except Exception as e:
             # Add error item safely

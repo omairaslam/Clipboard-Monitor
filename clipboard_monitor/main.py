@@ -356,8 +356,11 @@ def main():
     modules_dir = os.path.join(os.path.dirname(__file__), 'modules')
     monitor.load_modules(modules_dir)
 
-    if not monitor.modules:
-        logger.warning("[bold yellow]No modules loaded. Monitor will run but won't process clipboard content.[/bold yellow]")
+    if not monitor.module_specs:
+        logger.warning("[bold yellow]No modules enabled. Monitor will run but won't process clipboard content.[/bold yellow]")
+    else:
+        enabled_modules = [name for name, spec in monitor.module_specs]
+        logger.info(f"[bold green]Enabled modules:[/bold green] {', '.join(enabled_modules)}")
 
     # --- Enhanced Monitoring Path (macOS with pyobjc) ---
     if MACOS_ENHANCED:

@@ -141,7 +141,7 @@ The Clipboard Monitor includes a menu bar app that allows you to:
 - **Log Management**: View output and error logs, clear logs
 - **Module Control**: Enable/disable specific modules
 - **Clipboard History**: Access clipboard history through multiple viewer options:
-  - **Recent History**: Quick access to last 10 items in menu bar
+  - **Recent History**: Quick access to last 10 items in menu bar - click any item to copy to clipboard
   - **GUI Viewer**: Native macOS interface with full functionality
   - **Web Viewer**: Browser-based interface with advanced features
   - **CLI Viewer**: Terminal-based interface for command-line users

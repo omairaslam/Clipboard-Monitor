@@ -1,5 +1,30 @@
 # Latest Updates - Clipboard Monitor (2025-06-18)
 
+## 🎯 **Recent Simplification (Current)**
+
+### **Popup Preview Feature Removed**
+Based on user feedback prioritizing simplicity and reliability, the clipboard content preview popup functionality has been completely removed:
+
+#### **What Was Removed**
+- ❌ **Popup preview system** with PyObjC windows and complex threading
+- ❌ **Option+Click detection** and modifier key handling
+- ❌ **Complex timer management** and main thread scheduling
+- ❌ **Threading complexity** that was causing crashes and reliability issues
+
+#### **Current Simple Functionality**
+- ✅ **Click any clipboard history item** → **Copies full content to clipboard**
+- ✅ **Clean menu interface** with truncated previews (first 50 characters)
+- ✅ **Standard notifications** when items are copied
+- ✅ **Reliable operation** with no threading issues
+- ✅ **All existing features preserved** (service control, logs, preferences)
+
+#### **Benefits of Simplification**
+- 🎯 **No more crashes** or threading violations
+- 🎯 **Simpler codebase** (~300 lines of complex code removed)
+- 🎯 **Better reliability** with standard rumps behavior
+- 🎯 **Easier maintenance** and debugging
+- 🎯 **Consistent user experience** - click always copies
+
 ## Overview
 
 This document summarizes the latest comprehensive bug fixes, optimizations, and improvements made to the Clipboard Monitor application. All changes focus on **stability, security, and performance** while maintaining backward compatibility.
