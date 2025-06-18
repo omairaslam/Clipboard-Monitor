@@ -23,7 +23,12 @@ We have simplified the Clipboard Monitor app by **removing the popup preview fun
 - Dual-mode operation (preview vs copy)
 - Complex callback system for menu items
 
-### 3. Related Documentation and Tests
+### 3. Clipboard Change Notifications
+- Automatic notifications on every clipboard change
+- "Clipboard changed (enhanced)!" and "Clipboard changed (polling)!" messages
+- Frequent interruptions during normal copy/paste workflows
+
+### 4. Related Documentation and Tests
 - Removed all popup-related test files
 - Removed popup feature documentation
 - Removed threading fix documentation
@@ -37,7 +42,8 @@ The app now has a clean, straightforward clipboard history menu:
 1. **Click any clipboard history item** → **Copies content to clipboard**
 2. **No complex interactions** → **No Option+Click needed**
 3. **No popup windows** → **No threading issues**
-4. **Standard notifications** → **Clear feedback when items are copied**
+4. **Module-only notifications** → **No interruptions from clipboard changes**
+5. **Clear feedback** → **Notifications only when modules are triggered**
 
 ### ✅ **Menu Structure**
 - Recent Clipboard Items menu shows truncated content (first 50 characters)

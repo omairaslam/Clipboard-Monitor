@@ -344,7 +344,6 @@ rumps.notification("Title", "Subtitle", "Message")
 - **Context-Aware**: Different notifications for enhanced vs. polling monitoring modes
 
 ### **Notification Types & Context**
-- **Clipboard Changes**: "Clipboard changed (enhanced)!" vs "Clipboard changed (polling)!"
 - **Service Control**: Start, stop, restart confirmations with clear status
 - **Pause/Resume**: "Monitoring Paused" and "Monitoring Resumed" with state feedback
 - **Module Actions**: Markdown conversion, Mermaid detection, code formatting results

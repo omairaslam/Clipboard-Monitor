@@ -288,17 +288,6 @@ if MACOS_ENHANCED:
                     self.last_processed_clipboard_content = current_clipboard_content
 
                     logger.info("[bold blue]Clipboard changed (enhanced monitoring)![/bold blue]")
-                    
-                    # Use performSelectorOnMainThread to show notification on main thread
-                    if NSThread.isMainThread():
-                        show_notification(CONFIG['notification_title'], "Clipboard changed (enhanced)!")
-                    else:
-                        # Schedule notification on main thread
-                        NSApplication.sharedApplication().performSelectorOnMainThread_withObject_waitUntilDone_(
-                            lambda: show_notification(CONFIG['notification_title'], "Clipboard changed (enhanced)!"),
-                            None,
-                            False
-                        )
 
                     # If the monitor instance is available, process the new clipboard content.
                     if self.monitor_instance:
@@ -443,7 +432,6 @@ def main():
                 # If the current clipboard content is different from the last known content.
                 if clipboard_content != last_clipboard:
                     last_clipboard = clipboard_content
-                    show_notification(CONFIG['notification_title'], "Clipboard changed (polling)!")
                     monitor.process_clipboard(clipboard_content)
 
                 # Reset error counter on successful iteration
