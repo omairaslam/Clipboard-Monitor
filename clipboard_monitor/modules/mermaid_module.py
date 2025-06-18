@@ -124,7 +124,9 @@ def process(clipboard_content):
             # Sanitize parentheses in node text to prevent Mermaid parsing errors
             sanitized_content = sanitize_mermaid_content(clipboard_content)
             
-            return launch_mermaid_chart(sanitized_content)
+            # Launch mermaid chart but return False since clipboard isn't modified
+            launch_mermaid_chart(sanitized_content)
+            return False  # Changed from True to False as clipboard isn't modified
     except Exception as e:
         logger.error(f"[bold red]Error processing clipboard:[/bold red] {str(e)}")
         

@@ -32,6 +32,18 @@ The `process` function should:
 1. Accept a string parameter containing the clipboard content
 2. Return `True` if the clipboard was modified, `False` otherwise
 
+### Return Value Specification
+
+The `process()` function in each module **MUST** follow this return value convention:
+
+- Return `True` ONLY if the module has modified the clipboard content
+- Return `False` if:
+  - The module didn't process the content (not applicable)
+  - The module processed the content but didn't modify the clipboard
+  - The module performed other actions (notifications, browser launch, etc.)
+
+This is critical because the main application uses this return value to determine if it needs to re-fetch and re-process the clipboard content with remaining modules.
+
 ## Module Loading Process
 
 1. The main application scans the `modules/` directory for Python files ending with `_module.py`

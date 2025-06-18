@@ -44,12 +44,12 @@ def load_config():
                         
             # Note: Debug mode will be applied after logger is set up
             
-            print(f"Loaded configuration from {config_path}")
+            logger.info(f"Loaded configuration from {config_path}")
         else:
-            print("No config.json found, using defaults")
+            logger.info("No config.json found, using defaults")
     except Exception as e:
-        print(f"Error loading config: {e}")
-        print("Using default configuration")
+        logger.error(f"Error loading config: {e}")
+        logger.info("Using default configuration")
     
     return config
 

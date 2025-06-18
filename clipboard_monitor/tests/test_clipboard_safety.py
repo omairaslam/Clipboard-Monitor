@@ -16,7 +16,18 @@ from modules import markdown_module, mermaid_module, code_formatter_module, hist
 
 def test_content_safety():
     """Test that modules don't modify clipboard content inappropriately"""
-    
+
+    # Check configuration first
+    print("🔧 Checking module configuration...")
+    try:
+        import json
+        with open('config.json', 'r') as f:
+            config = json.load(f)
+        markdown_modify = config.get('modules', {}).get('markdown_modify_clipboard', True)
+        print(f"  Markdown modify clipboard: {markdown_modify}")
+    except Exception as e:
+        print(f"  ⚠️  Could not read config: {e}")
+
     test_cases = [
         {
             "name": "Plain Text",
@@ -45,7 +56,7 @@ def test_content_safety():
         },
         {
             "name": "Markdown (with modification enabled)",
-            "content": "# Hello\n\nThis is **bold** text and *italic* text.",
+            "content": "# Test Heading\n\nThis is **bold** text and *italic* text.\n\n* List item 1\n* List item 2",
             "should_modify": True  # Markdown module should convert this
         },
         {
@@ -88,9 +99,13 @@ def test_content_safety():
         
         for module_name, module in modules_to_test:
             try:
+                # Store original clipboard content before processing
+                pyperclip.copy(original_content)
+                time.sleep(0.1)  # Small delay to ensure clipboard is set
+
                 # Process with module
                 result = module.process(original_content)
-                
+
                 # Check if clipboard was modified
                 current_clipboard = pyperclip.paste()
                 if current_clipboard != original_content:
@@ -98,14 +113,18 @@ def test_content_safety():
                     print(f"  ⚠️  {module_name} module modified clipboard!")
                     print(f"    Original: {original_content[:30]}...")
                     print(f"    Modified: {current_clipboard[:30]}...")
-                    
+
                     # Reset clipboard for next test
                     pyperclip.copy(original_content)
+                    time.sleep(0.1)
                 else:
                     print(f"  ✅ {module_name} module did not modify clipboard")
-                    
+
             except Exception as e:
                 print(f"  ❌ {module_name} module error: {e}")
+                # Reset clipboard in case of error
+                pyperclip.copy(original_content)
+                time.sleep(0.1)
         
         # Check if modification behavior matches expectation
         if clipboard_modified == test_case['should_modify']:

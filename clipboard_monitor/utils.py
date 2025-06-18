@@ -11,6 +11,8 @@ import os
 import pwd
 from pathlib import Path
 from rich.console import Console
+import json
+import pyperclip
 
 # Set up rich console
 console = Console()
@@ -310,3 +312,117 @@ class ContentTracker:
         with self.lock:
             self.content_hashes = []
             self.content_sizes.clear()
+
+def get_app_paths():
+    """Return standardized application paths"""
+    base_dir = safe_expanduser("~/Library/Application Support/ClipboardMonitor")
+    return {
+        "base_dir": base_dir,
+        "history_file": os.path.join(base_dir, "clipboard_history.json"),
+        "pause_flag": os.path.join(base_dir, "pause_flag"),
+        "error_log": os.path.join(base_dir, "error.log"),
+        "status_file": os.path.join(base_dir, "status.txt")
+    }
+
+def get_config(section=None, key=None, default=None):
+    """Get configuration value from config.json
+    
+    Args:
+        section: Optional section name (e.g., 'general', 'modules')
+        key: Optional key within section
+        default: Default value if section/key not found
+        
+    Returns:
+        Full config dict, section dict, or specific value
+    """
+    try:
+        config_path = os.path.join(os.path.dirname(__file__), 'config.json')
+        if os.path.exists(config_path):
+            with open(config_path, 'r') as f:
+                config = json.load(f)
+                
+            if section is None:
+                return config
+            elif section in config:
+                if key is None:
+                    return config[section]
+                else:
+                    return config[section].get(key, default)
+        return default
+    except Exception as e:
+        logging.error(f"Error loading config: {e}")
+        return default
+
+def get_clipboard_content():
+    """Get clipboard content with fallback mechanisms.
+    
+    Returns:
+        String content of clipboard or None if retrieval fails
+    """
+    try:
+        # Try pbpaste first (macOS)
+        try:
+            # Try RTF first
+            result = subprocess.run(
+                ['pbpaste', '-Prefer', 'rtf'],
+                capture_output=True,
+                text=True,
+                timeout=2
+            )
+            if result.returncode == 0 and result.stdout.strip():
+                return result.stdout
+                
+            # Try plain text
+            result = subprocess.run(
+                ['pbpaste', '-Prefer', 'txt'],
+                capture_output=True,
+                text=True,
+                timeout=2
+            )
+            if result.returncode == 0 and result.stdout.strip():
+                return result.stdout
+        except (subprocess.SubprocessError, FileNotFoundError):
+            pass
+            
+        # Fall back to pyperclip
+        return pyperclip.paste()
+    except Exception as e:
+        logging.error(f"Error getting clipboard content: {e}")
+        return None
+
+def update_service_status(status):
+    """Update the service status file
+    
+    Args:
+        status: String status ('running_enhanced', 'running_polling', 'paused', 'error')
+    """
+    try:
+        paths = get_app_paths()
+        ensure_directory_exists(os.path.dirname(paths["status_file"]))
+        with open(paths["status_file"], 'w') as f:
+            f.write(status)
+    except Exception as e:
+        logging.error(f"Error updating status file: {e}")
+
+def get_service_status():
+    """Get current service status from status file
+    
+    Returns:
+        String status or 'unknown' if status file doesn't exist/can't be read
+    """
+    try:
+        paths = get_app_paths()
+        if os.path.exists(paths["status_file"]):
+            with open(paths["status_file"], 'r') as f:
+                return f.read().strip()
+        return "unknown"
+    except Exception:
+        return "unknown"
+
+# Ensure all functions are properly defined at module level
+__all__ = [
+    'show_notification', 'validate_string_input', 'safe_subprocess_run',
+    'get_home_directory', 'safe_expanduser', 'ensure_directory_exists',
+    'ContentTracker', 'get_app_paths', 'get_config', 'get_clipboard_content',
+    'update_service_status', 'get_service_status'
+]

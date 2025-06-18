@@ -10,6 +10,8 @@ from tkinter import ttk, messagebox
 import datetime
 import pyperclip
 
+from utils import safe_expanduser, get_app_paths
+
 class ClipboardHistoryViewer:
     def __init__(self, root):
         self.root = root
@@ -23,7 +25,8 @@ class ClipboardHistoryViewer:
         self.root.focus_force()
 
         # Set up the history file path
-        self.history_path = os.path.expanduser("~/Library/Application Support/ClipboardMonitor/clipboard_history.json")
+        paths = get_app_paths()
+        self.history_path = paths["history_file"]
 
         # Create text widget instead of listbox (listbox has display issues)
         text_frame = tk.Frame(root)

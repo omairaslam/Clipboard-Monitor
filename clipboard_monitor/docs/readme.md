@@ -405,6 +405,43 @@ The application includes a shared utilities module (`utils.py`) that provides co
 - **Workaround**: The original Markdown content remains visible in history, and RTF conversion works correctly for pasting purposes.
 - **Status**: Under investigation - multiple attempts to resolve this clipboard monitoring limitation have not been successful.
 
+## Testing
+
+The Clipboard Monitor includes a comprehensive test suite with **90-95% coverage** across all functionality.
+
+### **Quick Start**
+```bash
+# Run all tests
+python3 tests/run_comprehensive_tests.py
+
+# Run specific test categories
+python3 tests/test_clear_history_comprehensive.py
+python3 tests/test_menu_bar_ui_comprehensive.py
+python3 tests/test_performance_comprehensive.py
+python3 tests/test_security_comprehensive.py
+```
+
+### **Test Categories**
+- ✅ **Clear History Tests** - Clear functionality across all interfaces
+- ✅ **Menu Bar UI Tests** - Menu interactions and state changes
+- ✅ **End-to-End Workflow Tests** - Complete user scenarios
+- ✅ **Error Handling Tests** - Edge cases and failure conditions
+- ✅ **Performance Tests** - Large datasets and resource usage
+- ✅ **Real-time Monitoring Tests** - Clipboard change detection
+- ✅ **Configuration Tests** - Settings validation and error handling
+- ✅ **Security Tests** - Input validation and injection prevention
+
+### **Test Documentation**
+- **[Testing Quick Start Guide](TESTING_QUICK_START.md)** - Quick reference for developers
+- **[Complete Testing Guide](TESTING.md)** - Comprehensive testing documentation
+- **[Test Suite Details](COMPREHENSIVE_TEST_SUITE.md)** - Detailed test descriptions and coverage analysis
+
+### **Prerequisites**
+```bash
+# Optional: For performance tests
+pip install psutil
+```
+
 ## Creating Custom Modules
 
 See the [Module Development Guide](MODULE_DEVELOPMENT.md) for information on creating your own processing modules.

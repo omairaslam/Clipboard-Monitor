@@ -24,6 +24,17 @@ Detailed analysis of performance improvements and optimization techniques.
 ### **[Monitoring Methods (MONITORING_METHODS.md)](MONITORING_METHODS.md)**
 Technical details on clipboard monitoring approaches and implementation.
 
+## 🧪 **Testing Documentation**
+
+### **[Testing Quick Start Guide (TESTING_QUICK_START.md)](TESTING_QUICK_START.md)**
+Quick reference for developers to run and understand the comprehensive test suite.
+
+### **[Complete Testing Guide (TESTING.md)](TESTING.md)**
+Comprehensive testing documentation covering all test categories, execution methods, and best practices.
+
+### **[Comprehensive Test Suite (COMPREHENSIVE_TEST_SUITE.md)](COMPREHENSIVE_TEST_SUITE.md)**
+Detailed analysis of the test suite with complete coverage assessment and test descriptions.
+
 ## 🐛 **Bug Fixes & Issues**
 
 ### **[Bug Fixes (FIXES.md)](FIXES.md)**
@@ -55,8 +66,9 @@ Details about the removal of complex features in favor of simplicity and reliabi
 
 ### **Developers**
 1. Read **[Module Development Guide](MODULE_DEVELOPMENT.md)** for creating modules
-2. Review **[Performance Optimizations](PERFORMANCE_OPTIMIZATIONS.md)** for best practices
-3. Check **[Bug Fixes](FIXES.md)** for implementation details
+2. Review **[Testing Quick Start Guide](TESTING_QUICK_START.md)** for running tests
+3. Check **[Performance Optimizations](PERFORMANCE_OPTIMIZATIONS.md)** for best practices
+4. Review **[Bug Fixes](FIXES.md)** for implementation details
 
 ### **Troubleshooting**
 1. Check **[Main Documentation](readme.md)** troubleshooting section
@@ -72,6 +84,7 @@ Details about the removal of complex features in favor of simplicity and reliabi
 | **RTF Content** | [CLEAR_HISTORY_AND_RTF_FEATURES.md](CLEAR_HISTORY_AND_RTF_FEATURES.md) | [LATEST_UPDATES.md](LATEST_UPDATES.md) |
 | **Module Development** | [MODULE_DEVELOPMENT.md](MODULE_DEVELOPMENT.md) | [FIXES.md](FIXES.md) |
 | **Performance** | [PERFORMANCE_OPTIMIZATIONS.md](PERFORMANCE_OPTIMIZATIONS.md) | [LATEST_UPDATES.md](LATEST_UPDATES.md) |
+| **Testing** | [TESTING_QUICK_START.md](TESTING_QUICK_START.md) | [TESTING.md](TESTING.md), [COMPREHENSIVE_TEST_SUITE.md](COMPREHENSIVE_TEST_SUITE.md) |
 | **Configuration** | [readme.md](readme.md) | [MODULE_ENABLE_DISABLE_FIX.md](MODULE_ENABLE_DISABLE_FIX.md) |
 | **Security** | [TILDE_EXPANSION_FIX.md](TILDE_EXPANSION_FIX.md) | [FIXES.md](FIXES.md) |
 | **History Viewers** | [readme.md](readme.md) | [CLEAR_HISTORY_AND_RTF_FEATURES.md](CLEAR_HISTORY_AND_RTF_FEATURES.md) |
