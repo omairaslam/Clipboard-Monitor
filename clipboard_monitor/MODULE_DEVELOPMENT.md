@@ -166,6 +166,70 @@ def process(clipboard_content) -> bool:
 - **Log sanitization actions** for debugging
 - **Test with problematic input** to ensure robustness
 
+## Clipboard Safety Guidelines
+
+**IMPORTANT**: Modules should never modify clipboard content without explicit user consent. Follow these safety principles:
+
+### **Default Behavior: Read-Only**
+```python
+def process(clipboard_content) -> bool:
+    # Always check configuration before modifying clipboard
+    module_config = load_module_config()
+    modify_clipboard = module_config.get('your_module_modify_clipboard', False)
+
+    if is_your_content_type(clipboard_content):
+        if modify_clipboard:
+            # Only modify if explicitly enabled
+            modified_content = process_content(clipboard_content)
+            pyperclip.copy(modified_content)
+            show_notification("Content Processed", "Content modified and copied to clipboard")
+            return True
+        else:
+            # Read-only mode: detect and notify only
+            show_notification("Content Detected", "Content detected (read-only mode)")
+            return False  # Don't modify clipboard
+
+    return False
+```
+
+### **Configuration Loading**
+```python
+import json
+import os
+
+def load_module_config():
+    """Load module configuration from config.json"""
+    try:
+        config_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'config.json')
+        if os.path.exists(config_path):
+            with open(config_path, 'r') as f:
+                config = json.load(f)
+                return config.get('modules', {})
+    except Exception as e:
+        logger.error(f"Error loading module config: {e}")
+    return {}
+```
+
+### **Safety Principles**
+1. **Never modify clipboard by default** - require explicit user configuration
+2. **Clear notifications** - distinguish between detection and modification
+3. **Conservative defaults** - prioritize content protection over convenience
+4. **User control** - provide menu bar toggles for clipboard modification
+5. **Content type respect** - only process content you're designed for
+6. **Graceful fallback** - handle configuration errors safely
+
+### **Content Type Guidelines**
+- ✅ **Process only your target content** (e.g., markdown, code, diagrams)
+- ❌ **Never modify plain text, URLs, emails, JSON** unless specifically designed for them
+- ✅ **Provide clear detection logic** with strict validation
+- ❌ **Avoid broad pattern matching** that could catch unintended content
+
+### **User Experience Best Practices**
+- **Clear notifications**: "Markdown detected (read-only mode)" vs "Markdown converted to RTF"
+- **Consistent behavior**: Same detection logic whether modifying or not
+- **Immediate feedback**: Show notifications for both detection and modification
+- **Reversible actions**: Users should be able to undo or disable modifications
+
 ### Error Handling
 
 Use try-except blocks to catch and log errors:
@@ -204,15 +268,64 @@ def process(clipboard_content) -> bool:
 
 ## Notifications
 
-Use the show_notification utility:
+Use the enhanced notification system from utils:
 
 ```python
 from utils import show_notification
 
 def process(clipboard_content) -> bool:
-    # Show a notification
+    # Show a notification with security and reliability features
     show_notification("Title", "Message")
+
+    # The notification system includes:
+    # - Input sanitization to prevent AppleScript injection
+    # - Timeout protection (3 seconds)
+    # - Error logging for debugging
+    # - Thread safety for macOS
 ```
+
+### **Notification Best Practices**
+
+#### **Security Guidelines**
+```python
+# ✅ Good: Use the shared notification function
+from utils import show_notification
+show_notification("Safe Title", "Safe message")
+
+# ❌ Bad: Direct AppleScript without sanitization
+subprocess.run(["osascript", "-e", f'display notification "{unsafe_message}"'])
+```
+
+#### **Context-Aware Notifications**
+```python
+def process(clipboard_content) -> bool:
+    if modify_clipboard:
+        show_notification("Content Processed", "Content modified and copied to clipboard")
+        return True
+    else:
+        show_notification("Content Detected", "Content detected (read-only mode)")
+        return False
+```
+
+#### **Error Handling**
+```python
+def process(clipboard_content) -> bool:
+    try:
+        # Process content
+        result = process_content(clipboard_content)
+        show_notification("Success", "Content processed successfully")
+        return True
+    except Exception as e:
+        show_notification("Error", f"Processing failed: {str(e)}")
+        return False
+```
+
+### **Notification Features**
+- **Security Hardened**: Input sanitization prevents AppleScript injection
+- **Timeout Protected**: 3-second timeout prevents hanging
+- **Error Logged**: Failed notifications logged for debugging
+- **Thread Safe**: Proper main thread handling for macOS
+- **Fallback System**: Multiple delivery methods ensure reliability
 
 ## Example Module
 

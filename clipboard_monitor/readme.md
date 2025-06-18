@@ -63,28 +63,54 @@ A Python script that monitors the macOS clipboard for changes and processes them
 The Clipboard Monitor includes several processing modules:
 
 ### Markdown Module
-Detects and converts markdown content to rich text format (RTF).
+Detects and converts markdown content to rich text format (RTF). **Modifies clipboard content** when enabled (default: enabled).
 
 ### Mermaid Module
-Detects Mermaid diagram syntax, sanitizes content for safe processing, and opens it in the Mermaid Live Editor with automatic character escaping.
+Detects Mermaid diagram syntax, sanitizes content for safe processing, and opens it in the Mermaid Live Editor. **Never modifies clipboard content** - only opens browser.
 
 ### History Module
-Tracks clipboard history with timestamps and content hashing for deduplication.
+Tracks clipboard history with timestamps and content hashing for deduplication. **Never modifies clipboard content** - read-only tracking.
 
 ### Code Formatter Module
-Detects and formats code snippets using language-specific formatters.
+Detects and formats code snippets using language-specific formatters. **Read-only by default** - only detects and notifies, doesn't modify clipboard unless explicitly enabled.
+
+## 🛡️ Clipboard Safety
+
+**Your clipboard content is protected!** The Clipboard Monitor follows strict safety principles:
+
+### **Safe by Default**
+- ✅ **Plain text, URLs, emails, JSON** - Never modified
+- ✅ **Code snippets** - Only detected and notified (read-only by default)
+- ✅ **Mermaid diagrams** - Opens browser, never modifies clipboard
+- ✅ **Unknown content** - Always left unchanged
+
+### **Configurable Modifications**
+Only specific content types can modify your clipboard, and it's fully configurable:
+
+- **Markdown → RTF**: Enabled by default (main feature)
+- **Code Formatting**: Disabled by default (can be enabled)
+- **All other content**: Never modified
+
+### **User Control**
+Access clipboard modification settings through:
+**Menu Bar** → **Preferences** → **Clipboard Modification**
+
+- Toggle markdown RTF conversion on/off
+- Enable/disable code formatter clipboard modification
+- Changes apply immediately with automatic service restart
 
 ## Menu Bar App
 
 The Clipboard Monitor includes a menu bar app that allows you to:
 
-- Check the service status (running/stopped, enhanced/polling mode)
-- Start, stop, and restart the service
-- View output and error logs
-- Clear logs
-- Enable/disable specific modules
-- Access clipboard history
-- Configure application settings
+- **Service Status**: Check service status (running/stopped/paused, enhanced/polling mode)
+- **Service Control**: Start, stop, and restart the service
+- **Pause/Resume**: Temporarily pause monitoring without stopping the service
+- **Log Management**: View output and error logs, clear logs
+- **Module Control**: Enable/disable specific modules
+- **Clipboard History**: Access clipboard history
+- **Configuration**: Configure all application settings through user-friendly interface
+- **Enhanced Notifications**: Reliable notification system with AppleScript integration
 
 ### Installing the Menu Bar App
 
@@ -121,6 +147,7 @@ All settings can be easily configured through the menu bar application:
 - **Performance Settings**: Lazy loading, adaptive checking, memory optimization
 - **History Settings**: Max items, content length, file location
 - **Security Settings**: Clipboard sanitization, size limits
+- **Clipboard Modification**: Control which modules can modify clipboard content
 - **Configuration Management**: Reset, export, import, and view settings
 
 **Access**: Click the menu bar icon → Preferences → Choose your setting category
@@ -154,7 +181,9 @@ You can also manually edit the `config.json` file:
     "markdown_module": true,
     "mermaid_module": true,
     "history_module": true,
-    "code_formatter_module": true
+    "code_formatter_module": true,
+    "markdown_modify_clipboard": true,
+    "code_formatter_modify_clipboard": false
   },
   "history": {
     "max_items": 100,
@@ -169,6 +198,59 @@ You can also manually edit the `config.json` file:
 ```
 
 **Note**: Manual changes require service restart to take effect.
+
+## 🎛️ Pause/Resume Monitoring
+
+The Clipboard Monitor includes a convenient pause/resume feature that allows you to temporarily stop monitoring without shutting down the service:
+
+### **How It Works**
+- **Pause**: Temporarily stops clipboard monitoring while keeping the service running
+- **Resume**: Instantly resumes monitoring from where it left off
+- **No Service Restart**: Much faster than stopping/starting the entire service
+- **State Persistence**: Pause state is maintained across menu bar app restarts
+
+### **Usage**
+1. **Click the menu bar icon** (📋)
+2. **Select "Pause Monitoring"** to pause
+3. **Select "Resume Monitoring"** to resume
+4. **Status indicator** shows current state (Running/Paused)
+
+### **Benefits**
+- ✅ **Instant toggle** - No waiting for service restart
+- ✅ **Preserves state** - All modules and settings remain loaded
+- ✅ **Battery saving** - Reduces CPU usage when not needed
+- ✅ **Privacy control** - Temporarily disable monitoring for sensitive work
+- ✅ **Clear feedback** - Status updates and notifications confirm state changes
+
+### **Technical Implementation**
+- Uses a pause flag file for communication between menu bar and service
+- Both enhanced and polling monitoring modes respect the pause state
+- Automatic cleanup when service stops
+- Thread-safe implementation with proper state management
+
+## 🔔 Enhanced Notifications
+
+The application features a robust notification system with multiple fallback mechanisms:
+
+### **Notification Features**
+- **AppleScript Integration**: Direct macOS notification system access
+- **Dual Notification System**: Primary AppleScript + fallback rumps notifications
+- **Security Hardened**: Input sanitization prevents AppleScript injection
+- **Customizable Titles**: Configure notification titles through menu bar
+- **Context-Aware**: Different notifications for enhanced vs. polling mode
+
+### **Notification Types**
+- **Clipboard Changes**: "Clipboard changed (enhanced)!" or "Clipboard changed (polling)!"
+- **Service Control**: Start, stop, restart confirmations
+- **Pause/Resume**: Clear feedback when monitoring is paused/resumed
+- **Module Actions**: Markdown conversion, Mermaid detection, etc.
+- **Configuration Changes**: Settings updates and validation results
+
+### **Reliability Features**
+- **Timeout Protection**: Prevents hanging on notification failures
+- **Error Logging**: Failed notifications are logged for debugging
+- **Fallback Mechanisms**: Multiple notification methods ensure delivery
+- **Thread Safety**: Proper main thread handling for macOS notifications
 
 ## Quick Reference
 

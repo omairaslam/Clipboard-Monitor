@@ -23,6 +23,10 @@ class ClipboardMonitorMenuBar(rumps.App):
         # Create menu items
         self.status_item = rumps.MenuItem("Status: Checking...")
         
+        # Create pause/resume toggle
+        self.pause_toggle = rumps.MenuItem("Pause Monitoring")
+        self.pause_toggle.set_callback(self.toggle_monitoring)
+        
         # Create service control submenu
         self.start_item = rumps.MenuItem("Start Service")
         self.start_item.set_callback(self.start_service)
@@ -205,6 +209,21 @@ class ClipboardMonitorMenuBar(rumps.App):
 
         self.prefs_menu.add(security_menu)
 
+        # Add clipboard modification settings
+        clipboard_menu = rumps.MenuItem("Clipboard Modification")
+
+        self.markdown_modify = rumps.MenuItem("Markdown Modify Clipboard")
+        self.markdown_modify.state = self.get_config_value('modules', 'markdown_modify_clipboard', True)
+        self.markdown_modify.set_callback(self.toggle_clipboard_modification)
+        clipboard_menu.add(self.markdown_modify)
+
+        self.code_formatter_modify = rumps.MenuItem("Code Formatter Modify Clipboard")
+        self.code_formatter_modify.state = self.get_config_value('modules', 'code_formatter_modify_clipboard', False)
+        self.code_formatter_modify.set_callback(self.toggle_clipboard_modification)
+        clipboard_menu.add(self.code_formatter_modify)
+
+        self.prefs_menu.add(clipboard_menu)
+
         # Add configuration management
         config_menu = rumps.MenuItem("Configuration")
 
@@ -232,6 +251,7 @@ class ClipboardMonitorMenuBar(rumps.App):
         # Add to menu
         self.menu.add(self.status_item)
         self.menu.add(rumps.separator)
+        self.menu.add(self.pause_toggle)  # Add the pause toggle
         self.menu.add(service_control)
         self.menu.add(logs_menu)
         self.menu.add(rumps.separator)
@@ -317,11 +337,20 @@ class ClipboardMonitorMenuBar(rumps.App):
                 text=True
             )
             
+            # Check for pause flag
+            pause_flag_path = os.path.expanduser("~/Library/Application Support/ClipboardMonitor/pause_flag")
+            is_paused = os.path.exists(pause_flag_path)
+            
             # If return code is 0, service is running
             if result.returncode == 0:
-                # Service is running, check if it's using enhanced monitoring
+                if is_paused:
+                    self.status_item.title = "Status: Paused"
+                    self.pause_toggle.title = "Resume Monitoring"
+                    return
+                
+                # Service is running and not paused
+                # Check if it's using enhanced monitoring
                 try:
-                    # Use grep to efficiently check for the enhanced monitoring message
                     grep_result = subprocess.run(
                         ["grep", "-i", "enhanced clipboard monitoring", self.log_path],
                         capture_output=True,
@@ -332,13 +361,28 @@ class ClipboardMonitorMenuBar(rumps.App):
                         self.status_item.title = "Status: Running (Enhanced)"
                     else:
                         self.status_item.title = "Status: Running (Polling)"
+                    
+                    # Reset pause toggle text
+                    self.pause_toggle.title = "Pause Monitoring"
                 except Exception as log_error:
                     # If we can't read the log file, just show as running
                     self.status_item.title = "Status: Running"
+                    self.pause_toggle.title = "Pause Monitoring"
             else:
                 self.status_item.title = "Status: Stopped"
+                # Reset pause toggle text
+                self.pause_toggle.title = "Pause Monitoring"
+                
+                # Remove pause flag if service is stopped
+                if is_paused and os.path.exists(pause_flag_path):
+                    os.remove(pause_flag_path)
         except Exception as e:
-            self.status_item.title = f"Status: Error checking"
+            self.status_item.title = "Status: Error checking"
+            # Log the error
+            import traceback
+            with open(self.error_log_path, 'a') as f:
+                f.write(f"Status check error: {str(e)}\n")
+                f.write(traceback.format_exc())
     
     def start_service(self, _):
         try:
@@ -772,7 +816,26 @@ class ClipboardMonitorMenuBar(rumps.App):
                 rumps.notification("Error", "No configuration found", "Config file does not exist")
         except Exception as e:
             rumps.notification("Error", "Failed to view configuration", str(e))
-    
+
+    def toggle_clipboard_modification(self, sender):
+        """Toggle clipboard modification settings for modules"""
+        sender.state = not sender.state
+
+        # Map menu item titles to config keys
+        setting_map = {
+            "Markdown Modify Clipboard": "markdown_modify_clipboard",
+            "Code Formatter Modify Clipboard": "code_formatter_modify_clipboard"
+        }
+
+        config_key = setting_map.get(sender.title)
+        if config_key and self.set_config_value('modules', config_key, sender.state):
+            status = "enabled" if sender.state else "disabled"
+            rumps.notification("Clipboard Monitor", "Clipboard Modification",
+                              f"{sender.title} is now {status}")
+            self.restart_service(None)
+        else:
+            rumps.notification("Error", "Failed to update clipboard modification setting", "Could not save configuration")
+
     def save_module_config(self):
         """Save module configuration to config file"""
         try:
@@ -805,6 +868,99 @@ class ClipboardMonitorMenuBar(rumps.App):
                                   "Could not find history_viewer.py")
         except Exception as e:
             rumps.notification("Error", "Failed to open history viewer", str(e))
+
+    def toggle_monitoring(self, sender):
+        """Temporarily pause or resume clipboard monitoring without stopping the service"""
+        try:
+            # Check if config file exists
+            config_path = os.path.expanduser("~/Library/Application Support/ClipboardMonitor/config.json")
+            if not os.path.exists(os.path.dirname(config_path)):
+                os.makedirs(os.path.dirname(config_path))
+            
+            # Create pause flag file to communicate with the main process
+            pause_flag_path = os.path.expanduser("~/Library/Application Support/ClipboardMonitor/pause_flag")
+            
+            if sender.title == "Pause Monitoring":
+                # Create pause flag file
+                with open(pause_flag_path, 'w') as f:
+                    f.write("paused")
+            
+                sender.title = "Resume Monitoring"
+                self.status_item.title = "Status: Paused"
+                
+                # Show notification using direct AppleScript
+                self.show_mac_notification(
+                    "Clipboard Monitor", 
+                    "Monitoring Paused", 
+                    "Clipboard monitoring has been temporarily paused."
+                )
+                
+                # Also try the rumps notification as backup
+                rumps.notification(
+                    "Clipboard Monitor", 
+                    "Monitoring Paused", 
+                    "Clipboard monitoring has been temporarily paused."
+                )
+            else:
+                # Remove pause flag file
+                if os.path.exists(pause_flag_path):
+                    os.remove(pause_flag_path)
+                
+                sender.title = "Pause Monitoring"
+                self.status_item.title = "Status: Running"
+                
+                # Show notification using direct AppleScript
+                self.show_mac_notification(
+                    "Clipboard Monitor", 
+                    "Monitoring Resumed", 
+                    "Clipboard monitoring has been resumed."
+                )
+                
+                # Also try the rumps notification as backup
+                rumps.notification(
+                    "Clipboard Monitor", 
+                    "Monitoring Resumed", 
+                    "Clipboard monitoring has been resumed."
+                )
+                
+                # Update status after a short delay to get accurate status
+                threading.Timer(1.0, self.update_status).start()
+        
+        except Exception as e:
+            # Try to show error notification
+            try:
+                self.show_mac_notification("Error", "Failed to toggle monitoring", str(e))
+            except:
+                pass
+            
+            # Log the full error for debugging
+            import traceback
+            with open(self.error_log_path, 'a') as f:
+                f.write(f"Toggle monitoring error: {str(e)}\n")
+                f.write(traceback.format_exc())
+
+    def show_mac_notification(self, title, subtitle, message):
+        """Show a macOS notification using AppleScript for more reliability"""
+        try:
+            # Escape quotes to prevent AppleScript injection
+            title = title.replace('"', '\\"')
+            subtitle = subtitle.replace('"', '\\"')
+            message = message.replace('"', '\\"')
+            
+            # Use AppleScript to show notification
+            script = f'''
+            display notification "{message}" with title "{title}" subtitle "{subtitle}"
+            '''
+            
+            subprocess.run(["osascript", "-e", script], check=True)
+            
+            # Log the notification
+            with open(self.log_path, 'a') as f:
+                f.write(f"Notification sent: {title} - {subtitle} - {message}\n")
+        except Exception as e:
+            # Log the error
+            with open(self.error_log_path, 'a') as f:
+                f.write(f"Notification error: {str(e)}\n")
 
 if __name__ == "__main__":
     ClipboardMonitorMenuBar().run()

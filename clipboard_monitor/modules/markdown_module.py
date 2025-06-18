@@ -8,6 +8,7 @@ import time
 import threading
 import sys
 import os
+import json
 
 # Add parent directory to path to import utils
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -20,6 +21,18 @@ logger = logging.getLogger("markdown_module")
 # Global content tracker to prevent processing loops
 _content_tracker = ContentTracker(max_history=5)
 _processing_lock = threading.Lock()
+
+def load_module_config():
+    """Load module configuration from config.json"""
+    try:
+        config_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'config.json')
+        if os.path.exists(config_path):
+            with open(config_path, 'r') as f:
+                config = json.load(f)
+                return config.get('modules', {})
+    except Exception as e:
+        logger.error(f"Error loading module config: {e}")
+    return {}
 
 def process(clipboard_content) -> bool:
     """Process clipboard content as markdown and convert to RTF if it appears to be markdown"""
@@ -36,42 +49,54 @@ def process(clipboard_content) -> bool:
             return False
 
         if is_markdown(clipboard_content):
-            logger.info("[cyan]Markdown detected, converting to RTF...[/cyan]")
-            show_notification("Markdown Detected", "Converting markdown to rich text...")
+            logger.info("[cyan]Markdown detected![/cyan]")
 
-            rtf_text = convert_markdown_to_rtf(clipboard_content)
-            if rtf_text:
-                try:
-                    # Track this content to prevent reprocessing
-                    _content_tracker.add_content(clipboard_content)
+            # Check if clipboard modification is enabled for markdown
+            module_config = load_module_config()
+            modify_clipboard = module_config.get('markdown_modify_clipboard', True)  # Default to True for markdown
 
-                    # Use pbcopy to set RTF content directly (macOS specific)
-                    logger.info("[bold blue]ATTEMPTING TO USE PBCOPY METHOD FOR RTF CLIPBOARD HANDLING[/bold blue]")
+            if modify_clipboard:
+                logger.info("[cyan]Converting markdown to RTF...[/cyan]")
+                show_notification("Markdown Detected", "Converting markdown to rich text...")
+
+                rtf_text = convert_markdown_to_rtf(clipboard_content)
+                if rtf_text:
                     try:
-                        subprocess.run(
-                            ['pbcopy', '-Prefer', 'rtf'],
-                            input=rtf_text.encode('utf-8'),
-                            check=True,
-                            timeout=5
-                        )
-                        logger.info("[green]SUCCESS: Used pbcopy for RTF clipboard handling[/green]")
-                        logger.info("[green]Converted to RTF and copied to clipboard![/green]")
-                        show_notification("Markdown Converted", "Rich text copied to clipboard!")
-                        return True  # Indicate that content was processed
-                    except subprocess.SubprocessError as e:
-                        logger.error(f"[bold red]Error using pbcopy for RTF:[/bold red] {e}")
-                        # Fall back to pyperclip if pbcopy fails
-                        logger.info("[yellow]FALLING BACK TO PYPERCLIP METHOD FOR RTF CLIPBOARD HANDLING[/yellow]")
-                        pyperclip.copy(rtf_text)
-                        logger.info("[yellow]Used pyperclip fallback for RTF copy[/yellow]")
-                        return True
+                        # Track this content to prevent reprocessing
+                        _content_tracker.add_content(clipboard_content)
 
-                except pyperclip.PyperclipException as e:
-                    logger.error(f"[bold red]Error copying RTF to clipboard:[/bold red] {e}")
-                    return False
-                except Exception as e:
-                    logger.error(f"[bold red]Unexpected error during RTF copy:[/bold red] {e}")
-                    return False
+                        # Use pbcopy to set RTF content directly (macOS specific)
+                        logger.info("[bold blue]ATTEMPTING TO USE PBCOPY METHOD FOR RTF CLIPBOARD HANDLING[/bold blue]")
+                        try:
+                            subprocess.run(
+                                ['pbcopy', '-Prefer', 'rtf'],
+                                input=rtf_text.encode('utf-8'),
+                                check=True,
+                                timeout=5
+                            )
+                            logger.info("[green]SUCCESS: Used pbcopy for RTF clipboard handling[/green]")
+                            logger.info("[green]Converted to RTF and copied to clipboard![/green]")
+                            show_notification("Markdown Converted", "Rich text copied to clipboard!")
+                            return True  # Indicate that content was processed
+                        except subprocess.SubprocessError as e:
+                            logger.error(f"[bold red]Error using pbcopy for RTF:[/bold red] {e}")
+                            # Fall back to pyperclip if pbcopy fails
+                            logger.info("[yellow]FALLING BACK TO PYPERCLIP METHOD FOR RTF CLIPBOARD HANDLING[/yellow]")
+                            pyperclip.copy(rtf_text)
+                            logger.info("[yellow]Used pyperclip fallback for RTF copy[/yellow]")
+                            return True
+
+                    except pyperclip.PyperclipException as e:
+                        logger.error(f"[bold red]Error copying RTF to clipboard:[/bold red] {e}")
+                        return False
+                    except Exception as e:
+                        logger.error(f"[bold red]Unexpected error during RTF copy:[/bold red] {e}")
+                        return False
+            else:
+                # Read-only mode: just notify about markdown detection
+                show_notification("Markdown Detected", "Markdown detected (read-only mode)")
+                logger.info("[blue]Markdown detected but clipboard modification disabled[/blue]")
+                return False  # Don't modify clipboard
 
         return False    # Indicate that content was not processed
 

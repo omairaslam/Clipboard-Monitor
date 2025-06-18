@@ -345,6 +345,7 @@ if MACOS_ENHANCED:
             return 0
 
 def main():
+    """Main entry point for the clipboard monitor."""
     monitor = ClipboardMonitor()
     modules_dir = os.path.join(os.path.dirname(__file__), 'modules')
     monitor.load_modules(modules_dir)
@@ -422,6 +423,13 @@ def main():
     try:
         while True:
             try:
+                # Check for pause flag
+                pause_flag_path = os.path.expanduser("~/Library/Application Support/ClipboardMonitor/pause_flag")
+                if os.path.exists(pause_flag_path):
+                    # Service is paused, just sleep and continue
+                    time.sleep(1)
+                    continue
+                
                 clipboard_content = pyperclip.paste()
                 # If the current clipboard content is different from the last known content.
                 if clipboard_content != last_clipboard:

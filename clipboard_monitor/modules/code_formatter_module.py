@@ -7,6 +7,7 @@ import re
 import threading
 import sys
 import os
+import json
 
 # Add parent directory to path to import utils
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -19,6 +20,18 @@ logger = logging.getLogger("code_formatter_module")
 # Global content tracker to prevent processing loops
 _content_tracker = ContentTracker(max_history=5)
 _processing_lock = threading.Lock()
+
+def load_module_config():
+    """Load module configuration from config.json"""
+    try:
+        config_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'config.json')
+        if os.path.exists(config_path):
+            with open(config_path, 'r') as f:
+                config = json.load(f)
+                return config.get('modules', {})
+    except Exception as e:
+        logger.error(f"Error loading module config: {e}")
+    return {}
 
 def is_code(text):
     """Detect if text is likely code"""
@@ -80,24 +93,35 @@ def process(clipboard_content) -> bool:
             return False
 
         if is_code(clipboard_content):
-            logger.info("[cyan]Code detected, formatting...[/cyan]")
-            show_notification("Code Detected", "Formatting code...")
+            logger.info("[cyan]Code detected![/cyan]")
 
-            formatted_code = format_code(clipboard_content)
-            if formatted_code != clipboard_content:
-                try:
-                    # Track this content to prevent reprocessing
-                    _content_tracker.add_content(clipboard_content)
-                    
-                    # Copy formatted code back to clipboard
-                    pyperclip.copy(formatted_code)
-                    
-                    logger.info("[green]Code formatted and copied to clipboard![/green]")
-                    show_notification("Code Formatted", "Formatted code copied to clipboard!")
-                    return True
-                except Exception as e:
-                    logger.error(f"[bold red]Error copying formatted code:[/bold red] {e}")
+            # Check if clipboard modification is enabled for this module
+            module_config = load_module_config()
+            modify_clipboard = module_config.get('code_formatter_modify_clipboard', False)  # Default to read-only for safety
+
+            # Track this content to prevent reprocessing
+            _content_tracker.add_content(clipboard_content)
+
+            if modify_clipboard:
+                # Only format and modify clipboard if explicitly enabled
+                show_notification("Code Detected", "Formatting code...")
+                formatted_code = format_code(clipboard_content)
+                if formatted_code != clipboard_content:
+                    try:
+                        # Copy formatted code back to clipboard
+                        pyperclip.copy(formatted_code)
+
+                        logger.info("[green]Code formatted and copied to clipboard![/green]")
+                        show_notification("Code Formatted", "Formatted code copied to clipboard!")
+                        return True
+                    except Exception as e:
+                        logger.error(f"[bold red]Error copying formatted code:[/bold red] {e}")
+                else:
+                    logger.info("[yellow]Code already properly formatted[/yellow]")
             else:
-                logger.info("[yellow]Code already properly formatted[/yellow]")
+                # Read-only mode: just notify about code detection
+                show_notification("Code Detected", "Code detected (read-only mode)")
+                logger.info("[blue]Code detected but clipboard modification disabled for safety[/blue]")
+                return False  # Don't modify clipboard
                 
     return False

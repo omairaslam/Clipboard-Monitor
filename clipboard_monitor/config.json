@@ -17,7 +17,9 @@
     "markdown_module": true,
     "mermaid_module": true,
     "history_module": true,
-    "code_formatter_module": true
+    "code_formatter_module": true,
+    "markdown_modify_clipboard": true,
+    "code_formatter_modify_clipboard": false
   },
   "history": {
     "max_items": 100,
