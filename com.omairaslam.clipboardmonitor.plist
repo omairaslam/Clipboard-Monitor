@@ -9,7 +9,7 @@
     <array>
         <!-- IMPORTANT: Replace this with the full path to YOUR Python 3 interpreter -->
         <string>/usr/bin/python3</string> 
-        <string>/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/clipboard_monitor/main.py</string> <!-- Full path to your main.py script -->
+        <string>/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/main.py</string> <!-- Full path to your main.py script -->
     </array>
 
     <key>RunAtLoad</key>
@@ -27,7 +27,7 @@
     <key>WorkingDirectory</key>
     <!-- Sets the working directory to where your main.py script is located.
          This helps with relative paths, like loading modules from the 'modules' subdirectory. -->
-    <string>/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/clipboard_monitor/</string>
+    <string>/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/</string>
 
     <key>EnvironmentVariables</key>
     <dict>
