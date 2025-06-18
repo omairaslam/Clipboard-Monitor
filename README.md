@@ -49,6 +49,7 @@ Complete documentation is available in the [`docs/`](clipboard_monitor/docs/) fo
 - **[Performance Optimizations](clipboard_monitor/docs/PERFORMANCE_OPTIMIZATIONS.md)** - Performance improvements
 - **[Monitoring Methods](clipboard_monitor/docs/MONITORING_METHODS.md)** - Technical details on monitoring approaches
 - **[Tilde Expansion Fix](clipboard_monitor/docs/TILDE_EXPANSION_FIX.md)** - Path handling security fix
+- **[Module Enable/Disable Fix](clipboard_monitor/docs/MODULE_ENABLE_DISABLE_FIX.md)** - Module configuration system fix
 
 ## Quick Reference
 

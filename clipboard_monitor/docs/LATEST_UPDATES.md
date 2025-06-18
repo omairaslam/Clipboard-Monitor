@@ -416,6 +416,28 @@ def safe_expanduser(path):
 - **Efficient Navigation**: Pagination for large histories, quick search and filter
 - **Scriptable**: Can be integrated into shell scripts and automation workflows
 
+### **Module Enable/Disable Configuration Fix**
+
+#### **Critical Issue Resolved**
+A significant configuration system inconsistency was discovered and fixed:
+
+**Problem**: Even when modules were disabled in `config.json` (e.g., `"markdown_module": 0`), the main application was still loading and processing content through those modules.
+
+**Root Cause**: The main application was looking for module configuration in a different file (`~/Library/Application Support/ClipboardMonitor/modules_config.json`) that didn't exist, while other components read from the local `config.json`.
+
+#### **Solution Implemented**
+- **Unified Configuration System**: All components now read from the same `config.json` file
+- **Enhanced Value Type Handling**: Properly handles `0`, `false`, `true`, `1`, and missing values
+- **Fixed Menu Bar State Conversion**: Menu items correctly show enabled/disabled states
+- **Comprehensive Testing**: Validated with extensive test suite
+
+#### **Current Behavior**
+- **Disabled modules** (`0` or `false`): Not loaded into memory, no processing occurs
+- **Enabled modules** (`true`, `1`, or missing): Loaded and can process content
+- **Menu bar synchronization**: Correctly reflects configuration state
+
+For detailed information, see [Module Enable/Disable Fix](MODULE_ENABLE_DISABLE_FIX.md).
+
 ### **Enhanced Shared Utilities Module**
 
 #### **New Utility Functions**

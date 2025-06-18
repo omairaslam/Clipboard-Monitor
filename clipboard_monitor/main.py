@@ -126,21 +126,27 @@ class ClipboardMonitor:
                 module_path = os.path.join(modules_dir, filename)
                 module_name = filename[:-3]  # Remove .py
                 
-                # Check if module is enabled
-                if module_config.get(module_name, {}).get('enabled', True):
+                # Check if module is enabled (handle boolean, integer, or missing values)
+                module_enabled = module_config.get(module_name, True)
+                # Convert to boolean: 0 or False = disabled, anything else = enabled
+                if module_enabled not in [0, False]:
                     # Store module spec for lazy loading
                     spec = importlib.util.spec_from_file_location(module_name, module_path)
                     self.module_specs.append((module_name, spec))
-                    logger.info(f"[bold green]Found module:[/bold green] {module_name}")
+                    logger.info(f"[bold green]Found module:[/bold green] {module_name} (enabled: {module_enabled})")
                 else:
-                    logger.info(f"[bold yellow]Module disabled in config:[/bold yellow] {module_name}")
+                    logger.info(f"[bold yellow]Module disabled in config:[/bold yellow] {module_name} (value: {module_enabled})")
 
     def _load_module_config(self):
-        """Load module configuration from a file."""
-        config_path = safe_expanduser('~/Library/Application Support/ClipboardMonitor/modules_config.json')
-        if os.path.exists(config_path):
-            with open(config_path, 'r') as f:
-                return json.load(f)
+        """Load module configuration from config.json."""
+        try:
+            config_path = os.path.join(os.path.dirname(__file__), 'config.json')
+            if os.path.exists(config_path):
+                with open(config_path, 'r') as f:
+                    config = json.load(f)
+                    return config.get('modules', {})
+        except Exception as e:
+            logger.error(f"Error loading module config: {e}")
         return {}
 
     def _load_module_if_needed(self, module_name, spec):

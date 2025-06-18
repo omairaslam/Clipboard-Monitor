@@ -347,6 +347,11 @@ python3 -m pip install --user -r requirements.txt
 - **History Not Updating**: Ensure the history module is enabled in configuration
 - **Path Expansion Issues**: Check that the `utils.py` module is properly imported and `safe_expanduser` is being used
 
+### Module Enable/Disable Issues
+- **Module Still Processing When Disabled**: See [Module Enable/Disable Fix](MODULE_ENABLE_DISABLE_FIX.md) for configuration system fixes
+- **Menu Bar Shows Wrong State**: Verify config.json module values are proper booleans or integers (0/false = disabled, true/1 = enabled)
+- **Configuration Not Persisting**: Check that config.json is writable and not corrupted
+
 ## Shared Utilities
 
 The application includes a shared utilities module (`utils.py`) that provides common functionality:
@@ -368,6 +373,8 @@ The application includes a shared utilities module (`utils.py`) that provides co
 ## Creating Custom Modules
 
 See the [Module Development Guide](MODULE_DEVELOPMENT.md) for information on creating your own processing modules.
+
+For information about module configuration and enable/disable functionality, see the [Module Enable/Disable Fix](MODULE_ENABLE_DISABLE_FIX.md) documentation.
 
 ## License
 

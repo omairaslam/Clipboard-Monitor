@@ -89,7 +89,9 @@ class ClipboardMonitorMenuBar(rumps.App):
                     display_name = self.module_display_names.get(module_name, module_name)
                     module_item = rumps.MenuItem(display_name)
                     # Set state based on config or default to enabled
-                    module_item.state = self.module_status.get(module_name, True)
+                    # Convert config value to boolean (0 or False = disabled, anything else = enabled)
+                    config_value = self.module_status.get(module_name, True)
+                    module_item.state = config_value not in [0, False]
                     # Store the actual module name as an attribute for callback reference
                     module_item._module_name = module_name
                     module_item.set_callback(self.toggle_module)
