@@ -12,6 +12,16 @@ import json
 import subprocess
 import re
 
+# Set up rich logging first (before anything else that might use logger)
+console = Console()
+logging.basicConfig(
+    level=logging.INFO,  # Fixed: Use proper logging level constant
+    format="%(message)s",
+    datefmt="[%X]",
+    handlers=[RichHandler(console=console)]
+) # Configure basic logging with RichHandler for pretty console output.
+logger = logging.getLogger("clipboard_monitor")
+
 def load_config():
     """Load configuration from config.json if available"""
     config_path = os.path.join(os.path.dirname(__file__), 'config.json')
@@ -55,16 +65,6 @@ def load_config():
 
 # Load configuration
 CONFIG = load_config()
-
-# Set up rich logging
-console = Console()
-logging.basicConfig(
-    level=logging.INFO,  # Fixed: Use proper logging level constant
-    format="%(message)s",
-    datefmt="[%X]",
-    handlers=[RichHandler(console=console)]
-) # Configure basic logging with RichHandler for pretty console output.
-logger = logging.getLogger("clipboard_monitor")
 
 # Apply debug mode if enabled in config
 if CONFIG.get('debug_mode', False):
