@@ -3,8 +3,6 @@
 # Core clipboard functionality
 pyperclip
 
-# Rich console output and logging
-rich
 
 # macOS integration for enhanced clipboard monitoring
 pyobjc-framework-Cocoa

@@ -3,15 +3,11 @@ import webbrowser
 import base64
 import json
 import re
-from rich.console import Console
-from rich.logging import RichHandler
 import logging
 
 # Constants
 MERMAID_PLAYGROUND_BASE = "https://mermaid.live/edit#"
 
-# Set up rich logging
-console = Console()
 logger = logging.getLogger("mermaid_module")
 
 def show_notification(title, message):

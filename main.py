@@ -1,8 +1,6 @@
 import os
 import importlib
 import importlib.util
-from rich.console import Console
-from rich.logging import RichHandler
 import logging
 import time
 import pyperclip # Cross-platform clipboard library
@@ -13,14 +11,20 @@ import subprocess
 import re
 import tracemalloc
 
-# Set up rich logging first (before anything else that might use logger)
-console = Console()
+
+# Set up logging: FileHandler only (no Rich)
+log_path = os.path.expanduser('~/Library/Logs/ClipboardMonitor.out.log')
+
+# Remove all handlers if reloading
+for handler in logging.root.handlers[:]:
+    logging.root.removeHandler(handler)
+
 logging.basicConfig(
-    level=logging.INFO,  # Fixed: Use proper logging level constant
-    format="%(message)s",
-    datefmt="[%X]",
-    handlers=[RichHandler(console=console)]
-) # Configure basic logging with RichHandler for pretty console output.
+    level=logging.INFO,
+    format='%(asctime)s %(levelname)s %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S',
+    handlers=[logging.FileHandler(log_path, encoding='utf-8', mode='a')]
+)
 logger = logging.getLogger("clipboard_monitor")
 
 def load_config():
@@ -70,12 +74,12 @@ CONFIG = load_config()
 # Enable tracemalloc if requested in config
 if CONFIG.get('performance', {}).get('enable_tracemalloc', False):
     tracemalloc.start()
-    logger.info('[bold yellow]tracemalloc started for memory profiling[/bold yellow]')
+    logger.info('tracemalloc started for memory profiling')
 
 # Apply debug mode if enabled in config
 if CONFIG.get('debug_mode', False):
     logging.getLogger().setLevel(logging.DEBUG)
-    logger.info("[bold yellow]Debug mode enabled[/bold yellow]")
+    logger.info("Debug mode enabled")
 
 # Attempt to import pyobjc for enhanced clipboard monitoring on macOS.
 try:
@@ -86,8 +90,8 @@ try:
     logger.debug("pyobjc loaded successfully. Enhanced monitoring enabled for macOS.")
 except ImportError:
     # If pyobjc is not found, set a flag to fall back to polling.
-    logger.warning("[bold yellow]pyobjc not found. Falling back to polling clipboard monitoring.[/bold yellow]")
-    logger.warning("[bold yellow]For enhanced monitoring on macOS, install it: pip install pyobjc-framework-Cocoa[/bold yellow]")
+    logger.warning("pyobjc not found. Falling back to polling clipboard monitoring.")
+    logger.warning("For enhanced monitoring on macOS, install it: pip install pyobjc-framework-Cocoa")
     MACOS_ENHANCED = False
 
 
@@ -105,11 +109,11 @@ class ClipboardMonitor:
     def _validate_module(self, module) -> bool:
         """Validate that a module has the required interface."""
         if not hasattr(module, 'process'):
-            logger.error(f"[bold red]Module {getattr(module, '__name__', 'unknown')} missing 'process' function[/bold red]")
+            logger.error(f"Module {getattr(module, '__name__', 'unknown')} missing 'process' function")
             return False
 
         if not callable(getattr(module, 'process')):
-            logger.error(f"[bold red]Module {getattr(module, '__name__', 'unknown')} 'process' is not callable[/bold red]")
+            logger.error(f"Module {getattr(module, '__name__', 'unknown')} 'process' is not callable")
             return False
 
         return True
@@ -123,7 +127,7 @@ class ClipboardMonitor:
         module_config = self._load_module_config()
         
         if not os.path.exists(modules_dir) or not os.path.isdir(modules_dir):
-            logger.error(f"[bold red]Module directory issue:[/bold red] {modules_dir}")
+            logger.error(f"Module directory issue: {modules_dir}")
             return
 
         # First pass: just collect module specs without importing
@@ -139,9 +143,9 @@ class ClipboardMonitor:
                     # Store module spec for lazy loading
                     spec = importlib.util.spec_from_file_location(module_name, module_path)
                     self.module_specs.append((module_name, spec))
-                    logger.info(f"[bold green]Found module:[/bold green] {module_name} (enabled: {module_enabled})")
+                    logger.info(f"Found module: {module_name} (enabled: {module_enabled})")
                 else:
-                    logger.info(f"[bold yellow]Module disabled in config:[/bold yellow] {module_name} (value: {module_enabled})")
+                    logger.info(f"Module disabled in config: {module_name} (value: {module_enabled})")
 
     def _load_module_config(self):
         """Load module configuration from config.json."""
@@ -240,14 +244,14 @@ class ClipboardMonitor:
                         module = self._load_module_if_needed(module_name, spec)
                         self.modules.append(module)
                     except Exception as e:
-                        logger.error(f"[bold red]Error loading module {module_name}:[/bold red] {e}")
+                        logger.error(f"Error loading module {module_name}: {e}")
             
             # Process with loaded modules
             for module in self.modules:
                 try:
                     if module.process(clipboard_content):
                         processed = True
-                        logger.info(f"[cyan]Processed with module:[/cyan] {getattr(module, '__name__', 'unknown')}")
+                        logger.info(f"Processed with module: {getattr(module, '__name__', 'unknown')}")
 
                         # Check if clipboard content changed after processing
                         try:
@@ -257,7 +261,7 @@ class ClipboardMonitor:
 
                             # If content changed, process the new content with remaining modules
                             if new_clipboard_content and new_clipboard_content != clipboard_content:
-                                logger.info("[cyan]Clipboard content changed after module processing, processing new content[/cyan]")
+                                logger.info("Clipboard content changed after module processing, processing new content")
 
                                 # Process new content with remaining modules (excluding the one that just processed)
                                 remaining_modules = [m for m in self.modules if m != module]
@@ -265,17 +269,17 @@ class ClipboardMonitor:
                                     try:
                                         remaining_module.process(new_clipboard_content)
                                     except Exception as e:
-                                        logger.error(f"[bold red]Error processing new content with module:[/bold red] {e}")
+                                        logger.error(f"Error processing new content with module: {e}")
 
                                 # Update our tracking to the new content
                                 clipboard_content = new_clipboard_content
                                 self.last_processed_hash = self._get_content_hash(new_clipboard_content)
 
                         except Exception as e:
-                            logger.error(f"[yellow]Error checking for clipboard changes after processing: {e}[/yellow]")
+                            logger.error(f"Error checking for clipboard changes after processing: {e}")
 
                 except Exception as e:
-                    logger.error(f"[bold red]Error processing with module:[/bold red] {e}")
+                    logger.error(f"Error processing with module: {e}")
                     
             # Processing complete
         
@@ -346,7 +350,7 @@ if MACOS_ENHANCED:
                         logger.debug("No clipboard content available")
                         return
                 except Exception as e:
-                    logger.error(f"[bold red]Error reading clipboard in timer handler:[/bold red] {e}")
+                    logger.error(f"Error reading clipboard in timer handler: {e}")
                     return
 
                 # Avoid processing if content hasn't actually changed
@@ -361,7 +365,7 @@ if MACOS_ENHANCED:
                     # Update the last processed content to the current content.
                     self.last_processed_clipboard_content = current_clipboard_content
 
-                    logger.info("[bold blue]Clipboard changed (enhanced monitoring)![/bold blue]")
+                    logger.info("Clipboard changed (enhanced monitoring)!")
 
                     # If the monitor instance is available, process the new clipboard content.
                     if self.monitor_instance:
@@ -369,9 +373,9 @@ if MACOS_ENHANCED:
                             self.monitor_instance.process_clipboard(current_clipboard_content)
                         except Exception as e:
                             # Log any errors during the processing by the modules.
-                            logger.error(f"[bold red]Error during monitor.process_clipboard from timer handler:[/bold red] {e}")
+                            logger.error(f"Error during monitor.process_clipboard from timer handler: {e}")
                     else:
-                        logger.error("[bold red]Monitor instance not available in ClipboardMonitorHandler[/bold red]")
+                        logger.error("Monitor instance not available in ClipboardMonitorHandler")
                 finally:
                     # Always reset the processing flag
                     self.processing_in_progress = False
@@ -466,14 +470,14 @@ def main():
     monitor.load_modules(modules_dir)
 
     if not monitor.module_specs:
-        logger.warning("[bold yellow]No modules enabled. Monitor will run but won't process clipboard content.[/bold yellow]")
+        logger.warning("No modules enabled. Monitor will run but won't process clipboard content.")
     else:
         enabled_modules = [name for name, spec in monitor.module_specs]
-        logger.info(f"[bold green]Enabled modules:[/bold green] {', '.join(enabled_modules)}")
+        logger.info(f"Enabled modules: {', '.join(enabled_modules)}")
 
     # --- Enhanced Monitoring Path (macOS with pyobjc) ---
     if MACOS_ENHANCED:
-        logger.info("[bold green]Using enhanced clipboard monitoring (macOS).[/bold green]")
+        logger.info("Using enhanced clipboard monitoring (macOS).")
 
         initial_clipboard_content = None
         try:
@@ -484,7 +488,7 @@ def main():
                 # Process this initial content once.
                 monitor.process_clipboard(initial_clipboard_content)
         except Exception as e:
-            logger.error(f"[bold red]Error reading initial clipboard content (enhanced):[/bold red] {e}")
+            logger.error(f"Error reading initial clipboard content (enhanced): {e}")
 
         try:
             app = NSApplication.sharedApplication() # Get a shared NSApplication instance
@@ -494,30 +498,30 @@ def main():
             # Start the timer-based monitoring
             handler_instance.startMonitoring()
 
-            logger.info("[bold yellow]Enhanced clipboard monitor started. Press Ctrl+C to exit.[/bold yellow]")
+            logger.info("Enhanced clipboard monitor started. Press Ctrl+C to exit.")
 
             try:
                 app.run() # Start the Cocoa event loop. This call will block and keep the script running,
                           # with the timer checking for clipboard changes.
             except KeyboardInterrupt:
-                logger.info("[bold yellow]Keyboard interrupt received in enhanced mode.[/bold yellow]")
+                logger.info("Keyboard interrupt received in enhanced mode.")
             finally:
                 # Clean up the handler
                 if handler_instance:
                     handler_instance.cleanup()
 
         except Exception as e:
-            logger.error(f"[bold red]Error setting up enhanced monitoring:[/bold red] {e}")
-            logger.info("[bold yellow]Falling back to polling mode...[/bold yellow]")
+            logger.error(f"Error setting up enhanced monitoring: {e}")
+            logger.info("Falling back to polling mode...")
             # Fall through to polling mode
         else:
             # This line is unlikely to be reached if Ctrl+C terminates the app directly.
-            logger.info("[bold yellow]Enhanced clipboard monitor shut down.[/bold yellow]")
+            logger.info("Enhanced clipboard monitor shut down.")
             return
 
     # --- Polling Monitoring Path (Fallback if pyobjc is not available or not on macOS) ---
     # This will also be reached if event-driven setup fails
-    logger.info("[bold yellow]Clipboard monitor started (polling).[/bold yellow]")
+    logger.info("Clipboard monitor started (polling).")
     last_clipboard = None
     consecutive_errors = 0
     max_consecutive_errors = 10
@@ -531,7 +535,7 @@ def main():
             last_clipboard = initial_clipboard_content # Set for the first comparison
             monitor.process_clipboard(initial_clipboard_content)
     except Exception as e:
-        logger.error(f"[bold red]Error reading initial clipboard content (polling):[/bold red] {e}")
+        logger.error(f"Error reading initial clipboard content (polling): {e}")
 
     # Main polling loop.
     try:
@@ -556,30 +560,30 @@ def main():
 
             except pyperclip.PyperclipException as e:
                 consecutive_errors += 1
-                logger.error(f"[bold red]pyperclip error in polling loop (#{consecutive_errors}):[/bold red] {e}")
+                logger.error(f"pyperclip error in polling loop (#{consecutive_errors}): {e}")
 
                 if consecutive_errors >= max_consecutive_errors:
-                    logger.error(f"[bold red]Too many consecutive pyperclip errors ({consecutive_errors}). Exiting.[/bold red]")
+                    logger.error(f"Too many consecutive pyperclip errors ({consecutive_errors}). Exiting.")
                     break
 
                 time.sleep(5) # Wait longer if there's a persistent pyperclip issue to avoid spamming errors.
 
             except Exception as e:
                 consecutive_errors += 1
-                logger.error(f"[bold red]Unexpected error in polling loop (#{consecutive_errors}):[/bold red] {e}")
+                logger.error(f"Unexpected error in polling loop (#{consecutive_errors}): {e}")
 
                 if consecutive_errors >= max_consecutive_errors:
-                    logger.error(f"[bold red]Too many consecutive errors ({consecutive_errors}). Exiting.[/bold red]")
+                    logger.error(f"Too many consecutive errors ({consecutive_errors}). Exiting.")
                     break
 
                 time.sleep(1) # Brief pause before retrying
 
     except KeyboardInterrupt: # Handle Ctrl+C to gracefully stop the monitor.
-        logger.info("[bold yellow]\nClipboard monitor stopped by user (polling).[/bold yellow]")
+        logger.info("\nClipboard monitor stopped by user (polling).")
     except Exception as e:
-        logger.error(f"[bold red]Fatal error in polling loop:[/bold red] {e}")
+        logger.error(f"Fatal error in polling loop: {e}")
     finally:
-        logger.info("[bold yellow]Clipboard monitor shutdown complete.[/bold yellow]")
+        logger.info("Clipboard monitor shutdown complete.")
 
 # Standard Python entry point.
 if __name__ == "__main__":

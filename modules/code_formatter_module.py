@@ -1,7 +1,5 @@
 import subprocess
 import pyperclip
-from rich.console import Console
-from rich.logging import RichHandler
 import logging
 import re
 import threading
@@ -13,8 +11,6 @@ import json
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from utils import show_notification, validate_string_input, ContentTracker
 
-# Set up rich logging
-console = Console()
 logger = logging.getLogger("code_formatter_module")
 
 # Global content tracker to prevent processing loops

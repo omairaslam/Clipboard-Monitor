@@ -11,14 +11,11 @@ import threading
 from pathlib import Path
 import sys
 import logging
-from rich.console import Console
 
 # Add parent directory to path to import utils
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from utils import show_notification, validate_string_input, ContentTracker, safe_expanduser, ensure_directory_exists
 
-# Set up rich logging
-console = Console()
 logger = logging.getLogger("history_module")
 
 # Global content tracker to prevent processing loops

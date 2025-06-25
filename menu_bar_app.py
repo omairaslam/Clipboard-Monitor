@@ -1043,7 +1043,11 @@ read -n 1
             # Debug notifications/logs
             import datetime
             timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            # Remove any ANSI color codes from log messages
+            import re
             msg = f"[{timestamp}] update_recent_history_menu: loaded={num_loaded}, displayed={num_displayed}"
+            ansi_escape = re.compile(r'\x1B\[[0-9;]*[mK]')
+            msg = ansi_escape.sub('', msg)
             if debug_mode:
                 rumps.notification("Clipboard Monitor Debug", "Recent History Menu", msg)
                 with open(self.log_path, 'a') as f:
@@ -1051,7 +1055,11 @@ read -n 1
         except Exception as e:
             import datetime
             timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            # Remove any ANSI color codes from error messages
+            import re
             err_msg = f"[{timestamp}] Exception in update_recent_history_menu: {str(e)}\n{traceback.format_exc()}"
+            ansi_escape = re.compile(r'\x1B\[[0-9;]*[mK]')
+            err_msg = ansi_escape.sub('', err_msg)
             rumps.notification("Clipboard Monitor Error", "Menu Update Failed", str(e))
             with open(self.error_log_path, 'a') as f:
                 f.write(err_msg + "\n")
@@ -1216,15 +1224,23 @@ read -n 1
 
             subprocess.run(["osascript", "-e", script], check=True)
 
-            # Log the notification with timestamp
+            # Remove any ANSI color codes from notification log
+            import re
+            log_line = f"[{timestamp}] Notification sent: {title} - {subtitle} - {message}\n"
+            ansi_escape = re.compile(r'\x1B\[[0-9;]*[mK]')
+            log_line = ansi_escape.sub('', log_line)
             with open(self.log_path, 'a') as f:
-                f.write(f"[{timestamp}] Notification sent: {title} - {subtitle} - {message}\n")
+                f.write(log_line)
         except Exception as e:
             import datetime
             timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            # Log the error with timestamp
+            # Remove any ANSI color codes from error log
+            import re
+            log_line = f"[{timestamp}] Notification error: {str(e)}\n"
+            ansi_escape = re.compile(r'\x1B\[[0-9;]*[mK]')
+            log_line = ansi_escape.sub('', log_line)
             with open(self.error_log_path, 'a') as f:
-                f.write(f"[{timestamp}] Notification error: {str(e)}\n")
+                f.write(log_line)
 
 if __name__ == "__main__":
     ClipboardMonitorMenuBar().run()

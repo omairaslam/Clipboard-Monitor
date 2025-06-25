@@ -10,12 +10,9 @@ import threading
 import os
 import pwd
 from pathlib import Path
-from rich.console import Console
 import json
 import pyperclip
 
-# Set up rich console
-console = Console()
 logger = logging.getLogger("utils")
 
 def show_notification(title, message):
