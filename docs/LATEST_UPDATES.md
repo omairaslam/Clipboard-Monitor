@@ -1,4 +1,10 @@
-# Latest Updates - Clipboard Monitor (2025-06-18)
+# Latest Updates - Clipboard Monitor (2025-06-26)
+## 🕒 Menu Bar Improvements (June 2025)
+
+- The "Recent Clipboard Items" menu is now always placed just before "View Clipboard History" for better usability.
+- The clear history feature is available in both the "Recent Clipboard Items" and "View Clipboard History" menus, with improved error handling and menu refresh.
+- Debug mode and configuration changes are now more robust and reflected in the menu.
+- Improved troubleshooting documentation for enhanced vs polling mode (see README and Monitoring Methods docs).
 
 ## 🧪 **Comprehensive Test Suite (Current)**
 

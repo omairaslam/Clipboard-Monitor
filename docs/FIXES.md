@@ -1,3 +1,9 @@
+# 2025-06-26: Menu Bar and History Improvements
+
+- The "Recent Clipboard Items" menu is now always placed just before "View Clipboard History" in the menu bar for improved accessibility.
+- The clear history feature is available in both the "Recent Clipboard Items" and "View Clipboard History" menus, with confirmation dialogs and error handling.
+- Debug mode and configuration changes are now more robust and reflected in the menu.
+- Troubleshooting for enhanced vs polling mode is now documented in the README and Monitoring Methods docs.
 # Clipboard Monitor - Bug Fixes and Improvements
 
 This document provides a detailed analysis of bugs identified and fixed in the clipboard monitor application, along with comprehensive explanations of the implemented solutions.

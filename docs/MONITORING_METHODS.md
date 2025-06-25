@@ -98,21 +98,31 @@ while True:
 
 ## Troubleshooting
 
+
 If the application is falling back to polling mode when you expect enhanced mode:
 
-1. Verify that `pyobjc-framework-Cocoa` is installed:
+1. **Verify that `pyobjc-framework-Cocoa` is installed:**
    ```bash
    pip3 list | grep pyobjc
    ```
 
-2. Ensure the correct Python interpreter is being used in the LaunchAgent plist file
+2. **Ensure the correct Python interpreter is being used in the LaunchAgent plist file.**
 
-3. Check the logs for import errors:
+3. **Check the logs for import errors:**
    ```bash
    tail -f ~/Library/Logs/ClipboardMonitor.out.log | grep pyobjc
    ```
 
-4. Try reinstalling the dependency:
+4. **Try reinstalling the dependency:**
    ```bash
    pip3 install --upgrade pyobjc-framework-Cocoa
    ```
+
+5. **Full Disk Access Reset (macOS Security):**
+   - Go to **System Settings** → **Privacy & Security** → **Full Disk Access**.
+   - Find the entry for your `python3` service (or the Python interpreter used by Clipboard Monitor).
+   - **Revoke Full Disk Access** for this Python service.
+   - **Re-add Full Disk Access** by clicking the `+` button and selecting the same Python interpreter again.
+   - Restart the Clipboard Monitor service.
+
+> This step resolves cases where macOS security prevents enhanced clipboard monitoring even when all dependencies are installed.

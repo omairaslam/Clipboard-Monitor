@@ -304,11 +304,13 @@ class ClipboardMonitorMenuBar(rumps.App):
         self.menu.add(rumps.separator)
         self.menu.add(self.module_menu)
         self.menu.add(rumps.separator)
-        self.menu.add(self.recent_history_menu)
+        self.menu.add(self.recent_history_menu)  # Add Recent Clipboard Items just before history
         self.menu.add(self.history_menu)
         self.menu.add(self.prefs_menu)
         self.menu.add(rumps.separator)
         self.menu.add(self.quit_item)
+        # Remove insert_before, as order is now explicit
+        # self.menu.insert_before("View Clipboard History", self.recent_history_menu)
         
         # Start status checking thread
         self.timer = threading.Thread(target=self.update_status_periodically)
@@ -639,6 +641,7 @@ class ClipboardMonitorMenuBar(rumps.App):
                         rumps.notification("Error", "Failed to update max menu items", "Could not save configuration")
                 else:
                     rumps.notification("Error", "Invalid Value", "Max items must be positive")
+                    self.update_recent_history_menu()  # Immediately update menu to reflect no change
             except ValueError:
                 rumps.notification("Error", "Invalid Value", "Please enter a valid number")
 
@@ -997,26 +1000,63 @@ read -n 1
     def update_recent_history_menu(self):
         """Update the recent history menu, limiting items and clearing references."""
         import gc
-        # Get max_items from config, default to 20 if not set
+        import traceback
         max_items = self.get_config_value('history', 'max_items', 20)
+        debug_mode = self.get_config_value('general', 'debug_mode', False)
         try:
             max_items = int(max_items)
         except Exception:
             max_items = 20
-        # Clear all menu items and references
-        if hasattr(self, 'recent_history_menu'):
+        try:
+            # Clear the existing menu items instead of recreating the menu
             self.recent_history_menu.clear()
-            self.recent_history_menu = None
-        self.recent_history_menu = rumps.MenuItem("Recent Clipboard Items")
-        history = self.load_clipboard_history() or []
-        for i, item in enumerate(history[:max_items]):
-            menu_item = rumps.MenuItem(f"{item[:40]}" if len(item) > 40 else item)
-            menu_item.callback = self.copy_history_item
-            self.recent_history_menu.add(menu_item)
-        # Add the menu to the app if not already present
-        if not hasattr(self, 'menu') or self.recent_history_menu not in self.menu:
-            self.menu.add(self.recent_history_menu)
-        gc.collect()  # Explicitly collect garbage after menu update
+
+            history = self.load_clipboard_history() or []
+            num_loaded = len(history)
+            num_displayed = 0
+            if not history:
+                placeholder = rumps.MenuItem("(No clipboard history found)")
+                placeholder.set_callback(None)
+                self.recent_history_menu.add(placeholder)
+            else:
+                for i, item in enumerate(history[:max_items]):
+                    # Extract clipboard text from history dicts
+                    if isinstance(item, dict):
+                        display_text = item.get("content", "")
+                    else:
+                        display_text = str(item)
+                    menu_item = rumps.MenuItem(
+                        f"{display_text[:50]}..." if len(display_text) > 50 else display_text,
+                        callback=self.copy_history_item
+                    )
+                    menu_item._clipboard_content = display_text
+                    self.recent_history_menu.add(menu_item)
+                    num_displayed += 1
+
+            # Add a separator and clear history option
+            self.recent_history_menu.add(rumps.separator)
+            clear_history_item = rumps.MenuItem("🗑️ Clear History")
+            clear_history_item.set_callback(self.clear_clipboard_history)
+            self.recent_history_menu.add(clear_history_item)
+
+            gc.collect()  # Explicitly collect garbage after menu update
+            # Debug notifications/logs
+            msg = f"update_recent_history_menu: loaded={num_loaded}, displayed={num_displayed}"
+            if debug_mode:
+                rumps.notification("Clipboard Monitor Debug", "Recent History Menu", msg)
+            with open(self.log_path, 'a') as f:
+                f.write(msg + "\n")
+        except Exception as e:
+            err_msg = f"Exception in update_recent_history_menu: {str(e)}\n{traceback.format_exc()}"
+            rumps.notification("Clipboard Monitor Error", "Menu Update Failed", str(e))
+            with open(self.error_log_path, 'a') as f:
+                f.write(err_msg + "\n")
+            # Clear and add a placeholder if menu fails
+            self.recent_history_menu.clear()
+            placeholder = rumps.MenuItem("(Error loading clipboard history)")
+            placeholder.set_callback(None)
+            self.recent_history_menu.add(placeholder)
+            gc.collect()
 
     def load_clipboard_history(self):
         """Load clipboard history from file"""
@@ -1084,7 +1124,7 @@ read -n 1
                     rumps.notification("Error", "Failed to clear history", f"Could not clear history file: {str(file_error)}")
 
         except Exception as e:
-            rumps.notification("Error", "Failed to clear history", str(e))
+            rumps.notification("Error", "Exception in clear_clipboard_history", str(e))
 
     def toggle_monitoring(self, sender):
         """Temporarily pause or resume clipboard monitoring without stopping the service"""

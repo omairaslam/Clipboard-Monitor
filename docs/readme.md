@@ -296,6 +296,10 @@ Only specific content types can modify your clipboard:
 - ▶️ **Service Control**: Start, stop, and restart
 - ⏸️ **Pause/Resume**: Temporary monitoring control
 
+- 🕒 **Recent Clipboard Items**: Now always appears just before "View Clipboard History" in the menu for quick access.
+- 🧹 **Clear History**: Available in both "Recent Clipboard Items" and "View Clipboard History" menus, with confirmation and error handling.
+- 🐞 **Improved Debugging**: Debug mode and configuration changes are now more robust and reflected in the menu.
+
 </td>
 <td width="50%">
 
@@ -335,6 +339,20 @@ Only specific content types can modify your clipboard:
 | 🕒 **Recent Items** | Menu Bar → Recent Items | Quick access |
 
 </details>
+
+---
+
+## 🛠️ Troubleshooting Enhanced vs Polling Mode
+
+If the Clipboard Monitor runs in polling mode instead of enhanced mode (even though all dependencies are installed):
+
+1. Go to **System Settings** → **Privacy & Security** → **Full Disk Access**.
+2. Find the entry for your `python3` service (or the Python interpreter used by Clipboard Monitor).
+3. **Revoke Full Disk Access** for this Python service.
+4. **Re-add Full Disk Access** by clicking the `+` button and selecting the same Python interpreter again.
+5. Restart the Clipboard Monitor service.
+
+> This step resolves cases where macOS security prevents enhanced clipboard monitoring even when all dependencies are installed.
 
 ### 🚀 **Installing the Menu Bar App**
 

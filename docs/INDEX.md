@@ -22,7 +22,7 @@ Complete guide for creating custom processing modules with best practices and se
 Detailed analysis of performance improvements and optimization techniques.
 
 ### **[Monitoring Methods (MONITORING_METHODS.md)](MONITORING_METHODS.md)**
-Technical details on clipboard monitoring approaches and implementation.
+Technical details on clipboard monitoring approaches, implementation, and troubleshooting enhanced vs polling mode.
 
 ## 🧪 **Testing Documentation**
 
