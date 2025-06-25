@@ -1,6 +1,6 @@
 # Clipboard Monitoring Methods
 
-This document explains the different clipboard monitoring methods used in the Clipboard Monitor application and their performance characteristics.
+This document explains the different clipboard monitoring methods used in the Clipboard Monitor application and their performance characteristics. All logging in the application is now plain text with timestamps and log levels (no colorized or rich formatting).
 
 ## Overview
 

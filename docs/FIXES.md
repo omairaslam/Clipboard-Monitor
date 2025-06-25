@@ -579,14 +579,16 @@ The following configuration options are now available in `config.json`:
 }
 ```
 
+
 ## Dependencies
 
 No new dependencies were added. All improvements use existing libraries and Python standard library features:
 
 - `pyperclip`: Cross-platform clipboard access
-- `rich`: Rich console output and logging
 - `pyobjc-framework-Cocoa`: macOS integration for enhanced clipboard monitoring
 - `rumps`: Menu bar application support
+
+**Note:** The Rich library has been removed. All logging is now plain text with timestamps and log levels using Python's standard logging module.
 
 ## Installation
 

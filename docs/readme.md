@@ -59,7 +59,7 @@ cd clipboard_monitor
 | Library | Purpose | Badge |
 |---------|---------|-------|
 | `pyperclip` | Cross-platform clipboard access | ![PyPI](https://img.shields.io/pypi/v/pyperclip?color=blue) |
-| `rich` | Rich console output and logging | ![PyPI](https://img.shields.io/pypi/v/rich?color=green) |
+
 | `pyobjc-framework-Cocoa` | macOS integration for enhanced monitoring | ![PyPI](https://img.shields.io/pypi/v/pyobjc-framework-Cocoa?color=orange) |
 | `rumps` | Menu bar application support | ![PyPI](https://img.shields.io/pypi/v/rumps?color=purple) |
 
@@ -183,7 +183,7 @@ launchctl load ~/Library/LaunchAgents/com.omairaslam.clipboardmonitor.plist
 
 #### ✨ **Features**
 - 💻 **Terminal Interface**: Perfect for command-line workflows
-- 🎨 **Colorized Output**: Rich formatting with syntax highlighting
+- 📄 **Plain Text Output**: Standard output with timestamps and log levels (no colorized or rich formatting)
 - 📄 **Pagination**: Handle large histories efficiently
 - ⚡ **Quick Actions**: Copy, delete, and search from terminal
 - 🧹 **Clear History**: Clear all clipboard history with confirmation prompt
