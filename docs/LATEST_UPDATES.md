@@ -569,3 +569,7 @@ validate_string_input(value, name)       # Comprehensive input validation
 ---
 
 *For detailed technical information, see the individual documentation files: FIXES.md, PERFORMANCE_OPTIMIZATIONS.md, and PROJECT_JOURNEY.md.*
+
+# 🆕 Menu Bar Recent History Limit is Now User-Configurable (2025-06-26)
+- The number of recent clipboard items shown in the menu bar can now be set by the user in Preferences > History Settings.
+- This does not affect the full history, which remains accessible via the history viewers and file.

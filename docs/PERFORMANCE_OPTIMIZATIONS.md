@@ -360,3 +360,7 @@ rumps.notification("Title", "Subtitle", "Message")
 - **Latency**: <100ms notification display time
 
 These optimizations are designed to work together as a comprehensive performance improvement strategy. The latest updates focus on **stability and security first**, then performance improvements. All optimizations can be implemented individually based on specific needs and priorities.
+
+## User-Configurable Menu Bar History Limit
+- The number of recent clipboard items shown in the menu bar is now user-configurable via Preferences > History Settings.
+- This helps optimize memory usage and user experience for large histories.

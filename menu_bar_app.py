@@ -616,11 +616,11 @@ class ClipboardMonitorMenuBar(rumps.App):
             rumps.notification("Error", "Failed to update polling interval", "Could not save configuration")
 
     def set_max_history_items(self, _):
-        """Set maximum history items"""
-        current_max = self.get_config_value('history', 'max_items', 100)
+        """Set maximum history items for both menu and storage"""
+        current_max = self.get_config_value('history', 'max_items', 20)
         response = rumps.Window(
-            message="Enter maximum number of history items:",
-            title="Set Max History Items",
+            message="Enter maximum number of recent items to show in menu:",
+            title="Set Max Recent Menu Items",
             default_text=str(current_max),
             ok="Set",
             cancel="Cancel",
@@ -632,11 +632,11 @@ class ClipboardMonitorMenuBar(rumps.App):
                 new_max = int(response.text.strip())
                 if new_max > 0:
                     if self.set_config_value('history', 'max_items', new_max):
-                        rumps.notification("Clipboard Monitor", "Max History Items",
-                                          f"Max history items set to {new_max}")
-                        self.restart_service(None)
+                        rumps.notification("Clipboard Monitor", "Max Recent Menu Items",
+                                          f"Max recent menu items set to {new_max}")
+                        self.update_recent_history_menu()
                     else:
-                        rumps.notification("Error", "Failed to update max history items", "Could not save configuration")
+                        rumps.notification("Error", "Failed to update max menu items", "Could not save configuration")
                 else:
                     rumps.notification("Error", "Invalid Value", "Max items must be positive")
             except ValueError:
@@ -995,119 +995,28 @@ read -n 1
         self.update_recent_history_menu()
 
     def update_recent_history_menu(self):
-        """Update the recent history menu with latest clipboard items"""
+        """Update the recent history menu, limiting items and clearing references."""
+        import gc
+        # Get max_items from config, default to 20 if not set
+        max_items = self.get_config_value('history', 'max_items', 20)
         try:
-            # Ensure we're on the main thread (this should always be true now)
-            import threading
-            if threading.current_thread() != threading.main_thread():
-                # If somehow called from background thread, schedule on main thread
-                rumps.Timer(lambda _: self.update_recent_history_menu(), 0.1).start()
-                return
-
-            # Clear existing items
+            max_items = int(max_items)
+        except Exception:
+            max_items = 20
+        # Clear all menu items and references
+        if hasattr(self, 'recent_history_menu'):
             self.recent_history_menu.clear()
-
-            # Load history
-            history = self.load_clipboard_history()
-
-            if not history:
-                no_items = rumps.MenuItem("📭 No history items")
-                no_items.set_callback(None)  # Make it non-clickable
-                self.recent_history_menu.add(no_items)
-                return
-
-            # Add header
-            header = rumps.MenuItem(f"📋 All Items ({len(history)} total)")
-            header.set_callback(None)  # Make it non-clickable
-            self.recent_history_menu.add(header)
-            self.recent_history_menu.add(rumps.separator)
-
-            # Optimize for performance: limit processing, not display
-            # Process all items but with efficient string operations
-            max_items = len(history)  # Show all items
-
-            # Pre-allocate list for better performance
-            menu_items = []
-
-            # Batch process items for better performance
-            # Import datetime once for efficiency
-            import datetime
-
-            # Pre-calculate current time for relative timestamps
-            now = datetime.datetime.now()
-
-            for i in range(max_items):
-                item = history[i]
-                try:
-                    # Efficient content processing
-                    content = item.get('content', '')
-                    if not content:
-                        continue
-
-                    # Fast string operations
-                    content_stripped = content.strip()
-                    if not content_stripped:
-                        continue
-
-                    # Detect RTF content for better display
-                    if content_stripped.startswith('{\\rtf') or (content_stripped.startswith('{') and 'deff0' in content_stripped and 'ttbl' in content_stripped):
-                        display_content = "🎨 RTF Content (from Markdown)"
-                    else:
-                        # Efficient cleanup and truncation in one pass
-                        if len(content_stripped) > 50:
-                            display_content = content_stripped[:50].replace('\n', ' ').replace('\r', ' ') + '...'
-                        else:
-                            display_content = content_stripped.replace('\n', ' ').replace('\r', ' ')
-
-                    # Fast timestamp formatting
-                    timestamp = datetime.datetime.fromtimestamp(item.get('timestamp', 0))
-                    time_str = timestamp.strftime('%H:%M')
-
-                    # Create menu text efficiently
-                    if i == 0:
-                        menu_text = f"📋 [{time_str}] {display_content}"
-                    elif i < 5:
-                        menu_text = f"🔸 [{time_str}] {display_content}"  # Recent items
-                    else:
-                        menu_text = f"   [{time_str}] {display_content}"  # Older items
-
-                    # Create and configure menu item
-                    menu_item = rumps.MenuItem(menu_text)
-                    menu_item._clipboard_content = content_stripped
-                    menu_item.set_callback(self.copy_history_item)
-
-                    # Add to batch list instead of immediately adding to menu
-                    menu_items.append(menu_item)
-
-                except Exception:
-                    # Skip problematic items silently for performance
-                    continue
-
-            # Batch add all items to menu (more efficient than individual adds)
-            for menu_item in menu_items:
-                self.recent_history_menu.add(menu_item)
-
-            # Add separator and refresh option
-            self.recent_history_menu.add(rumps.separator)
-            refresh_item = rumps.MenuItem("🔄 Refresh History")
-            refresh_item.set_callback(self.refresh_history_menu)
-            self.recent_history_menu.add(refresh_item)
-
-            # Add clear history option
-            clear_item = rumps.MenuItem("🗑️ Clear History")
-            clear_item.set_callback(self.clear_clipboard_history)
-            self.recent_history_menu.add(clear_item)
-
-        except Exception as e:
-            # Add error item safely
-            try:
-                self.recent_history_menu.clear()
-                error_item = rumps.MenuItem(f"❌ Error: {str(e)[:30]}...")
-                error_item.set_callback(None)
-                self.recent_history_menu.add(error_item)
-            except Exception as nested_e:
-                # If even error handling fails, just pass to prevent crashes
-                pass
+            self.recent_history_menu = None
+        self.recent_history_menu = rumps.MenuItem("Recent Clipboard Items")
+        history = self.load_clipboard_history() or []
+        for i, item in enumerate(history[:max_items]):
+            menu_item = rumps.MenuItem(f"{item[:40]}" if len(item) > 40 else item)
+            menu_item.callback = self.copy_history_item
+            self.recent_history_menu.add(menu_item)
+        # Add the menu to the app if not already present
+        if not hasattr(self, 'menu') or self.recent_history_menu not in self.menu:
+            self.menu.add(self.recent_history_menu)
+        gc.collect()  # Explicitly collect garbage after menu update
 
     def load_clipboard_history(self):
         """Load clipboard history from file"""

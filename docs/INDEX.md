@@ -107,3 +107,6 @@ Documentation is updated whenever:
 - User experience improvements are implemented
 
 For the most current information, always refer to the **[Latest Updates](LATEST_UPDATES.md)** document.
+
+### **Recent History Limit Feature**
+- [Menu Bar Recent History Limit is Now User-Configurable](readme.md#menu-bar-recent-history-limit-is-now-user-configurable)

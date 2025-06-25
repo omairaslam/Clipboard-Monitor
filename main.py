@@ -11,6 +11,7 @@ from utils import show_notification, safe_expanduser
 import json
 import subprocess
 import re
+import tracemalloc
 
 # Set up rich logging first (before anything else that might use logger)
 console = Console()
@@ -65,6 +66,11 @@ def load_config():
 
 # Load configuration
 CONFIG = load_config()
+
+# Enable tracemalloc if requested in config
+if CONFIG.get('performance', {}).get('enable_tracemalloc', False):
+    tracemalloc.start()
+    logger.info('[bold yellow]tracemalloc started for memory profiling[/bold yellow]')
 
 # Apply debug mode if enabled in config
 if CONFIG.get('debug_mode', False):
@@ -447,6 +453,11 @@ if MACOS_ENHANCED:
             except:
                 pass
             return 0
+
+def print_tracemalloc_snapshot():
+    if tracemalloc.is_tracing():
+        current, peak = tracemalloc.get_traced_memory()
+        logger.info(f"[tracemalloc] Current memory usage: {current / 1024 / 1024:.2f} MB; Peak: {peak / 1024 / 1024:.2f} MB")
 
 def main():
     """Main entry point for the clipboard monitor."""
