@@ -1041,13 +1041,17 @@ read -n 1
 
             gc.collect()  # Explicitly collect garbage after menu update
             # Debug notifications/logs
-            msg = f"update_recent_history_menu: loaded={num_loaded}, displayed={num_displayed}"
+            import datetime
+            timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            msg = f"[{timestamp}] update_recent_history_menu: loaded={num_loaded}, displayed={num_displayed}"
             if debug_mode:
                 rumps.notification("Clipboard Monitor Debug", "Recent History Menu", msg)
-            with open(self.log_path, 'a') as f:
-                f.write(msg + "\n")
+                with open(self.log_path, 'a') as f:
+                    f.write(msg + "\n")
         except Exception as e:
-            err_msg = f"Exception in update_recent_history_menu: {str(e)}\n{traceback.format_exc()}"
+            import datetime
+            timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            err_msg = f"[{timestamp}] Exception in update_recent_history_menu: {str(e)}\n{traceback.format_exc()}"
             rumps.notification("Clipboard Monitor Error", "Menu Update Failed", str(e))
             with open(self.error_log_path, 'a') as f:
                 f.write(err_msg + "\n")
@@ -1198,25 +1202,29 @@ read -n 1
     def show_mac_notification(self, title, subtitle, message):
         """Show a macOS notification using AppleScript for more reliability"""
         try:
+            import datetime
+            timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             # Escape quotes to prevent AppleScript injection
-            title = title.replace('"', '\\"')
-            subtitle = subtitle.replace('"', '\\"')
-            message = message.replace('"', '\\"')
-            
+            title = title.replace('"', '\"')
+            subtitle = subtitle.replace('"', '\"')
+            message = message.replace('"', '\"')
+
             # Use AppleScript to show notification
             script = f'''
             display notification "{message}" with title "{title}" subtitle "{subtitle}"
             '''
-            
+
             subprocess.run(["osascript", "-e", script], check=True)
-            
-            # Log the notification
+
+            # Log the notification with timestamp
             with open(self.log_path, 'a') as f:
-                f.write(f"Notification sent: {title} - {subtitle} - {message}\n")
+                f.write(f"[{timestamp}] Notification sent: {title} - {subtitle} - {message}\n")
         except Exception as e:
-            # Log the error
+            import datetime
+            timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            # Log the error with timestamp
             with open(self.error_log_path, 'a') as f:
-                f.write(f"Notification error: {str(e)}\n")
+                f.write(f"[{timestamp}] Notification error: {str(e)}\n")
 
 if __name__ == "__main__":
     ClipboardMonitorMenuBar().run()
