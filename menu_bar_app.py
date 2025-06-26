@@ -1029,7 +1029,7 @@ read -n 1
                         f"{display_text[:50]}..." if len(display_text) > 50 else display_text,
                         callback=self.copy_history_item
                     )
-                    menu_item._clipboard_content = display_text
+                    menu_item._history_identifier = item.get("hash", "") # Store a small identifier, not full content
                     self.recent_history_menu.add(menu_item)
                     num_displayed += 1
 
@@ -1086,18 +1086,28 @@ read -n 1
             return []
 
     def copy_history_item(self, sender):
-        """Copy a history item to clipboard"""
+        """Copy a history item to clipboard by identifier"""
         try:
-            content = getattr(sender, '_clipboard_content', '')
-            if content:
-                import pyperclip
-                pyperclip.copy(content)
-
-                # Show brief notification
-                truncated = content[:50] + '...' if len(content) > 50 else content
-                rumps.notification("Clipboard", "Item Copied", f"Copied: {truncated}")
-            else:
-                rumps.notification("Error", "Copy Failed", "No content to copy")
+            history_identifier = getattr(sender, '_history_identifier', None)
+            if history_identifier:
+                # Reload history to get the full content of the specific item
+                # This is done to avoid storing large content strings directly on menu items
+                # which can lead to memory leaks if rumps doesn't properly release them.
+                # Note: This reloads the entire history file, which can be inefficient for very large files.
+                print(f"DEBUG: Reloading history to copy item with identifier: {history_identifier}")
+                full_history = self.load_clipboard_history()
+                content_to_copy = None
+                for item in full_history:
+                    if item.get("hash") == history_identifier:
+                        content_to_copy = item.get("content", "")
+                        break
+                
+                if content_to_copy:
+                    pyperclip.copy(content_to_copy)
+                    truncated = content_to_copy[:50] + '...' if len(content_to_copy) > 50 else content_to_copy
+                    rumps.notification("Clipboard", "Item Copied", f"Copied: {truncated}")
+                else:
+                    rumps.notification("Error", "Copy Failed", "Content not found in history")
         except Exception as e:
             rumps.notification("Error", "Copy Failed", str(e))
 
