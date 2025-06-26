@@ -6,10 +6,11 @@ import threading
 import sys
 import os
 import json
+import datetime
 
 # Add parent directory to path to import utils
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__)))) # For utils
-from utils import show_notification, validate_string_input, ContentTracker, get_config
+from utils import show_notification, validate_string_input, ContentTracker, get_config, log_event, log_error
 
 logger = logging.getLogger("code_formatter_module")
 
@@ -53,17 +54,17 @@ def format_code(code_text):
             if process.returncode == 0:
                 return stdout.decode('utf-8')
             else:
-                logger.warning(f"Black formatting failed: {stderr.decode('utf-8')}")
+                log_event(f"Black formatting failed: {stderr.decode('utf-8')}", level="WARNING")
                 return code_text
         except Exception as e:
-            logger.error(f"Error formatting Python code: {e}")
+            log_error(f"Error formatting Python code: {e}")
             return code_text
     
     # Add more language formatters as needed
     
     return code_text  # Return original if no formatter matched
 
-def process(clipboard_content, module_config=None) -> bool:
+def process(clipboard_content, config=None):
     """Process clipboard content if it appears to be code"""
     # Prevent concurrent processing and loops
     with _processing_lock:
@@ -77,35 +78,104 @@ def process(clipboard_content, module_config=None) -> bool:
             return False
 
         if is_code(clipboard_content):
-            logger.info("Code detected!")
+            log_event("Code detected!")
 
             # Check if clipboard modification is enabled for this module
             # Use module_config passed from main, or load if not provided (for standalone testing)
-            modify_clipboard = (module_config or get_config('modules')).get('code_formatter_modify_clipboard', False)
+            modify_clipboard = (config or get_config('modules')).get('code_formatter_modify_clipboard', False)
 
             # Track this content to prevent reprocessing
             _content_tracker.add_content(clipboard_content)
 
             if modify_clipboard:
                 # Only format and modify clipboard if explicitly enabled
-                show_notification("Code Detected", "Formatting code...")
+                show_notification("Code Detected", "Formatting code...", "")
                 formatted_code = format_code(clipboard_content)
                 if formatted_code != clipboard_content: # Use centralized notification
                     try:
                         # Copy formatted code back to clipboard
                         pyperclip.copy(formatted_code)
 
-                        logger.info("Code formatted and copied to clipboard!")
+                        log_event("Code formatted and copied to clipboard!")
                         show_notification("Code Formatted", "Formatted code copied to clipboard!", "")
                         return True
                     except Exception as e:
-                        logger.error(f"Error copying formatted code: {e}")
+                        log_error(f"Error copying formatted code: {e}")
                 else:
-                    logger.info("Code already properly formatted")
+                    log_event("Code already properly formatted")
             else:
                 # Read-only mode: just notify about code detection
-                show_notification("Code Detected", "Code detected (read-only mode)")
+                show_notification("Code Detected", "Code detected (read-only mode)", "")
                 logger.info("[blue]Code detected but clipboard modification disabled for safety[/blue]")
                 return False  # Don't modify clipboard
                 
     return False
+
+def _write_log_header_if_needed(log_path, header):
+    """Write a header to the log file if it is empty."""
+    if not os.path.exists(log_path) or os.path.getsize(log_path) == 0:
+        with open(log_path, 'a') as f:
+            f.write(header)
+
+LOG_HEADER = (
+    "=== Clipboard Monitor Output Log ===\n"
+    "Created: {date}\n"
+    "Format: [YYYY-MM-DD HH:MM:SS] [LEVEL ] | Message\n"
+    "-------------------------------------\n"
+).format(date=datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+
+ERR_LOG_HEADER = (
+    "=== Clipboard Monitor Error Log ===\n"
+    "Created: {date}\n"
+    "Format: [YYYY-MM-DD HH:MM:SS] [LEVEL ] | Message\n"
+    "-------------------------------------\n"
+).format(date=datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+
+def log_event(message, level="INFO", section_separator=False, paths=None):
+    import datetime
+    timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    padded_level = f"{level:<5}"
+    log_line = f"[{timestamp}] [{padded_level}] | {message}\n"
+    # Use get_app_paths if available, else fallback
+    if paths is not None:
+        out_log = paths.get("out_log")
+    else:
+        try:
+            from utils import get_app_paths
+            out_log = get_app_paths().get("out_log", os.path.expanduser("~/ClipboardMonitor_output.log"))
+        except Exception:
+            out_log = os.path.expanduser("~/ClipboardMonitor_output.log")
+    _write_log_header_if_needed(out_log, LOG_HEADER)
+    with open(out_log, 'a') as f:
+        if section_separator:
+            f.write("\n" + "-" * 60 + "\n")
+        f.write(log_line)
+        if section_separator:
+            f.write("-" * 60 + "\n\n")
+        f.flush()
+
+def log_error(message, multiline_details=None, section_separator=False, paths=None):
+    import datetime
+    timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    padded_level = f"ERROR"
+    log_line = f"[{timestamp}] [{padded_level}] | {message}\n"
+    # Use get_app_paths if available, else fallback
+    if paths is not None:
+        err_log = paths.get("err_log")
+    else:
+        try:
+            from utils import get_app_paths
+            err_log = get_app_paths().get("err_log", os.path.expanduser("~/ClipboardMonitor_error.log"))
+        except Exception:
+            err_log = os.path.expanduser("~/ClipboardMonitor_error.log")
+    _write_log_header_if_needed(err_log, ERR_LOG_HEADER)
+    with open(err_log, 'a') as f:
+        if section_separator:
+            f.write("\n" + "-" * 60 + "\n")
+        f.write(log_line)
+        if multiline_details:
+            for line in multiline_details.splitlines():
+                f.write(f"    {line}\n")
+        if section_separator:
+            f.write("-" * 60 + "\n\n")
+        f.flush()

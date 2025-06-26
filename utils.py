@@ -15,6 +15,30 @@ import pyperclip
 
 logger = logging.getLogger("utils")
 
+def setup_logging(log_path, error_log_path, debug_mode=False):
+    """Set up logging configuration with separate handlers for output and error logs."""
+    level = logging.DEBUG if debug_mode else logging.INFO
+    formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+
+    # Output log: INFO and below
+    file_handler_out = logging.FileHandler(log_path, encoding='utf-8', mode='a')
+    file_handler_out.setFormatter(formatter)
+    file_handler_out.setLevel(logging.DEBUG if debug_mode else logging.INFO)
+    file_handler_out.addFilter(lambda record: record.levelno < logging.WARNING)
+
+    # Error log: WARNING and above
+    file_handler_err = logging.FileHandler(error_log_path, encoding='utf-8', mode='a')
+    file_handler_err.setFormatter(formatter)
+    file_handler_err.setLevel(logging.WARNING)
+
+    # Remove all handlers from root logger first (prevents duplicate logs)
+    root_logger = logging.getLogger()
+    for handler in root_logger.handlers[:]:
+        root_logger.removeHandler(handler)
+    root_logger.setLevel(level)
+    root_logger.addHandler(file_handler_out)
+    root_logger.addHandler(file_handler_err)
+
 def show_notification(title, message):
     """
     Show a notification using AppleScript (macOS).
@@ -316,8 +340,9 @@ def get_app_paths():
     return {
         "base_dir": base_dir,
         "history_file": os.path.join(base_dir, "clipboard_history.json"),
+        "out_log": os.path.join(base_dir, "clipboard_monitor.out.log"),
         "pause_flag": os.path.join(base_dir, "pause_flag"),
-        "error_log": os.path.join(base_dir, "error.log"),
+        "err_log": os.path.join(base_dir, "clipboard_monitor.err.log"),
         "status_file": os.path.join(base_dir, "status.txt")
     }
 
@@ -434,40 +459,8 @@ def get_clipboard_content():
 
         logger.debug("No clipboard content found")
         return None
-    """Get clipboard content with fallback mechanisms.
-    
-    Returns:
-        String content of clipboard or None if retrieval fails
-    """
-    try:
-        # Try pbpaste first (macOS)
-        try:
-            # Try RTF first
-            result = subprocess.run(
-                ['pbpaste', '-Prefer', 'rtf'],
-                capture_output=True,
-                text=True,
-                timeout=2
-            )
-            if result.returncode == 0 and result.stdout.strip():
-                return result.stdout
-                
-            # Try plain text
-            result = subprocess.run(
-                ['pbpaste', '-Prefer', 'txt'],
-                capture_output=True,
-                text=True,
-                timeout=2
-            )
-            if result.returncode == 0 and result.stdout.strip():
-                return result.stdout
-        except (subprocess.SubprocessError, FileNotFoundError):
-            pass
-            
-        # Fall back to pyperclip
-        return pyperclip.paste()
     except Exception as e:
-        logging.error(f"Error getting clipboard content: {e}")
+        logger.error(f"Error getting clipboard content: {e}")
         return None
 
 def update_service_status(status):
@@ -498,6 +491,56 @@ def get_service_status():
         return "unknown"
     except Exception:
         return "unknown"
+
+def _write_log_header_if_needed(log_path, header):
+    if not os.path.exists(log_path) or os.path.getsize(log_path) == 0:
+        with open(log_path, 'a') as f:
+            f.write(header)
+
+LOG_HEADER = (
+    "=== Clipboard Monitor Output Log ===\n"
+    "Created: {date}\n"
+    "Format: [YYYY-MM-DD HH:MM:SS] [LEVEL ] | Message\n"
+    "-------------------------------------\n"
+).format(date=__import__('datetime').datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+
+ERR_LOG_HEADER = (
+    "=== Clipboard Monitor Error Log ===\n"
+    "Created: {date}\n"
+    "Format: [YYYY-MM-DD HH:MM:SS] [LEVEL ] | Message\n"
+    "-------------------------------------\n"
+).format(date=__import__('datetime').datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+
+def log_event(message, log_path, level="INFO", section_separator=False):
+    import datetime
+    timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    padded_level = f"{level:<5}"
+    log_line = f"[{timestamp}] [{padded_level}] | {message}\n"
+    _write_log_header_if_needed(log_path, LOG_HEADER)
+    with open(log_path, 'a') as f:
+        if section_separator:
+            f.write("\n" + "-" * 60 + "\n")
+        f.write(log_line)
+        if section_separator:
+            f.write("-" * 60 + "\n\n")
+        f.flush()
+
+def log_error(message, log_path, multiline_details=None, section_separator=False):
+    import datetime
+    timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    padded_level = "ERROR"
+    log_line = f"[{timestamp}] [{padded_level}] | {message}\n"
+    _write_log_header_if_needed(log_path, ERR_LOG_HEADER)
+    with open(log_path, 'a') as f:
+        if section_separator:
+            f.write("\n" + "-" * 60 + "\n")
+        f.write(log_line)
+        if multiline_details:
+            for line in multiline_details.splitlines():
+                f.write(f"    {line}\n")
+        if section_separator:
+            f.write("-" * 60 + "\n\n")
+        f.flush()
 
 # Ensure all functions are properly defined at module level
 __all__ = [

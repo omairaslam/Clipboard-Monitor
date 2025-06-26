@@ -1,0 +1,85 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Tail Main Service Output Log",
+            "type": "shell",
+            "command": "tail -f '/Users/omair.aslam/Library/Application Support/ClipboardMonitor/clipboard_monitor.out.log'",
+            "group": "none",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Tail Main Service Error Log",
+            "type": "shell",
+            "command": "tail -f '/Users/omair.aslam/Library/Application Support/ClipboardMonitor/clipboard_monitor.err.log'",
+            "group": "none",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Restart Main Service",
+            "type": "shell",
+            "command": "launchctl unload ~/Library/LaunchAgents/com.omairaslam.clipboardmonitor.plist && sleep 1 && launchctl load ~/Library/LaunchAgents/com.omairaslam.clipboardmonitor.plist",
+            "group": "none",
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Restart Menubar Service",
+            "type": "shell",
+            "command": "launchctl unload ~/Library/LaunchAgents/com.omairaslam.clipboardmonitor.menubar.plist && sleep 1 && launchctl load ~/Library/LaunchAgents/com.omairaslam.clipboardmonitor.menubar.plist",
+            "group": "none",
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Clear All Logs",
+            "type": "shell",
+            "command": "truncate -s 0 '/Users/omair.aslam/Library/Application Support/ClipboardMonitor/clipboard_monitor.out.log' && truncate -s 0 '/Users/omair.aslam/Library/Application Support/ClipboardMonitor/clipboard_monitor.err.log'",
+            "group": "none",
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared",
+                "clear": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Restart All Services",
+            "type": "shell",
+            "command": "launchctl unload ~/Library/LaunchAgents/com.omairaslam.clipboardmonitor.plist && sleep 1 && launchctl load ~/Library/LaunchAgents/com.omairaslam.clipboardmonitor.plist && launchctl unload ~/Library/LaunchAgents/com.omairaslam.clipboardmonitor.menubar.plist && sleep 1 && launchctl load ~/Library/LaunchAgents/com.omairaslam.clipboardmonitor.menubar.plist",
+            "group": "none",
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared",
+                "clear": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Clear Logs & Restart All Services",
+            "type": "shell",
+            "command": "> /Users/omair.aslam/Library/Logs/ClipboardMonitor.out.log && > /Users/omair.aslam/Library/Logs/ClipboardMonitor.err.log && > /Users/omair.aslam/Library/Logs/ClipboardMonitorMenuBar.out.log && > /Users/omair.aslam/Library/Logs/ClipboardMonitorMenuBar.err.log && launchctl unload ~/Library/LaunchAgents/com.omairaslam.clipboardmonitor.plist && sleep 1 && launchctl load ~/Library/LaunchAgents/com.omairaslam.clipboardmonitor.plist && launchctl unload ~/Library/LaunchAgents/com.omairaslam.clipboardmonitor.menubar.plist && sleep 1 && launchctl load ~/Library/LaunchAgents/com.omairaslam.clipboardmonitor.menubar.plist",
+            "group": "none",
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared",
+                "clear": true
+            },
+            "problemMatcher": []
+        }
+    ]
+}

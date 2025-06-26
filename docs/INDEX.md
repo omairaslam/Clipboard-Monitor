@@ -110,3 +110,5 @@ For the most current information, always refer to the **[Latest Updates](LATEST_
 
 ### **Recent History Limit Feature**
 - [Menu Bar Recent History Limit is Now User-Configurable](readme.md#menu-bar-recent-history-limit-is-now-user-configurable)
+
+- **Logging Format Update**: See README and LATEST_UPDATES for details on the new plain text logging format, enhanced log readability, and config menu improvements (June 2025).

@@ -1,6 +1,8 @@
 # Clipboard Monitoring Methods
 
-This document explains the different clipboard monitoring methods used in the Clipboard Monitor application and their performance characteristics. All logging in the application is now plain text with timestamps and log levels (no colorized or rich formatting).
+This document explains the different clipboard monitoring methods used in the Clipboard Monitor application and their performance characteristics. 
+
+**Note:** All logging in the application is now plain text with timestamps, padded log levels, section separators, and multi-line support. No colorized or Rich formatting is used anywhere in the application (June 2025).
 
 ## Overview
 

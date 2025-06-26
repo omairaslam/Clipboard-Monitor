@@ -461,6 +461,15 @@ This document provides a detailed analysis of bugs identified and fixed in the c
 - Created format preview
 - Added format undo capability
 
+## Logging and Configuration Fixes (June 2025)
+
+- Removed all Rich and colorized/ANSI logging from the codebase.
+- All logging is now plain text with enhanced formatting (timestamps, padded log levels, section separators, multi-line support).
+- All logging uses `log_event`/`log_error` helpers for consistency across all modules and utilities.
+- Output and error logs are now strictly separated.
+- All configuration options in `config.json` are settable from the Preferences menu.
+- All logging related to `update_recent_history_menu` has been removed.
+
 ## Testing Improvements
 
 ### Markdown Module Testing

@@ -4,15 +4,16 @@ import base64
 import json
 import re
 import logging # For logging
-from utils import show_notification # For centralized notifications
+from utils import show_notification, log_event, log_error # For centralized notifications
+import datetime
+import os
 
 MERMAID_PLAYGROUND_BASE = "https://mermaid.live/edit#" # Constants
-logger = logging.getLogger("mermaid_module") # Logger
 
 def is_mermaid_code(text):
     """Check if text contains Mermaid diagram code using regex patterns"""
     if not text or not isinstance(text, str):
-        logger.debug("Content is empty or not a string.")
+        log_event("Content is empty or not a string.", level="DEBUG")
         return False
         
     try:
@@ -41,12 +42,12 @@ def is_mermaid_code(text):
         text = text.strip()
         for pattern in mermaid_patterns:
             if re.match(pattern, text, re.IGNORECASE):
-                logger.debug(f"Matched Mermaid pattern: {pattern}")
+                log_event(f"Matched Mermaid pattern: {pattern}", level="DEBUG")
                 return True
                 
         return False
     except Exception as e:
-        logger.error(f"[bold red]Error checking Mermaid code:[/bold red] {str(e)}")
+        log_error(f"Error checking Mermaid code: {str(e)}")
         return False
 
 def create_mermaid_url(mermaid_code):
@@ -57,19 +58,19 @@ def create_mermaid_url(mermaid_code):
         
         # Convert to JSON with minimal whitespace
         json_str = json.dumps(data, separators=(',', ':'))
-        logger.debug(f"JSON payload: {json_str}")
+        log_event(f"JSON payload: {json_str}", level="DEBUG")
         
         # Encode to base64url
         b64 = base64.urlsafe_b64encode(json_str.encode('utf-8')).decode('utf-8')
-        logger.debug(f"Base64 encoded: {b64}")
+        log_event(f"Base64 encoded: {b64}", level="DEBUG")
         
         # Create final URL
         url = MERMAID_PLAYGROUND_BASE + b64
-        logger.info(f"[blue]Generated URL:[/blue] {url}")
+        log_event(f"Generated URL: {url}", level="INFO")
         
         return url
     except Exception as e:
-        logger.error(f"[bold red]Error creating Mermaid URL:[/bold red] {str(e)}")
+        log_error(f"Error creating Mermaid URL: {str(e)}")
         return None
 
 def launch_mermaid_chart(mermaid_code):
@@ -77,20 +78,18 @@ def launch_mermaid_chart(mermaid_code):
     try:
         url = create_mermaid_url(mermaid_code)
         if url:
-            logger.info("[green]Opening Mermaid diagram in browser...[/green]")
+            log_event("Opening Mermaid diagram in browser...", level="INFO")
             webbrowser.open_new(url)
-            show_notification("Mermaid Chart", "Opening diagram in Mermaid Live Editor...",
-                              "") # Subtitle and message are empty for now
-            )
+            show_notification("Mermaid Chart", "Opening diagram in Mermaid Live Editor...", "")
             return True
         return False
     except Exception as e:
-        logger.error(f"Error launching chart: {str(e)}")
+        log_error(f"Error launching chart: {str(e)}")
         return False
 
-def process(clipboard_content):
+def process(clipboard_content, config=None):
     """Process clipboard content and handle Mermaid diagrams"""
-    logger.debug("Processing clipboard content...")
+    log_event("Processing clipboard content...", level="DEBUG")
     
     if not clipboard_content:
         return False
@@ -108,7 +107,7 @@ def process(clipboard_content):
             launch_mermaid_chart(sanitized_content)
             return False  # Changed from True to False as clipboard isn't modified
     except Exception as e: # Log error
-        logger.error(f"Error processing clipboard: {str(e)}")
+        log_error(f"Error processing clipboard: {str(e)}")
         
     return False
 
@@ -150,13 +149,82 @@ def sanitize_mermaid_content(mermaid_code):
         # Replace node text with sanitized version
         sanitized_code = re.sub(node_text_pattern, sanitize_node_text, mermaid_code)
 
-        logger.debug(f"Original Mermaid content: {mermaid_code}")
-        logger.debug(f"Sanitized Mermaid content: {sanitized_code}")
+        log_event(f"Original Mermaid content: {mermaid_code}", level="DEBUG")
+        log_event(f"Sanitized Mermaid content: {sanitized_code}", level="DEBUG")
         return sanitized_code
     except Exception as e: # Log error
-        logger.error(f"Error sanitizing Mermaid content: {str(e)}")
+        log_error(f"Error sanitizing Mermaid content: {str(e)}")
         # Return original content if sanitization fails
         return mermaid_code
+
+def _write_log_header_if_needed(log_path, header):
+    """Write a header to the log file if it is empty."""
+    if not os.path.exists(log_path) or os.path.getsize(log_path) == 0:
+        with open(log_path, 'a') as f:
+            f.write(header)
+
+LOG_HEADER = (
+    "=== Clipboard Monitor Output Log ===\n"
+    "Created: {date}\n"
+    "Format: [YYYY-MM-DD HH:MM:SS] [LEVEL ] | Message\n"
+    "-------------------------------------\n"
+).format(date=datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+
+ERR_LOG_HEADER = (
+    "=== Clipboard Monitor Error Log ===\n"
+    "Created: {date}\n"
+    "Format: [YYYY-MM-DD HH:MM:SS] [LEVEL ] | Message\n"
+    "-------------------------------------\n"
+).format(date=datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+
+def log_event(message, level="INFO", section_separator=False, paths=None):
+    import datetime
+    timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    padded_level = f"{level:<5}"
+    log_line = f"[{timestamp}] [{padded_level}] | {message}\n"
+    # Use get_app_paths if available, else fallback
+    if paths is not None:
+        out_log = paths.get("out_log")
+    else:
+        try:
+            from utils import get_app_paths
+            out_log = get_app_paths().get("out_log", os.path.expanduser("~/ClipboardMonitor_output.log"))
+        except Exception:
+            out_log = os.path.expanduser("~/ClipboardMonitor_output.log")
+    _write_log_header_if_needed(out_log, LOG_HEADER)
+    with open(out_log, 'a') as f:
+        if section_separator:
+            f.write("\n" + "-" * 60 + "\n")
+        f.write(log_line)
+        if section_separator:
+            f.write("-" * 60 + "\n\n")
+        f.flush()
+
+def log_error(message, multiline_details=None, section_separator=False, paths=None):
+    import datetime
+    timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    padded_level = f"ERROR"
+    log_line = f"[{timestamp}] [{padded_level}] | {message}\n"
+    # Use get_app_paths if available, else fallback
+    if paths is not None:
+        err_log = paths.get("err_log")
+    else:
+        try:
+            from utils import get_app_paths
+            err_log = get_app_paths().get("err_log", os.path.expanduser("~/ClipboardMonitor_error.log"))
+        except Exception:
+            err_log = os.path.expanduser("~/ClipboardMonitor_error.log")
+    _write_log_header_if_needed(err_log, ERR_LOG_HEADER)
+    with open(err_log, 'a') as f:
+        if section_separator:
+            f.write("\n" + "-" * 60 + "\n")
+        f.write(log_line)
+        if multiline_details:
+            for line in multiline_details.splitlines():
+                f.write(f"    {line}\n")
+        if section_separator:
+            f.write("-" * 60 + "\n\n")
+        f.flush()
 
 # For testing
 if __name__ == '__main__':
@@ -185,7 +253,7 @@ if __name__ == '__main__':
     ]
     
     # Run tests
-    logger.info("[bold cyan]Running Mermaid module tests...[/bold cyan]")
+    log_event("[bold cyan]Running Mermaid module tests...[/bold cyan]", level="INFO")
     for test in test_cases:
-        logger.info(f"\nTesting with:\n{test}")
+        log_event(f"\nTesting with:\n{test}", level="INFO")
         process(test)

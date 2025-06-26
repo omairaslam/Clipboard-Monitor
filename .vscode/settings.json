@@ -1,0 +1,45 @@
+{
+    "VsCodeTaskButtons.showCounter": true,
+    "VsCodeTaskButtons.tasks": [
+        {
+            "label": "Tail Main Output",
+            "task": "Tail Main Service Output Log",
+            "tooltip": "Tail the main service's output log"
+        },
+        {
+            "label": "Tail Main Error",
+            "task": "Tail Main Service Error Log",
+            "tooltip": "Tail the main service's error log"
+        },
+        {
+            "label": "Restart Main",
+            "task": "Restart Main Service",
+            "tooltip": "Restart the main Clipboard Monitor service",
+            "color": "warning"
+        },
+        {
+            "label": "Restart Menubar",
+            "task": "Restart Menubar Service",
+            "tooltip": "Restart the menubar application",
+            "color": "warning"
+        },
+        {
+            "label": "Clear Logs",
+            "task": "Clear All Logs",
+            "tooltip": "Clear all log files",
+            "color": "error"
+        },
+        {
+            "label": "Restart All",
+            "task": "Restart All Services",
+            "tooltip": "Restart both main and menubar services",
+            "color": "warning"
+        },
+        {
+            "label": "Clear & Restart All",
+            "task": "Clear Logs & Restart All Services",
+            "tooltip": "Clear all logs and restart both services",
+            "color": "error"
+        }
+    ]
+}

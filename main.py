@@ -1,10 +1,10 @@
 import os
 import importlib
 import importlib.util # For module loading
-import logging
 import time
 import pyperclip # Cross-platform clipboard library
 import threading
+import logging
 from utils import show_notification, safe_expanduser
 import json
 import subprocess
@@ -12,20 +12,90 @@ import re # For regex in _get_system_idle_time
 import tracemalloc
 
 
-# Set up logging: FileHandler only (no Rich)
-log_path = os.path.expanduser('~/Library/Logs/ClipboardMonitor.out.log')
+from utils import setup_logging, get_app_paths
 
-# Remove all handlers if reloading
-for handler in logging.root.handlers[:]:
-    logging.root.removeHandler(handler)
+# --- BEGIN: Early environment and log path diagnostics ---
+try:
+    import sys
+    import datetime
+    from utils import get_app_paths, ensure_directory_exists
+    paths = get_app_paths()
+    early_diag_path = paths.get("out_log", os.path.expanduser("~/ClipboardMonitor_early_diag.log"))
+    # Ensure log directory exists
+    ensure_directory_exists(os.path.dirname(early_diag_path))
+    with open(early_diag_path, "a") as diag:
+        diag.write(f"[{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Service starting. (early diagnostics)\n")
+        diag.write(f"sys.argv: {sys.argv}\n")
+        diag.write(f"os.getcwd(): {os.getcwd()}\n")
+        diag.write(f"__file__: {__file__}\n")
+        diag.write(f"os.environ['HOME']: {os.environ.get('HOME')}\n")
+        diag.write(f"os.environ['USER']: {os.environ.get('USER')}\n")
+        diag.write(f"PATH: {os.environ.get('PATH')}\n")
+        # Try to resolve log file paths if possible
+        try:
+            diag.write(f"Resolved out_log: {paths.get('out_log')}\n")
+            diag.write(f"Resolved err_log: {paths.get('err_log')}\n")
+        except Exception as e:
+            diag.write(f"Error resolving log paths: {e}\n")
+        diag.write("---\n")
+except Exception as e:
+    pass
+# --- END: Early environment and log path diagnostics ---
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s %(levelname)s %(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S',
-    handlers=[logging.FileHandler(log_path, encoding='utf-8', mode='a')]
-)
+paths = get_app_paths()
+setup_logging(paths["out_log"], paths["err_log"])
 logger = logging.getLogger("clipboard_monitor")
+
+def _write_log_header_if_needed(log_path, header):
+    """Write a header to the log file if it is empty."""
+    if not os.path.exists(log_path) or os.path.getsize(log_path) == 0:
+        with open(log_path, 'a') as f:
+            f.write(header)
+
+LOG_HEADER = (
+    "=== Clipboard Monitor Output Log ===\n"
+    "Created: {date}\n"
+    "Format: [YYYY-MM-DD HH:MM:SS] [LEVEL ] | Message\n"
+    "-------------------------------------\n"
+).format(date=datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+
+ERR_LOG_HEADER = (
+    "=== Clipboard Monitor Error Log ===\n"
+    "Created: {date}\n"
+    "Format: [YYYY-MM-DD HH:MM:SS] [LEVEL ] | Message\n"
+    "-------------------------------------\n"
+).format(date=datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+
+def log_event(message, level="INFO", section_separator=False):
+    import datetime
+    timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    padded_level = f"{level:<5}"
+    log_line = f"[{timestamp}] [{padded_level}] | {message}\n"
+    _write_log_header_if_needed(paths["out_log"], LOG_HEADER)
+    with open(paths["out_log"], 'a') as f:
+        if section_separator:
+            f.write("\n" + "-" * 60 + "\n")
+        f.write(log_line)
+        if section_separator:
+            f.write("-" * 60 + "\n\n")
+        f.flush()  # Ensure immediate write
+
+def log_error(message, multiline_details=None, section_separator=False):
+    import datetime
+    timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    padded_level = f"ERROR"
+    log_line = f"[{timestamp}] [{padded_level}] | {message}\n"
+    _write_log_header_if_needed(paths["err_log"], ERR_LOG_HEADER)
+    with open(paths["err_log"], 'a') as f:
+        if section_separator:
+            f.write("\n" + "-" * 60 + "\n")
+        f.write(log_line)
+        if multiline_details:
+            for line in multiline_details.splitlines():
+                f.write(f"    {line}\n")
+        if section_separator:
+            f.write("-" * 60 + "\n\n")
+        f.flush()  # Ensure immediate write
 
 def load_config():
     """Load configuration from config.json if available"""
@@ -472,6 +542,10 @@ def print_tracemalloc_snapshot():
 
 def main():
     """Main entry point for the clipboard monitor."""
+    # Log resolved log file paths and service start immediately
+    log_event(f"Clipboard Monitor service starting... (out_log: {paths['out_log']}, err_log: {paths['err_log']})", "INFO")
+    logger.info(f"Clipboard Monitor service starting... (out_log: {paths['out_log']}, err_log: {paths['err_log']})")
+
     monitor = ClipboardMonitor()
     modules_dir = os.path.join(os.path.dirname(__file__), 'modules')
     monitor.load_modules(modules_dir)
@@ -529,6 +603,7 @@ def main():
     # --- Polling Monitoring Path (Fallback if pyobjc is not available or not on macOS) ---
     # This will also be reached if event-driven setup fails
     logger.info("Clipboard monitor started (polling).")
+    log_event("Clipboard monitor started (polling).", "INFO")
     last_clipboard = None
     consecutive_errors = 0
     max_consecutive_errors = 10
@@ -537,12 +612,13 @@ def main():
         # Process initial clipboard content for polling mode too
         initial_clipboard_content = monitor._get_clipboard_content()
         if initial_clipboard_content:
-            # Process the initial content once.
             logger.info("Processing initial clipboard content (polling)...")
+            log_event("Processing initial clipboard content (polling)...", "INFO")
             last_clipboard = initial_clipboard_content # Set for the first comparison
             monitor.process_clipboard(initial_clipboard_content)
     except Exception as e:
         logger.error(f"Error reading initial clipboard content (polling): {e}")
+        log_error(f"Error reading initial clipboard content (polling): {e}")
 
     # Main polling loop.
     try:
@@ -552,6 +628,7 @@ def main():
                 pause_flag_path = safe_expanduser("~/Library/Application Support/ClipboardMonitor/pause_flag")
                 if os.path.exists(pause_flag_path):
                     # Service is paused, just sleep and continue
+                    log_event("Service paused via pause_flag.", "INFO")
                     time.sleep(1)
                     continue
                 
@@ -559,6 +636,7 @@ def main():
                 # If the current clipboard content is different from the last known content.
                 if clipboard_content and clipboard_content != last_clipboard:
                     last_clipboard = clipboard_content
+                    log_event("Clipboard content changed (polling).", "INFO")
                     monitor.process_clipboard(clipboard_content)
 
                 # Reset error counter on successful iteration
@@ -568,9 +646,11 @@ def main():
             except pyperclip.PyperclipException as e:
                 consecutive_errors += 1
                 logger.error(f"pyperclip error in polling loop (#{consecutive_errors}): {e}")
+                log_error(f"pyperclip error in polling loop (#{consecutive_errors}): {e}")
 
                 if consecutive_errors >= max_consecutive_errors:
                     logger.error(f"Too many consecutive pyperclip errors ({consecutive_errors}). Exiting.")
+                    log_error(f"Too many consecutive pyperclip errors ({consecutive_errors}). Exiting.")
                     break
 
                 time.sleep(5) # Wait longer if there's a persistent pyperclip issue to avoid spamming errors.
@@ -578,20 +658,24 @@ def main():
             except Exception as e:
                 consecutive_errors += 1
                 logger.error(f"Unexpected error in polling loop (#{consecutive_errors}): {e}")
+                log_error(f"Unexpected error in polling loop (#{consecutive_errors}): {e}")
 
                 if consecutive_errors >= max_consecutive_errors:
                     logger.error(f"Too many consecutive errors ({consecutive_errors}). Exiting.")
+                    log_error(f"Too many consecutive errors ({consecutive_errors}). Exiting.")
                     break
 
                 time.sleep(1) # Brief pause before retrying
 
     except KeyboardInterrupt: # Handle Ctrl+C to gracefully stop the monitor.
         logger.info("\nClipboard monitor stopped by user (polling).")
+        log_event("Clipboard monitor stopped by user (polling).", "INFO")
     except Exception as e:
         logger.error(f"Fatal error in polling loop: {e}")
+        log_error(f"Fatal error in polling loop: {e}")
     finally:
         logger.info("Clipboard monitor shutdown complete.")
-
+        log_event("Clipboard monitor shutdown complete.", "INFO")
 # Standard Python entry point.
 if __name__ == "__main__":
     main()

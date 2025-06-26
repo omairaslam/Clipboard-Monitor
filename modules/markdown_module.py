@@ -7,10 +7,11 @@ import threading
 import sys
 import os
 import json
+import datetime
 
 # Add parent directory to path to import utils
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__)))) # For utils
-from utils import show_notification, validate_string_input, ContentTracker, get_config
+from utils import show_notification, validate_string_input, ContentTracker, get_config, log_event, log_error
 
 logger = logging.getLogger("markdown_module")
 
@@ -18,7 +19,7 @@ logger = logging.getLogger("markdown_module")
 _content_tracker = ContentTracker(max_history=5)
 _processing_lock = threading.Lock()
 
-def process(clipboard_content, module_config=None) -> bool:
+def process(clipboard_content, config=None) -> bool:
     """Process clipboard content as markdown and convert to RTF if it appears to be markdown"""
 
     # Prevent concurrent processing and loops
@@ -37,11 +38,11 @@ def process(clipboard_content, module_config=None) -> bool:
 
             # Check if clipboard modification is enabled for markdown
             # Use module_config passed from main, or load if not provided (for standalone testing)
-            modify_clipboard = (module_config or get_config('modules')).get('markdown_modify_clipboard', True)
+            modify_clipboard = (config or get_config('modules')).get('markdown_modify_clipboard', True)
 
             if modify_clipboard:
                 logger.info("[cyan]Converting markdown to RTF...[/cyan]")
-                show_notification("Markdown Detected", "Converting markdown to rich text...")
+                show_notification("Markdown Detected", "Converting markdown to rich text...", "")
 
                 rtf_text = convert_markdown_to_rtf(clipboard_content)
                 if rtf_text:
@@ -61,7 +62,7 @@ def process(clipboard_content, module_config=None) -> bool:
                             )
                             logger.info("[green]SUCCESS: Used pbcopy for RTF clipboard handling[/green]")
                             logger.info("[green]Converted to RTF and copied to clipboard![/green]")
-                            show_notification("Markdown Converted", "Rich text copied to clipboard!")
+                            show_notification("Markdown Converted", "Rich text copied to clipboard!", "")
                             
                             # Indicate that clipboard was modified. Main app will handle history.
                             return True 
@@ -86,7 +87,7 @@ def process(clipboard_content, module_config=None) -> bool:
                         return False
             else:
                 # Read-only mode: just notify about markdown detection
-                show_notification("Markdown Detected", "Markdown detected (read-only mode)")
+                show_notification("Markdown Detected", "Markdown detected (read-only mode)", "")
                 logger.info("[blue]Markdown detected but clipboard modification disabled[/blue]")
                 return False  # Don't modify clipboard
 
@@ -252,6 +253,75 @@ def convert_markdown_to_rtf(markdown_text: str) -> str:
     except Exception as e:
         logger.error(f"[bold red]Unexpected error during conversion:[/bold red] {str(e)}")
         return None
+
+def _write_log_header_if_needed(log_path, header):
+    """Write a header to the log file if it is empty."""
+    if not os.path.exists(log_path) or os.path.getsize(log_path) == 0:
+        with open(log_path, 'a') as f:
+            f.write(header)
+
+LOG_HEADER = (
+    "=== Clipboard Monitor Output Log ===\n"
+    "Created: {date}\n"
+    "Format: [YYYY-MM-DD HH:MM:SS] [LEVEL ] | Message\n"
+    "-------------------------------------\n"
+).format(date=datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+
+ERR_LOG_HEADER = (
+    "=== Clipboard Monitor Error Log ===\n"
+    "Created: {date}\n"
+    "Format: [YYYY-MM-DD HH:MM:SS] [LEVEL ] | Message\n"
+    "-------------------------------------\n"
+).format(date=datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+
+def log_event(message, level="INFO", section_separator=False, paths=None):
+    import datetime
+    timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    padded_level = f"{level:<5}"
+    log_line = f"[{timestamp}] [{padded_level}] | {message}\n"
+    # Use get_app_paths if available, else fallback
+    if paths is not None:
+        out_log = paths.get("out_log")
+    else:
+        try:
+            from utils import get_app_paths
+            out_log = get_app_paths().get("out_log", os.path.expanduser("~/ClipboardMonitor_output.log"))
+        except Exception:
+            out_log = os.path.expanduser("~/ClipboardMonitor_output.log")
+    _write_log_header_if_needed(out_log, LOG_HEADER)
+    with open(out_log, 'a') as f:
+        if section_separator:
+            f.write("\n" + "-" * 60 + "\n")
+        f.write(log_line)
+        if section_separator:
+            f.write("-" * 60 + "\n\n")
+        f.flush()
+
+def log_error(message, multiline_details=None, section_separator=False, paths=None):
+    import datetime
+    timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    padded_level = f"ERROR"
+    log_line = f"[{timestamp}] [{padded_level}] | {message}\n"
+    # Use get_app_paths if available, else fallback
+    if paths is not None:
+        err_log = paths.get("err_log")
+    else:
+        try:
+            from utils import get_app_paths
+            err_log = get_app_paths().get("err_log", os.path.expanduser("~/ClipboardMonitor_error.log"))
+        except Exception:
+            err_log = os.path.expanduser("~/ClipboardMonitor_error.log")
+    _write_log_header_if_needed(err_log, ERR_LOG_HEADER)
+    with open(err_log, 'a') as f:
+        if section_separator:
+            f.write("\n" + "-" * 60 + "\n")
+        f.write(log_line)
+        if multiline_details:
+            for line in multiline_details.splitlines():
+                f.write(f"    {line}\n")
+        if section_separator:
+            f.write("-" * 60 + "\n\n")
+        f.flush()
 
 # For testing
 if __name__ == '__main__':

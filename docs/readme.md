@@ -872,6 +872,15 @@ For information about module configuration and enable/disable functionality, see
 
 ---
 
+## 🚨 Logging Format Update (June 2025)
+
+- **All logging is now plain text**: No colorized or Rich formatting is used anywhere in the application.
+- **Enhanced log format**: All logs include timestamps, padded log levels, section separators, and multi-line support for better readability.
+- **Log file separation**: Output and error logs are now strictly separated for clarity.
+- **Consistent logging**: All logging uses `log_event` and `log_error` helpers for a uniform format across all modules and utilities.
+- **All configuration options**: Every option in `config.json` is now settable from the Preferences menu in the menu bar app.
+- **No logging for update_recent_history_menu**: All logging related to this function has been removed as per user request.
+
 ## 📄 License
 
 <div align="center">

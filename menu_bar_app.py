@@ -9,7 +9,8 @@ import time
 import json
 import logging
 from pathlib import Path
-from utils import safe_expanduser, ensure_directory_exists, get_config, set_config_value, load_clipboard_history
+from utils import safe_expanduser, ensure_directory_exists, get_config, set_config_value, load_clipboard_history, setup_logging, get_app_paths, show_notification
+import pyperclip
 
 
 
@@ -22,8 +23,11 @@ class ClipboardMonitorMenuBar(rumps.App):
         # Configuration
         self.home_dir = str(Path.home())
         self.plist_path = f"{self.home_dir}/Library/LaunchAgents/com.omairaslam.clipboardmonitor.plist"
-        self.log_path = f"{self.home_dir}/Library/Logs/ClipboardMonitor.out.log"
-        self.error_log_path = f"{self.home_dir}/Library/Logs/ClipboardMonitor.err.log"
+        # Always use get_app_paths() for log paths
+        paths = get_app_paths()
+        self.log_path = paths["out_log"]
+        self.error_log_path = paths["err_log"]
+        setup_logging(self.log_path, self.error_log_path)
         self.module_status = {}
         self.load_module_config()
         # Map of module filenames to friendly display names
@@ -80,11 +84,15 @@ class ClipboardMonitorMenuBar(rumps.App):
         """Initialize and populate submenus."""
         # Service Control Submenu
         self.service_control_menu = rumps.MenuItem("Service Control")
-        self.service_control_menu.add(self.start_item, self.stop_item, self.restart_item)
+        self.service_control_menu.add(self.start_item)
+        self.service_control_menu.add(self.stop_item)
+        self.service_control_menu.add(self.restart_item)
 
         # Logs Submenu
         self.logs_menu = rumps.MenuItem("Logs")
-        self.logs_menu.add(self.output_log_item, self.error_log_item, self.clear_logs_item)
+        self.logs_menu.add(self.output_log_item)
+        self.logs_menu.add(self.error_log_item)
+        self.logs_menu.add(self.clear_logs_item)
 
         # Module Management Submenu
         self._populate_module_menu()
@@ -274,8 +282,10 @@ class ClipboardMonitorMenuBar(rumps.App):
                 # Service is running and not paused
                 # Check if it's using enhanced monitoring
                 try:
+                    from utils import get_app_paths
+                    log_path = get_app_paths()["out_log"]
                     grep_result = subprocess.run(
-                        ["grep", "-i", "enhanced clipboard monitoring", self.log_path],
+                        ["grep", "-i", "enhanced clipboard monitoring", log_path],
                         capture_output=True,
                         text=True
                     )
@@ -303,56 +313,69 @@ class ClipboardMonitorMenuBar(rumps.App):
             self.status_item.title = "Status: Error checking"
             # Log the error
             import traceback
-            with open(self.error_log_path, 'a') as f:
+            from utils import get_app_paths
+            error_log_path = get_app_paths()["err_log"]
+            with open(error_log_path, 'a') as f:
                 f.write(f"Status check error: {str(e)}\n")
                 f.write(traceback.format_exc())
     
     def start_service(self, _):
         try:
-            subprocess.run(["launchctl", "load", self.plist_path]) # Use centralized notification
+            subprocess.run(["launchctl", "load", self.plist_path])
+            self.log_event("Service started via menu.", "INFO")
             show_notification("Clipboard Monitor", "Service Started", "The clipboard monitor service has been started.", self.log_path, self.error_log_path)
             self.update_status()
         except Exception as e:
+            self.log_error(f"Failed to start service: {str(e)}")
             show_notification("Error", "Failed to start service", str(e), self.log_path, self.error_log_path)
     
     def stop_service(self, _):
         try:
-            subprocess.run(["launchctl", "unload", self.plist_path]) # Use centralized notification
+            subprocess.run(["launchctl", "unload", self.plist_path])
+            self.log_event("Service stopped via menu.", "INFO")
             show_notification("Clipboard Monitor", "Service Stopped", "The clipboard monitor service has been stopped.", self.log_path, self.error_log_path)
             self.update_status()
         except Exception as e:
+            self.log_error(f"Failed to stop service: {str(e)}")
             show_notification("Error", "Failed to stop service", str(e), self.log_path, self.error_log_path)
     
     def restart_service(self, _):
         try:
             subprocess.run(["launchctl", "unload", self.plist_path])
+            self.log_event("Service unloaded for restart.", "INFO")
+            import time
             time.sleep(1)
             subprocess.run(["launchctl", "load", self.plist_path])
+            self.log_event("Service loaded for restart.", "INFO")
             rumps.notification("Clipboard Monitor", "Service Restarted", "The clipboard monitor service has been restarted.")
-            self.update_status() # Use centralized notification
+            self.log_event("Service restarted via menu.", "INFO")
+            self.update_status()
         except Exception as e:
+            self.log_error(f"Failed to restart service: {str(e)}")
             show_notification("Error", "Failed to restart service", str(e), self.log_path, self.error_log_path)
     
     def view_output_log(self, _):
-        self._open_file(self.log_path)
+        import subprocess
+        from utils import get_app_paths
+        log_path = get_app_paths()["out_log"]
+        subprocess.Popen(["open", log_path])
     
     def view_error_log(self, _):
-        self._open_file(self.error_log_path)
+        import subprocess
+        from utils import get_app_paths
+        error_log_path = get_app_paths()["err_log"]
+        subprocess.Popen(["open", error_log_path])
     
     def clear_logs(self, _):
+        from utils import get_app_paths
+        paths = get_app_paths()
         try:
-            open(self.log_path, 'w').close()
-            open(self.error_log_path, 'w').close()
-            show_notification("Clipboard Monitor", "Logs Cleared", "Log files have been cleared.", self.log_path, self.error_log_path)
+            # Truncate both log files
+            with open(paths["out_log"], "w"): pass
+            with open(paths["err_log"], "w"): pass
+            show_notification("Logs Cleared", "All logs have been cleared.")
         except Exception as e:
-            show_notification("Error", "Failed to clear logs", str(e), self.log_path, self.error_log_path)
-    
-    def _open_file(self, path):
-        """Open a file with the default application"""
-        try:
-            subprocess.run(["open", path])
-        except Exception as e:
-            show_notification("Error", f"Failed to open {path}", str(e), self.log_path, self.error_log_path)
+            show_notification("Error", f"Failed to clear logs: {e}")
     
     def quit_app(self, _):
         rumps.quit_application()
@@ -505,15 +528,19 @@ class ClipboardMonitorMenuBar(rumps.App):
                 new_max = int(response.text.strip())
                 if new_max > 0:
                     if set_config_value('history', 'max_items', new_max):
+                        self.log_event(f"Set max_items to {new_max}", "INFO")
                         rumps.notification("Clipboard Monitor", "Max Recent Menu Items",
                                           f"Max recent menu items set to {new_max}")
                         self.update_recent_history_menu()
                     else:
+                        self.log_error("Failed to update max menu items in config.")
                         rumps.notification("Error", "Failed to update max menu items", "Could not save configuration")
                 else:
+                    self.log_error("Attempted to set max_items to non-positive value.")
                     rumps.notification("Error", "Invalid Value", "Max items must be positive")
-                    self.update_recent_history_menu()  # Immediately update menu to reflect no change
+                    self.update_recent_history_menu()
             except ValueError:
+                self.log_error("Invalid value entered for max_items.")
                 rumps.notification("Error", "Invalid Value", "Please enter a valid number")
 
     def set_max_content_length(self, _):
@@ -872,6 +899,7 @@ read -n 1
         """Update the recent history menu, limiting items and clearing references."""
         import gc
         import traceback        
+        # Read max_items from config file (history section), default to 20 if not set
         max_items = get_config('history', 'max_items', 20)
         debug_mode = get_config('general', 'debug_mode', False)
         try:
@@ -882,7 +910,7 @@ read -n 1
             # Clear the existing menu items instead of recreating the menu
             self.recent_history_menu.clear()
 
-            history = self.load_clipboard_history() or []
+            history = load_clipboard_history() or []
             num_loaded = len(history)
             num_displayed = 0
             if not history:
@@ -916,13 +944,12 @@ read -n 1
             timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             # Remove any ANSI color codes from log messages
             import re
-            msg = f"[{timestamp}] update_recent_history_menu: loaded={num_loaded}, displayed={num_displayed}"
-            ansi_escape = re.compile(r'\x1B\[[0-9;]*[mK]')
-            msg = ansi_escape.sub('', msg)
+            # msg = f"[{timestamp}] update_recent_history_menu: loaded={num_loaded}, displayed={num_displayed}"
+            # ansi_escape = re.compile(r'\x1B\[[0-9;]*[mK]')
+            # msg = ansi_escape.sub('', msg)
             if debug_mode:
-                rumps.notification("Clipboard Monitor Debug", "Recent History Menu", msg)
-                with open(self.log_path, 'a') as f:
-                    f.write(msg + "\n")
+                rumps.notification("Clipboard Monitor Debug", "Recent History Menu", f"Recent history menu updated: loaded={num_loaded}, displayed={num_displayed}")
+                # Logging of update_recent_history_menu is intentionally suppressed per user request
         except Exception as e:
             import datetime
             timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -951,7 +978,7 @@ read -n 1
                 # which can lead to memory leaks if rumps doesn't properly release them.
                 # Note: This reloads the entire history file, which can be inefficient for very large files.
                 print(f"DEBUG: Reloading history to copy item with identifier: {history_identifier}")
-                full_history = self.load_clipboard_history()
+                full_history = load_clipboard_history()
                 content_to_copy = None
                 for item in full_history:
                     if item.get("hash") == history_identifier:
@@ -1107,6 +1134,57 @@ read -n 1
             log_line = ansi_escape.sub('', log_line)
             with open(self.error_log_path, 'a') as f:
                 f.write(log_line)
+
+    def _write_log_header_if_needed(self, log_path, header):
+        """Write a header to the log file if it is empty."""
+        if not os.path.exists(log_path) or os.path.getsize(log_path) == 0:
+            with open(log_path, 'a') as f:
+                f.write(header)
+
+    LOG_HEADER = (
+        "=== Clipboard Monitor Output Log ===\n"
+        "Created: {date}\n"
+        "Format: [YYYY-MM-DD HH:MM:SS] [LEVEL ] | Message\n"
+        "-------------------------------------\n"
+    ).format(date=__import__('datetime').datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+
+    ERR_LOG_HEADER = (
+        "=== Clipboard Monitor Error Log ===\n"
+        "Created: {date}\n"
+        "Format: [YYYY-MM-DD HH:MM:SS] [LEVEL ] | Message\n"
+        "-------------------------------------\n"
+    ).format(date=__import__('datetime').datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+
+    def log_event(self, message, level="INFO", section_separator=False):
+        import datetime
+        timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        padded_level = f"{level:<5}"
+        log_line = f"[{timestamp}] [{padded_level}] | {message}\n"
+        self._write_log_header_if_needed(self.log_path, self.LOG_HEADER)
+        with open(self.log_path, 'a') as f:
+            if section_separator:
+                f.write("\n" + "-" * 60 + "\n")
+            f.write(log_line)
+            if section_separator:
+                f.write("-" * 60 + "\n\n")
+            f.flush()
+
+    def log_error(self, message, multiline_details=None, section_separator=False):
+        import datetime
+        timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        padded_level = "ERROR"
+        log_line = f"[{timestamp}] [{padded_level}] | {message}\n"
+        self._write_log_header_if_needed(self.error_log_path, self.ERR_LOG_HEADER)
+        with open(self.error_log_path, 'a') as f:
+            if section_separator:
+                f.write("\n" + "-" * 60 + "\n")
+            f.write(log_line)
+            if multiline_details:
+                for line in multiline_details.splitlines():
+                    f.write(f"    {line}\n")
+            if section_separator:
+                f.write("-" * 60 + "\n\n")
+            f.flush()
 
 if __name__ == "__main__":
     ClipboardMonitorMenuBar().run()
