@@ -2,6 +2,10 @@
 ## 🕒 Menu Bar Improvements (June 2025)
 
 - The "Recent Clipboard Items" menu is now always placed just before "View Clipboard History" for better usability.
+- **Memory Optimization for Menu Bar History**: The menu bar app's "Recent Clipboard Items" now stores only small identifiers on menu items, preventing large content strings from accumulating memory. Full content is reloaded on demand.
+- **Immediate Menu Update**: Changing the "Max History Items" preference now immediately updates the "Recent Clipboard Items" menu.
+- **Explicit Menu Item Ordering**: The main menu item order is now explicitly defined for predictable layout.
+- **Enhanced Pause/Resume Notifications**: The `toggle_monitoring` function uses dual notification methods for improved reliability.
 - The clear history feature is available in both the "Recent Clipboard Items" and "View Clipboard History" menus, with improved error handling and menu refresh.
 - Debug mode and configuration changes are now more robust and reflected in the menu.
 - Improved troubleshooting documentation for enhanced vs polling mode (see README and Monitoring Methods docs).

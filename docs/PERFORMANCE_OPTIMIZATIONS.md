@@ -104,6 +104,10 @@ def _load_module_if_needed(self, module_name, spec):
 - **Content Size Limits**: Configurable maximum size for clipboard content
 - **Reference Management**: Careful handling of large content references
 - **Garbage Collection**: Targeted garbage collection after processing large content
+- **Menu Bar Memory Optimization**: `rumps.MenuItem` objects in the menu bar's recent history display no longer hold large content strings directly. Instead, they store small identifiers, and the full content is reloaded on demand. This prevents memory accumulation from the UI.
+- **Explicit `gc.collect()`**: After updating the menu bar's recent history, `gc.collect()` is explicitly called to free up memory from old `rumps.MenuItem` objects and their associated data.
+- **User-Configurable Menu Bar History Limit**: The number of items displayed in the menu bar is now user-configurable, allowing users to balance quick access with memory usage.
+
 - **Memory Monitoring**: Tracks memory usage patterns
 
 ### Benefits

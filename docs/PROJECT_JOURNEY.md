@@ -837,6 +837,24 @@ def show_mac_notification(self, title, subtitle, message):
 - **Context-aware feedback** - Different notifications for enhanced vs. polling modes
 - **Implementation**: Created history module with JSON storage
 - **Features**:
+- **Memory Optimization for Menu Bar History**: `rumps.MenuItem` objects in the menu bar's recent history display no longer hold large content strings directly. Instead, they store small identifiers, and the full content is reloaded on demand. This prevents memory accumulation from the UI.
+- **Explicit `gc.collect()`**: After updating the menu bar's recent history, `gc.collect()` is explicitly called to free up memory from old `rumps.MenuItem` objects and their associated data.
+- **Immediate Menu Update**: When the user changes the "Max History Items" preference, the "Recent Clipboard Items" menu now updates immediately to reflect the new limit.
+- **Explicit Menu Item Ordering**: The order of menu items in the main menu is now explicitly defined, removing reliance on `insert_before` for more predictable UI layout.
+- **Enhanced Pause/Resume Notifications**: The `toggle_monitoring` function now uses both direct AppleScript notifications and `rumps.notification` for more reliable user feedback when pausing or resuming the service.
+- **Improved Debugging and Logging for Menu Updates**: The `update_recent_history_menu` function now includes debug notifications and logs, and it also cleans ANSI escape codes from log messages for cleaner output.
+- **Clear History Option in Recent Items Menu**: A "Clear History" option has been directly added to the "Recent Clipboard Items" submenu for easier access.
+
+- **Memory Optimization for Menu Bar History**: `rumps.MenuItem` objects in the menu bar's recent history display no longer hold large content strings directly. Instead, they store small identifiers, and the full content is reloaded on demand. This prevents memory accumulation from the UI.
+- **Explicit `gc.collect()`**: After updating the menu bar's recent history, `gc.collect()` is explicitly called to free up memory from old `rumps.MenuItem` objects and their associated data.
+- **Immediate Menu Update**: When the user changes the "Max History Items" preference, the "Recent Clipboard Items" menu now updates immediately to reflect the new limit.
+- **Explicit Menu Item Ordering**: The order of menu items in the main menu is now explicitly defined, removing reliance on `insert_before` for more predictable UI layout.
+- **Enhanced Pause/Resume Notifications**: The `toggle_monitoring` function now uses both direct AppleScript notifications and `rumps.notification` for more reliable user feedback when pausing or resuming the service.
+- **Improved Debugging and Logging for Menu Updates**: The `update_recent_history_menu` function now includes debug notifications and logs, and it also cleans ANSI escape codes from log messages for cleaner output.
+- **Clear History Option in Recent Items Menu**: A "Clear History" option has been directly added to the "Recent Clipboard Items" submenu for easier access.
+
+- **Memory Optimization for Menu Bar History**: `rumps.MenuItem` objects in the menu bar's recent history display no longer hold large content strings directly. Instead, they store small identifiers, and the full content is reloaded on demand. This prevents memory accumulation from the UI.
+- **Explicit `gc.collect()`**: After updating the menu bar's recent history, `gc.collect()` is explicitly called to free up memory from old `rumps.MenuItem` objects and their associated data.
   - Configurable history size and content limits
   - Content hashing for deduplication
   - Timestamp tracking for each entry

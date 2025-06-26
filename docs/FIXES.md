@@ -1,6 +1,10 @@
 # 2025-06-26: Menu Bar and History Improvements
 
 - The "Recent Clipboard Items" menu is now always placed just before "View Clipboard History" in the menu bar for improved accessibility.
+- **Memory Optimization for Menu Bar History**: The menu bar app's "Recent Clipboard Items" now stores only small identifiers on menu items, preventing large content strings from accumulating memory. Full content is reloaded on demand.
+- **Immediate Menu Update**: Changing the "Max History Items" preference now immediately updates the "Recent Clipboard Items" menu.
+- **Explicit Menu Item Ordering**: The main menu item order is now explicitly defined for predictable layout.
+- **Enhanced Pause/Resume Notifications**: The `toggle_monitoring` function uses dual notification methods for improved reliability.
 - The clear history feature is available in both the "Recent Clipboard Items" and "View Clipboard History" menus, with confirmation dialogs and error handling.
 - Debug mode and configuration changes are now more robust and reflected in the menu.
 - Troubleshooting for enhanced vs polling mode is now documented in the README and Monitoring Methods docs.
@@ -222,6 +226,22 @@ This document provides a detailed analysis of bugs identified and fixed in the c
   - Correct item selection and preview functionality
   - Reliable copy-to-clipboard and delete operations
   - Configuration-aware history file location
+
+### 16. **Memory Accumulation in Menu Bar History Display**
+- **Issue**: The `rumps.MenuItem` objects in the "Recent Clipboard Items" menu were storing full clipboard content strings, leading to memory accumulation over time, especially with large history files.
+- **Fix**:
+  - Modified `update_recent_history_menu` to store only a small `_history_identifier` (the item's hash) on each `rumps.MenuItem`.
+  - When a user clicks a history item, the full history is reloaded to retrieve the content based on the identifier.
+  - Added `gc.collect()` after menu updates to encourage garbage collection.
+- **Result**: Significantly reduced memory footprint for the menu bar application, preventing memory growth over extended periods.
+
+### 17. **Inconsistent Menu Bar Item Ordering**
+- **Issue**: The `insert_before` method was used for menu item placement, which could lead to unpredictable ordering if target items were not found or if the menu structure changed.
+- **Fix**:
+  - All menu items are now added explicitly in their desired order.
+  - The `insert_before` method has been removed.
+- **Result**: Consistent and predictable menu bar layout.
+
 
 ### 15. **Menu Bar App Syntax Error**
 - **Issue**: Syntax error in menu_bar_app.py at line 921 preventing the application from running, caused by:
