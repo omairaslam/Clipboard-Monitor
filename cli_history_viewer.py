@@ -7,8 +7,7 @@ import os
 import json
 import datetime
 import pyperclip
-import sys
-from utils import safe_expanduser
+import sysfrom utils import load_clipboard_history
 
 # ANSI color codes for terminal formatting
 class Colors:
@@ -38,20 +37,6 @@ class Colors:
     def colorize(text, color):
         """Add color to text"""
         return f"{color}{text}{Colors.RESET}"
-
-def load_history():
-    """Load clipboard history from file"""
-    history_path = safe_expanduser("~/Library/Application Support/ClipboardMonitor/clipboard_history.json")
-    
-    try:
-        if os.path.exists(history_path):
-            with open(history_path, 'r') as f:
-                return json.load(f)
-        else:
-            return []
-    except Exception as e:
-        print(f"Error loading history: {e}")
-        return []
 
 def display_history(history):
     """Display clipboard history in terminal with colors and formatting"""
@@ -207,8 +192,8 @@ def copy_item(history, item_num):
 def clear_history():
     """Clear all clipboard history with confirmation"""
     try:
-        # Load current history to show count
-        history = load_history()
+        # Load current history to show count        
+        history = load_clipboard_history()
         if not history:
             print(Colors.colorize("📭 No history to clear.", Colors.YELLOW))
             return
@@ -225,7 +210,9 @@ def clear_history():
 
         if response in ['y', 'yes']:
             # Clear the history file
-            history_path = safe_expanduser("~/Library/Application Support/ClipboardMonitor/clipboard_history.json")
+            from utils import get_config, safe_expanduser
+            history_path_str = get_config('history', 'save_location', "~/Library/Application Support/ClipboardMonitor/clipboard_history.json")
+            history_path = safe_expanduser(history_path_str)
 
             try:
                 with open(history_path, 'w') as f:
@@ -258,7 +245,7 @@ def interactive_mode():
         print(Colors.colorize(title.center(80), Colors.BOLD + Colors.WHITE + Colors.BG_BLUE))
         print(Colors.colorize("═" * 80, Colors.BLUE))
 
-        history = load_history()
+        history = load_clipboard_history()
         display_history(history)
 
         if not history:
@@ -346,8 +333,8 @@ def interactive_mode():
 def main():
     """Main function with enhanced command-line interface"""
     if len(sys.argv) > 1:
-        command = sys.argv[1].lower()
-        history = load_history()
+        command = sys.argv[1].lower()        
+        history = load_clipboard_history()
 
         if command == 'list' or command == 'ls':
             display_history(history)
@@ -359,7 +346,7 @@ def main():
                     print(Colors.colorize("\n🔄 Waiting for clipboard monitor to update...", Colors.YELLOW))
                     import time
                     time.sleep(1.5)  # Allow clipboard monitor to update
-                    updated_history = load_history()
+                    updated_history = load_clipboard_history()
 
                     # Check if the history was actually updated
                     if len(updated_history) > len(history) or (updated_history and updated_history[0] != history[0]):

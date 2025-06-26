@@ -11,23 +11,12 @@ import tempfile
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 import threading
 import time
-from utils import safe_expanduser
+from utils import load_clipboard_history
 
 def create_html_viewer():
     """Create HTML file for clipboard history"""
     
-    # Load history
-    history_path = safe_expanduser("~/Library/Application Support/ClipboardMonitor/clipboard_history.json")
-    
-    try:
-        if os.path.exists(history_path):
-            with open(history_path, 'r') as f:
-                history = json.load(f)
-        else:
-            history = []
-    except Exception as e:
-        history = []
-        print(f"Error loading history: {e}")
+    history = load_clipboard_history()
     
     # Create HTML content
     html_content = f"""

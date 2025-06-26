@@ -10,7 +10,7 @@ from tkinter import ttk, messagebox
 import datetime
 import pyperclip
 
-from utils import safe_expanduser, get_app_paths
+from utils import load_clipboard_history
 
 class ClipboardHistoryViewer:
     def __init__(self, root):
@@ -23,10 +23,6 @@ class ClipboardHistoryViewer:
         self.root.attributes('-topmost', True)
         self.root.after_idle(lambda: self.root.attributes('-topmost', False))
         self.root.focus_force()
-
-        # Set up the history file path
-        paths = get_app_paths()
-        self.history_path = paths["history_file"]
 
         # Create text widget instead of listbox (listbox has display issues)
         text_frame = tk.Frame(root)
@@ -91,16 +87,7 @@ class ClipboardHistoryViewer:
     def load_history(self):
         """Load the clipboard history from the file"""
         try:
-            # Create directory if it doesn't exist
-            os.makedirs(os.path.dirname(self.history_path), exist_ok=True)
-
-            # Load the history file if it exists
-            if os.path.exists(self.history_path):
-                with open(self.history_path, 'r') as f:
-                    self.history = json.load(f)
-            else:
-                self.history = []
-
+            self.history = load_clipboard_history()
             # Show status in window title
             self.root.title(f"Clipboard History Viewer ({len(self.history)} items)")
 
@@ -147,7 +134,7 @@ class ClipboardHistoryViewer:
             print(f"Loaded {len(self.history)} items into text widget")
 
         except Exception as e:
-            messagebox.showerror("Error", f"Failed to load history: {e}\nHistory path: {self.history_path}")
+            messagebox.showerror("Error", f"Failed to load history: {e}")
     
     def on_click(self, event):
         """Handle click on text widget"""
@@ -194,11 +181,14 @@ class ClipboardHistoryViewer:
     def save_history(self):
         """Save the history to the file"""
         try:
+            from utils import get_config, safe_expanduser
+            history_path_str = get_config('history', 'save_location', "~/Library/Application Support/ClipboardMonitor/clipboard_history.json")
+            history_path = safe_expanduser(history_path_str)
             # Create directory if it doesn't exist
-            os.makedirs(os.path.dirname(self.history_path), exist_ok=True)
+            os.makedirs(os.path.dirname(history_path), exist_ok=True)
             
             # Save the history
-            with open(self.history_path, 'w') as f:
+            with open(history_path, 'w') as f:
                 json.dump(self.history, f, indent=2)
         except Exception as e:
             messagebox.showerror("Error", f"Failed to save history: {e}")

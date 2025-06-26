@@ -350,6 +350,53 @@ def get_config(section=None, key=None, default=None):
         logging.error(f"Error loading config: {e}")
         return default
 
+def set_config_value(section, key, value):
+    """Set a configuration value in config.json"""
+    try:
+        config_path = os.path.join(os.path.dirname(__file__), 'config.json')
+
+        # Load existing config
+        if os.path.exists(config_path):
+            with open(config_path, 'r') as f:
+                config = json.load(f)
+        else:
+            config = {}
+
+        # Ensure section exists
+        if section not in config:
+            config[section] = {}
+
+        # Set the value
+        config[section][key] = value
+
+        # Save back to file
+        with open(config_path, 'w') as f:
+            json.dump(config, f, indent=2)
+
+        return True
+    except Exception as e:
+        logger.error(f"Error setting config value {section}.{key}: {e}")
+        return False
+
+def load_clipboard_history():
+    """
+    Load clipboard history from the file specified in the configuration.
+    This is the single source of truth for history loading.
+    """
+    try:
+        # Get history file path from config, with a fallback default
+        history_path_str = get_config('history', 'save_location', "~/Library/Application Support/ClipboardMonitor/clipboard_history.json")
+        history_path = safe_expanduser(history_path_str)
+
+        if os.path.exists(history_path):
+            with open(history_path, 'r') as f:
+                history = json.load(f)
+                return history
+        return []
+    except Exception as e:
+        logger.error(f"Error loading clipboard history from {history_path}: {e}")
+        return []
+
 def get_clipboard_content():
     """Get clipboard content with fallback mechanisms.
     
@@ -420,6 +467,7 @@ def get_service_status():
 __all__ = [
     'show_notification', 'validate_string_input', 'safe_subprocess_run',
     'get_home_directory', 'safe_expanduser', 'ensure_directory_exists',
-    'ContentTracker', 'get_app_paths', 'get_config', 'get_clipboard_content',
-    'update_service_status', 'get_service_status'
+    'ContentTracker', 'get_app_paths', 'get_config', 'set_config_value',
+    'load_clipboard_history', 'get_clipboard_content', 'update_service_status',
+    'get_service_status'
 ]

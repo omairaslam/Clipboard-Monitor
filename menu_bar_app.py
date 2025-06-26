@@ -8,7 +8,7 @@ import time
 import json
 import logging
 from pathlib import Path
-from utils import safe_expanduser, ensure_directory_exists
+from utils import safe_expanduser, ensure_directory_exists, get_config, set_config_value, load_clipboard_history
 
 
 
@@ -331,47 +331,6 @@ class ClipboardMonitorMenuBar(rumps.App):
             # Default to empty dict, modules will be enabled by default
             self.module_status = {}
     
-    def get_config_value(self, section, key, default=None):
-        """Get a configuration value from config.json"""
-        try:
-            config_path = os.path.join(os.path.dirname(__file__), 'config.json')
-            if os.path.exists(config_path):
-                with open(config_path, 'r') as f:
-                    config = json.load(f)
-                    if section in config and key in config[section]:
-                        return config[section][key]
-        except Exception as e:
-            print(f"Error getting config value {section}.{key}: {e}")
-        return default
-
-    def set_config_value(self, section, key, value):
-        """Set a configuration value in config.json"""
-        try:
-            config_path = os.path.join(os.path.dirname(__file__), 'config.json')
-
-            # Load existing config
-            if os.path.exists(config_path):
-                with open(config_path, 'r') as f:
-                    config = json.load(f)
-            else:
-                config = {}
-
-            # Ensure section exists
-            if section not in config:
-                config[section] = {}
-
-            # Set the value
-            config[section][key] = value
-
-            # Save back to file
-            with open(config_path, 'w') as f:
-                json.dump(config, f, indent=2)
-
-            return True
-        except Exception as e:
-            print(f"Error setting config value {section}.{key}: {e}")
-            return False
-    
     def update_status_periodically(self):
         """Update the service status every 5 seconds"""
         while True:
@@ -508,8 +467,7 @@ class ClipboardMonitorMenuBar(rumps.App):
     def toggle_debug(self, sender):
         """Toggle debug mode"""
         sender.state = not sender.state
-
-        if self.set_config_value('general', 'debug_mode', sender.state):
+        if set_config_value('general', 'debug_mode', sender.state):
             rumps.notification("Clipboard Monitor", "Debug Mode",
                               f"Debug mode is now {'enabled' if sender.state else 'disabled'}")
             self.restart_service(None)
@@ -518,7 +476,7 @@ class ClipboardMonitorMenuBar(rumps.App):
 
     def set_notification_title(self, _):
         """Set custom notification title"""
-        current_title = self.get_config_value('general', 'notification_title', 'Clipboard Monitor')
+        current_title = get_config('general', 'notification_title', 'Clipboard Monitor')
         response = rumps.Window(
             message="Enter notification title:",
             title="Set Notification Title",
@@ -529,7 +487,7 @@ class ClipboardMonitorMenuBar(rumps.App):
         ).run()
 
         if response.clicked and response.text.strip():
-            if self.set_config_value('general', 'notification_title', response.text.strip()):
+            if set_config_value('general', 'notification_title', response.text.strip()):
                 rumps.notification("Clipboard Monitor", "Notification Title",
                                   f"Notification title set to: {response.text.strip()}")
                 self.restart_service(None)
@@ -546,7 +504,7 @@ class ClipboardMonitorMenuBar(rumps.App):
         # Get the new interval value
         new_interval = self.enhanced_options[sender.title]
 
-        if self.set_config_value('general', 'enhanced_check_interval', new_interval):
+        if set_config_value('general', 'enhanced_check_interval', new_interval):
             rumps.notification("Clipboard Monitor", "Enhanced Check Interval",
                               f"Enhanced check interval set to {new_interval} seconds")
             self.restart_service(None)
@@ -566,7 +524,7 @@ class ClipboardMonitorMenuBar(rumps.App):
         }
 
         config_key = setting_map.get(sender.title)
-        if config_key and self.set_config_value('performance', config_key, sender.state):
+        if config_key and set_config_value('performance', config_key, sender.state):
             rumps.notification("Clipboard Monitor", "Performance Setting",
                               f"{sender.title} is now {'enabled' if sender.state else 'disabled'}")
             self.restart_service(None)
@@ -575,7 +533,7 @@ class ClipboardMonitorMenuBar(rumps.App):
 
     def set_max_execution_time(self, _):
         """Set maximum module execution time"""
-        current_time = self.get_config_value('performance', 'max_module_execution_time', 500)
+        current_time = get_config('performance', 'max_module_execution_time', 500)
         response = rumps.Window(
             message="Enter maximum execution time (milliseconds):",
             title="Set Max Execution Time",
@@ -589,7 +547,7 @@ class ClipboardMonitorMenuBar(rumps.App):
             try:
                 new_time = int(response.text.strip())
                 if new_time > 0:
-                    if self.set_config_value('performance', 'max_module_execution_time', new_time):
+                    if set_config_value('performance', 'max_module_execution_time', new_time):
                         rumps.notification("Clipboard Monitor", "Max Execution Time",
                                           f"Max execution time set to {new_time}ms")
                         self.restart_service(None)
@@ -610,7 +568,7 @@ class ClipboardMonitorMenuBar(rumps.App):
         # Get the new interval value
         new_interval = self.polling_options[sender.title]
 
-        if self.set_config_value('general', 'polling_interval', new_interval):
+        if set_config_value('general', 'polling_interval', new_interval):
             rumps.notification("Clipboard Monitor", "Polling Interval",
                               f"Polling interval set to {new_interval} seconds")
             self.restart_service(None)
@@ -619,7 +577,7 @@ class ClipboardMonitorMenuBar(rumps.App):
 
     def set_max_history_items(self, _):
         """Set maximum history items for both menu and storage"""
-        current_max = self.get_config_value('history', 'max_items', 20)
+        current_max = get_config('history', 'max_items', 20)
         response = rumps.Window(
             message="Enter maximum number of recent items to show in menu:",
             title="Set Max Recent Menu Items",
@@ -633,7 +591,7 @@ class ClipboardMonitorMenuBar(rumps.App):
             try:
                 new_max = int(response.text.strip())
                 if new_max > 0:
-                    if self.set_config_value('history', 'max_items', new_max):
+                    if set_config_value('history', 'max_items', new_max):
                         rumps.notification("Clipboard Monitor", "Max Recent Menu Items",
                                           f"Max recent menu items set to {new_max}")
                         self.update_recent_history_menu()
@@ -647,7 +605,7 @@ class ClipboardMonitorMenuBar(rumps.App):
 
     def set_max_content_length(self, _):
         """Set maximum content length for history"""
-        current_length = self.get_config_value('history', 'max_content_length', 10000)
+        current_length = get_config('history', 'max_content_length', 10000)
         response = rumps.Window(
             message="Enter maximum content length (characters):",
             title="Set Max Content Length",
@@ -661,7 +619,7 @@ class ClipboardMonitorMenuBar(rumps.App):
             try:
                 new_length = int(response.text.strip())
                 if new_length > 0:
-                    if self.set_config_value('history', 'max_content_length', new_length):
+                    if set_config_value('history', 'max_content_length', new_length):
                         rumps.notification("Clipboard Monitor", "Max Content Length",
                                           f"Max content length set to {new_length} characters")
                         self.restart_service(None)
@@ -674,7 +632,7 @@ class ClipboardMonitorMenuBar(rumps.App):
 
     def set_history_location(self, _):
         """Set history file location"""
-        current_location = self.get_config_value('history', 'save_location',
+        current_location = get_config('history', 'save_location',
                                                  "~/Library/Application Support/ClipboardMonitor/clipboard_history.json")
         response = rumps.Window(
             message="Enter history file location:",
@@ -686,7 +644,7 @@ class ClipboardMonitorMenuBar(rumps.App):
         ).run()
 
         if response.clicked and response.text.strip():
-            if self.set_config_value('history', 'save_location', response.text.strip()):
+            if set_config_value('history', 'save_location', response.text.strip()):
                 rumps.notification("Clipboard Monitor", "History Location",
                                   f"History location set to: {response.text.strip()}")
                 self.restart_service(None)
@@ -703,7 +661,7 @@ class ClipboardMonitorMenuBar(rumps.App):
         }
 
         config_key = setting_map.get(sender.title)
-        if config_key and self.set_config_value('security', config_key, sender.state):
+        if config_key and set_config_value('security', config_key, sender.state):
             rumps.notification("Clipboard Monitor", "Security Setting",
                               f"{sender.title} is now {'enabled' if sender.state else 'disabled'}")
             self.restart_service(None)
@@ -712,7 +670,7 @@ class ClipboardMonitorMenuBar(rumps.App):
 
     def set_max_clipboard_size(self, _):
         """Set maximum clipboard size"""
-        current_size = self.get_config_value('security', 'max_clipboard_size', 10485760)
+        current_size = get_config('security', 'max_clipboard_size', 10485760)
         # Convert to MB for user-friendly display
         current_mb = current_size / (1024 * 1024)
         response = rumps.Window(
@@ -729,7 +687,7 @@ class ClipboardMonitorMenuBar(rumps.App):
                 new_mb = float(response.text.strip())
                 if new_mb > 0:
                     new_bytes = int(new_mb * 1024 * 1024)
-                    if self.set_config_value('security', 'max_clipboard_size', new_bytes):
+                    if set_config_value('security', 'max_clipboard_size', new_bytes):
                         rumps.notification("Clipboard Monitor", "Max Clipboard Size",
                                           f"Max clipboard size set to {new_mb} MB")
                         self.restart_service(None)
@@ -888,7 +846,7 @@ class ClipboardMonitorMenuBar(rumps.App):
         }
 
         config_key = setting_map.get(sender.title)
-        if config_key and self.set_config_value('modules', config_key, sender.state):
+        if config_key and set_config_value('modules', config_key, sender.state):
             status = "enabled" if sender.state else "disabled"
             rumps.notification("Clipboard Monitor", "Clipboard Modification",
                               f"{sender.title} is now {status}")
@@ -1000,12 +958,12 @@ read -n 1
     def update_recent_history_menu(self):
         """Update the recent history menu, limiting items and clearing references."""
         import gc
-        import traceback
-        max_items = self.get_config_value('history', 'max_items', 20)
-        debug_mode = self.get_config_value('general', 'debug_mode', False)
+        import traceback        
+        max_items = get_config('history', 'max_items', 20)
+        debug_mode = get_config('general', 'debug_mode', False)
         try:
             max_items = int(max_items)
-        except Exception:
+        except (ValueError, TypeError):
             max_items = 20
         try:
             # Clear the existing menu items instead of recreating the menu
@@ -1069,21 +1027,6 @@ read -n 1
             placeholder.set_callback(None)
             self.recent_history_menu.add(placeholder)
             gc.collect()
-
-    def load_clipboard_history(self):
-        """Load clipboard history from file"""
-        try:
-            # Get history file path - use direct path since config loading is complex
-            history_path = safe_expanduser("~/Library/Application Support/ClipboardMonitor/clipboard_history.json")
-
-            if os.path.exists(history_path):
-                with open(history_path, 'r') as f:
-                    history = json.load(f)
-                    return history
-            else:
-                return []
-        except Exception as e:
-            return []
 
     def copy_history_item(self, sender):
         """Copy a history item to clipboard by identifier"""
