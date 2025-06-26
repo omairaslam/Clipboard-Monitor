@@ -4,7 +4,7 @@
         {
             "label": "Tail Main Service Output Log",
             "type": "shell",
-            "command": "tail -f '/Users/omair.aslam/Library/Application Support/ClipboardMonitor/clipboard_monitor.out.log'",
+            "command": "tail -f '/Users/omair.aslam/Library/Logs/ClipboardMonitor.out.log'",
             "group": "none",
             "presentation": {
                 "reveal": "always",
@@ -15,7 +15,7 @@
         {
             "label": "Tail Main Service Error Log",
             "type": "shell",
-            "command": "tail -f '/Users/omair.aslam/Library/Application Support/ClipboardMonitor/clipboard_monitor.err.log'",
+            "command": "tail -f '/Users/omair.aslam/Library/Logs/ClipboardMonitor.err.log'",
             "group": "none",
             "presentation": {
                 "reveal": "always",
@@ -48,7 +48,7 @@
         {
             "label": "Clear All Logs",
             "type": "shell",
-            "command": "truncate -s 0 '/Users/omair.aslam/Library/Application Support/ClipboardMonitor/clipboard_monitor.out.log' && truncate -s 0 '/Users/omair.aslam/Library/Application Support/ClipboardMonitor/clipboard_monitor.err.log'",
+            "command": "truncate -s 0 '/Users/omair.aslam/Library/Logs/ClipboardMonitor.out.log' && truncate -s 0 '/Users/omair.aslam/Library/Logs/ClipboardMonitor.err.log'",
             "group": "none",
             "presentation": {
                 "reveal": "always",
