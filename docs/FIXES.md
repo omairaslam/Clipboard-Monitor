@@ -358,6 +358,13 @@ This document provides a detailed analysis of bugs identified and fixed in the c
   - Created configuration documentation
   - Added configuration backup before modifications
 
+---
+
+## Unified Log File Paths (June 2025)
+- All logs are now written to `~/Library/Logs/ClipboardMonitor.out.log` and `~/Library/Logs/ClipboardMonitor.err.log`.
+- The previous log locations in `Application Support/ClipboardMonitor/` are no longer used.
+- This change ensures consistency between the Python application and LaunchAgent configuration.
+
 ## New Features Added
 
 ### Configuration System

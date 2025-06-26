@@ -881,6 +881,24 @@ For information about module configuration and enable/disable functionality, see
 - **All configuration options**: Every option in `config.json` is now settable from the Preferences menu in the menu bar app.
 - **No logging for update_recent_history_menu**: All logging related to this function has been removed as per user request.
 
+## 📝 Logging
+
+- **All logs are now written to:**
+  - `~/Library/Logs/ClipboardMonitor.out.log` (output/info)
+  - `~/Library/Logs/ClipboardMonitor.err.log` (errors/warnings)
+- **Log format:** Plain text, with timestamps, padded log levels, section separators, and multi-line support. No color or Rich formatting is used.
+- **Log file locations are unified** and match the LaunchAgent plist configuration. The config file does not control log file paths.
+
+**To view logs:**
+```bash
+tail -f ~/Library/Logs/ClipboardMonitor.out.log
+```
+
+**To clear logs:**
+```bash
+truncate -s 0 ~/Library/Logs/ClipboardMonitor.out.log ~/Library/Logs/ClipboardMonitor.err.log
+```
+
 ## 📄 License
 
 <div align="center">

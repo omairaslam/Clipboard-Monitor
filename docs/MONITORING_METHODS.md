@@ -128,3 +128,10 @@ If the application is falling back to polling mode when you expect enhanced mode
    - Restart the Clipboard Monitor service.
 
 > This step resolves cases where macOS security prevents enhanced clipboard monitoring even when all dependencies are installed.
+
+---
+
+## 📝 Logging for Monitoring
+- All monitoring logs are written to `~/Library/Logs/ClipboardMonitor.out.log` and `~/Library/Logs/ClipboardMonitor.err.log`.
+- Log format is plain text, with timestamps, padded log levels, and section separators. No color or Rich formatting is used.
+- Log file locations are unified and match the LaunchAgent plist.

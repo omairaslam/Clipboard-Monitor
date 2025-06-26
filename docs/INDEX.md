@@ -112,3 +112,10 @@ For the most current information, always refer to the **[Latest Updates](LATEST_
 - [Menu Bar Recent History Limit is Now User-Configurable](readme.md#menu-bar-recent-history-limit-is-now-user-configurable)
 
 - **Logging Format Update**: See README and LATEST_UPDATES for details on the new plain text logging format, enhanced log readability, and config menu improvements (June 2025).
+
+---
+
+## 🗂️ Log File Locations
+- All logs are now written to `~/Library/Logs/ClipboardMonitor.out.log` and `~/Library/Logs/ClipboardMonitor.err.log`.
+- Log file locations are unified for all components and match the LaunchAgent plist.
+- Log format is plain text, with timestamps and padded log levels.

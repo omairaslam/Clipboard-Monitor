@@ -1,3 +1,13 @@
+# Latest Updates - Clipboard Monitor (2025-06-27)
+
+## 🗂️ Unified Logging System (June 2025)
+- All logs (output and error) are now written to:
+  - `~/Library/Logs/ClipboardMonitor.out.log`
+  - `~/Library/Logs/ClipboardMonitor.err.log`
+- Log file locations are unified for both the main service and menu bar app, matching the LaunchAgent plist.
+- Log format is plain text, with timestamps, padded log levels, section separators, and multi-line support. No color or Rich formatting is used.
+- All documentation and VS Code tasks have been updated to reflect these changes.
+
 # Latest Updates - Clipboard Monitor (2025-06-26)
 ## 🕒 Menu Bar Improvements (June 2025)
 
@@ -575,14 +585,6 @@ validate_string_input(value, name)       # Comprehensive input validation
 - **Input Validation**: User-friendly dialogs with comprehensive validation
 - **Export/Import**: Save and load configuration profiles
 - **Reset Options**: One-click restoration to default settings
-
-## 📝 Logging Overhaul & Configuration Improvements (June 2025)
-
-- **Rich and all colorized/ANSI logging removed**. All logs are now plain text with timestamps and log levels.
-- **Enhanced log format**: Logs now feature padded log levels, section separators, and multi-line support for improved readability.
-- **All logging uses log_event/log_error**: Ensures consistent formatting and separation of output and error logs.
-- **All config options settable from Preferences**: Every option in `config.json` can now be changed from the menu bar Preferences menu.
-- **No logging for update_recent_history_menu**: All logging related to this function has been removed for clarity and performance.
 
 ---
 
