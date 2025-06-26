@@ -164,6 +164,12 @@ except ImportError:
     logger.warning("For enhanced monitoring on macOS, install it: pip install pyobjc-framework-Cocoa")
     MACOS_ENHANCED = False
 
+try:
+    from AppKit import NSApplication, NSApplicationActivationPolicyProhibited
+    NSApplication.sharedApplication().setActivationPolicy_(NSApplicationActivationPolicyProhibited)
+except Exception:
+    pass
+
 
 
 class ClipboardMonitor:

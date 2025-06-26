@@ -15,29 +15,34 @@ import pyperclip
 
 logger = logging.getLogger("utils")
 
-def setup_logging(log_path, error_log_path, debug_mode=False):
-    """Set up logging configuration with separate handlers for output and error logs."""
-    level = logging.DEBUG if debug_mode else logging.INFO
-    formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+def setup_logging(out_log_path=None, err_log_path=None):
+    """Set up logging to unified log files (matches plist)."""
+    import logging
+    import sys
+    # Use unified log paths if not provided
+    paths = get_app_paths()
+    out_log = out_log_path or paths["out_log"]
+    err_log = err_log_path or paths["err_log"]
 
-    # Output log: INFO and below
-    file_handler_out = logging.FileHandler(log_path, encoding='utf-8', mode='a')
-    file_handler_out.setFormatter(formatter)
-    file_handler_out.setLevel(logging.DEBUG if debug_mode else logging.INFO)
-    file_handler_out.addFilter(lambda record: record.levelno < logging.WARNING)
+    # Remove all handlers
+    for handler in logging.root.handlers[:]:
+        logging.root.removeHandler(handler)
 
-    # Error log: WARNING and above
-    file_handler_err = logging.FileHandler(error_log_path, encoding='utf-8', mode='a')
-    file_handler_err.setFormatter(formatter)
-    file_handler_err.setLevel(logging.WARNING)
-
-    # Remove all handlers from root logger first (prevents duplicate logs)
-    root_logger = logging.getLogger()
-    for handler in root_logger.handlers[:]:
-        root_logger.removeHandler(handler)
-    root_logger.setLevel(level)
-    root_logger.addHandler(file_handler_out)
-    root_logger.addHandler(file_handler_err)
+    # Set up root logger
+    logging.basicConfig(
+        level=logging.INFO,
+        format='[%(asctime)s] [%(levelname)-5s] | %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S',
+        handlers=[
+            logging.FileHandler(out_log, mode='a'),
+            logging.StreamHandler(sys.stdout)
+        ]
+    )
+    # Set up error logger
+    error_logger = logging.getLogger("error")
+    error_handler = logging.FileHandler(err_log, mode='a')
+    error_handler.setLevel(logging.WARNING)
+    error_logger.addHandler(error_handler)
 
 def show_notification(title, message):
     """
@@ -335,14 +340,18 @@ class ContentTracker:
             self.content_sizes.clear()
 
 def get_app_paths():
-    """Return standardized application paths"""
+    """Return a dict of important app paths, unified with plist log locations."""
+    # Use the same log paths as in the LaunchAgent plist
+    log_dir = os.path.expanduser("~/Library/Logs")
+    out_log = os.path.join(log_dir, "ClipboardMonitor.out.log")
+    err_log = os.path.join(log_dir, "ClipboardMonitor.err.log")
     base_dir = safe_expanduser("~/Library/Application Support/ClipboardMonitor")
     return {
         "base_dir": base_dir,
         "history_file": os.path.join(base_dir, "clipboard_history.json"),
-        "out_log": os.path.join(base_dir, "clipboard_monitor.out.log"),
+        "out_log": out_log,
         "pause_flag": os.path.join(base_dir, "pause_flag"),
-        "err_log": os.path.join(base_dir, "clipboard_monitor.err.log"),
+        "err_log": err_log,
         "status_file": os.path.join(base_dir, "status.txt")
     }
 

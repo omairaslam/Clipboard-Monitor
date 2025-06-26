@@ -2,41 +2,55 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+    <!-- Unique identifier for your LaunchAgent -->
     <key>Label</key>
-    <string>com.omairaslam.clipboardmonitor</string> <!-- A unique identifier for your agent -->
+    <string>com.omairaslam.clipboardmonitor</string> 
 
+    <!-- The command and arguments to run (Python interpreter and your script) -->
     <key>ProgramArguments</key>
     <array>
-        <!-- IMPORTANT: Replace this with the full path to YOUR Python 3 interpreter -->
+        <!-- Full path to Python 3 interpreter -->
         <string>/usr/bin/python3</string> 
-        <string>/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/main.py</string> <!-- Full path to your main.py script -->
+        <!-- Full path to your main.py script -->
+        <string>/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/main.py</string>
     </array>
 
+    <!-- Start the agent automatically when loaded (e.g., at user login) -->
     <key>RunAtLoad</key>
-    <true/> <!-- Start the agent automatically when it's loaded (e.g., at user login) -->
+    <true/>
 
+    <!-- Relaunch the script if it crashes or exits -->
     <key>KeepAlive</key>
-    <true/> <!-- If the script crashes or exits, launchd will try to restart it -->
+    <true/>
 
+    <!-- (Has no effect for Python scripts, only for app bundles) -->
+    <key>LSBackgroundOnly</key>
+    <true/>
+
+    <!-- Log file for standard output -->
     <key>StandardOutPath</key>
-    <string>/Users/omair.aslam/Library/Logs/ClipboardMonitor.out.log</string> <!-- Log file for standard output -->
+    <string>/Users/omair.aslam/Library/Logs/ClipboardMonitor.out.log</string>
 
+    <!-- Log file for standard error -->
     <key>StandardErrorPath</key>
-    <string>/Users/omair.aslam/Library/Logs/ClipboardMonitor.err.log</string> <!-- Log file for standard error -->
+    <string>/Users/omair.aslam/Library/Logs/ClipboardMonitor.err.log</string>
 
+    <!-- Working directory for your script (helps with relative paths) -->
     <key>WorkingDirectory</key>
-    <!-- Sets the working directory to where your main.py script is located.
-         This helps with relative paths, like loading modules from the 'modules' subdirectory. -->
     <string>/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/</string>
 
+    <!-- Environment variables for the script -->
     <key>EnvironmentVariables</key>
     <dict>
+        <!-- Ensures Python output is written to logs immediately -->
         <key>PYTHONUNBUFFERED</key>
-        <string>1</string> <!-- Ensures Python output is written to logs immediately -->
+        <string>1</string>
+        <!-- Set PATH for subprocesses -->
         <key>PATH</key>
         <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+        <!-- Explicitly set HOME to prevent tilde expansion issues -->
         <key>HOME</key>
-        <string>/Users/omair.aslam</string> <!-- Explicitly set HOME to prevent tilde expansion issues -->
+        <string>/Users/omair.aslam</string>
     </dict>
 
 </dict>
