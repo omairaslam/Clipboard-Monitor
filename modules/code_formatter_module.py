@@ -8,26 +8,14 @@ import os
 import json
 
 # Add parent directory to path to import utils
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from utils import show_notification, validate_string_input, ContentTracker
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__)))) # For utils
+from utils import show_notification, validate_string_input, ContentTracker, get_config
 
 logger = logging.getLogger("code_formatter_module")
 
 # Global content tracker to prevent processing loops
 _content_tracker = ContentTracker(max_history=5)
 _processing_lock = threading.Lock()
-
-def load_module_config():
-    """Load module configuration from config.json"""
-    try:
-        config_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'config.json')
-        if os.path.exists(config_path):
-            with open(config_path, 'r') as f:
-                config = json.load(f)
-                return config.get('modules', {})
-    except Exception as e:
-        logger.error(f"Error loading module config: {e}")
-    return {}
 
 def is_code(text):
     """Detect if text is likely code"""
@@ -75,7 +63,7 @@ def format_code(code_text):
     
     return code_text  # Return original if no formatter matched
 
-def process(clipboard_content) -> bool:
+def process(clipboard_content, module_config=None) -> bool:
     """Process clipboard content if it appears to be code"""
     # Prevent concurrent processing and loops
     with _processing_lock:
@@ -89,11 +77,11 @@ def process(clipboard_content) -> bool:
             return False
 
         if is_code(clipboard_content):
-            logger.info("[cyan]Code detected![/cyan]")
+            logger.info("Code detected!")
 
             # Check if clipboard modification is enabled for this module
-            module_config = load_module_config()
-            modify_clipboard = module_config.get('code_formatter_modify_clipboard', False)  # Default to read-only for safety
+            # Use module_config passed from main, or load if not provided (for standalone testing)
+            modify_clipboard = (module_config or get_config('modules')).get('code_formatter_modify_clipboard', False)
 
             # Track this content to prevent reprocessing
             _content_tracker.add_content(clipboard_content)
@@ -102,18 +90,18 @@ def process(clipboard_content) -> bool:
                 # Only format and modify clipboard if explicitly enabled
                 show_notification("Code Detected", "Formatting code...")
                 formatted_code = format_code(clipboard_content)
-                if formatted_code != clipboard_content:
+                if formatted_code != clipboard_content: # Use centralized notification
                     try:
                         # Copy formatted code back to clipboard
                         pyperclip.copy(formatted_code)
 
-                        logger.info("[green]Code formatted and copied to clipboard![/green]")
-                        show_notification("Code Formatted", "Formatted code copied to clipboard!")
+                        logger.info("Code formatted and copied to clipboard!")
+                        show_notification("Code Formatted", "Formatted code copied to clipboard!", "")
                         return True
                     except Exception as e:
-                        logger.error(f"[bold red]Error copying formatted code:[/bold red] {e}")
+                        logger.error(f"Error copying formatted code: {e}")
                 else:
-                    logger.info("[yellow]Code already properly formatted[/yellow]")
+                    logger.info("Code already properly formatted")
             else:
                 # Read-only mode: just notify about code detection
                 show_notification("Code Detected", "Code detected (read-only mode)")

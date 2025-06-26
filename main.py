@@ -1,6 +1,6 @@
 import os
 import importlib
-import importlib.util
+import importlib.util # For module loading
 import logging
 import time
 import pyperclip # Cross-platform clipboard library
@@ -8,7 +8,7 @@ import threading
 from utils import show_notification, safe_expanduser
 import json
 import subprocess
-import re
+import re # For regex in _get_system_idle_time
 import tracemalloc
 
 
@@ -248,8 +248,9 @@ class ClipboardMonitor:
             
             # Process with loaded modules
             for module in self.modules:
-                try:
-                    if module.process(clipboard_content):
+                try: # Pass the relevant module config to the module's process function
+                    module_specific_config = self._load_module_config().get(module.__name__, {})
+                    if module.process(clipboard_content, module_specific_config):
                         processed = True
                         logger.info(f"Processed with module: {getattr(module, '__name__', 'unknown')}")
 
@@ -258,13 +259,13 @@ class ClipboardMonitor:
                             import time
                             time.sleep(0.1)  # Small delay to let clipboard settle
                             new_clipboard_content = self._get_clipboard_content()
-
+                            
                             # If content changed, process the new content with remaining modules
                             if new_clipboard_content and new_clipboard_content != clipboard_content:
                                 logger.info("Clipboard content changed after module processing, processing new content")
 
                                 # Process new content with remaining modules (excluding the one that just processed)
-                                remaining_modules = [m for m in self.modules if m != module]
+                                remaining_modules = [m for m in self.modules if m != module and m.__name__ != 'history_module'] # Exclude history module from re-processing loop
                                 for remaining_module in remaining_modules:
                                     try:
                                         remaining_module.process(new_clipboard_content)
@@ -273,7 +274,13 @@ class ClipboardMonitor:
 
                                 # Update our tracking to the new content
                                 clipboard_content = new_clipboard_content
-                                self.last_processed_hash = self._get_content_hash(new_clipboard_content)
+                                self.last_processed_hash = self._get_content_hash(new_clipboard_content) # Update hash for next check
+
+                                # Ensure the new content is added to history if history module is enabled
+                                if 'history_module' in self.modules: # Check if history module is loaded
+                                    history_module = next((m for m in self.modules if getattr(m, '__name__', '') == 'history_module'), None)
+                                    if history_module:
+                                        history_module.add_to_history(new_clipboard_content) # Directly add to history
 
                         except Exception as e:
                             logger.error(f"Error checking for clipboard changes after processing: {e}")

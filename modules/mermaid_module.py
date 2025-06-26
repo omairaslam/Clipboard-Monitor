@@ -3,24 +3,11 @@ import webbrowser
 import base64
 import json
 import re
-import logging
+import logging # For logging
+from utils import show_notification # For centralized notifications
 
-# Constants
-MERMAID_PLAYGROUND_BASE = "https://mermaid.live/edit#"
-
-logger = logging.getLogger("mermaid_module")
-
-def show_notification(title, message):
-    """Show a notification using AppleScript (macOS)"""
-    try:
-        logger.debug(f"Attempting to show notification: {title} - {message}")
-        subprocess.run([
-            "osascript", "-e",
-            f'display notification "{message}" with title "{title}"'
-        ])
-        logger.debug("Notification shown successfully.")
-    except Exception as e:
-        logger.error(f"[bold red]Notification error:[/bold red] {str(e)}")
+MERMAID_PLAYGROUND_BASE = "https://mermaid.live/edit#" # Constants
+logger = logging.getLogger("mermaid_module") # Logger
 
 def is_mermaid_code(text):
     """Check if text contains Mermaid diagram code using regex patterns"""
@@ -92,14 +79,13 @@ def launch_mermaid_chart(mermaid_code):
         if url:
             logger.info("[green]Opening Mermaid diagram in browser...[/green]")
             webbrowser.open_new(url)
-            show_notification(
-                "Mermaid Chart", 
-                "Opening diagram in Mermaid Live Editor..."
+            show_notification("Mermaid Chart", "Opening diagram in Mermaid Live Editor...",
+                              "") # Subtitle and message are empty for now
             )
             return True
         return False
     except Exception as e:
-        logger.error(f"[bold red]Error launching chart:[/bold red] {str(e)}")
+        logger.error(f"Error launching chart: {str(e)}")
         return False
 
 def process(clipboard_content):
@@ -110,10 +96,8 @@ def process(clipboard_content):
         return False
         
     try:
-        if is_mermaid_code(clipboard_content):
-            logger.info("[cyan]Mermaid diagram detected![/cyan]")
-            show_notification(
-                "Mermaid Detected",
+        if is_mermaid_code(clipboard_content): # Use centralized notification
+            show_notification("Mermaid Detected", "",
                 "Processing Mermaid diagram..."
             )
             
@@ -123,8 +107,8 @@ def process(clipboard_content):
             # Launch mermaid chart but return False since clipboard isn't modified
             launch_mermaid_chart(sanitized_content)
             return False  # Changed from True to False as clipboard isn't modified
-    except Exception as e:
-        logger.error(f"[bold red]Error processing clipboard:[/bold red] {str(e)}")
+    except Exception as e: # Log error
+        logger.error(f"Error processing clipboard: {str(e)}")
         
     return False
 
@@ -169,8 +153,8 @@ def sanitize_mermaid_content(mermaid_code):
         logger.debug(f"Original Mermaid content: {mermaid_code}")
         logger.debug(f"Sanitized Mermaid content: {sanitized_code}")
         return sanitized_code
-    except Exception as e:
-        logger.error(f"[bold red]Error sanitizing Mermaid content:[/bold red] {str(e)}")
+    except Exception as e: # Log error
+        logger.error(f"Error sanitizing Mermaid content: {str(e)}")
         # Return original content if sanitization fails
         return mermaid_code
 

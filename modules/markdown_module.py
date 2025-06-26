@@ -9,8 +9,8 @@ import os
 import json
 
 # Add parent directory to path to import utils
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from utils import show_notification, validate_string_input, ContentTracker
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__)))) # For utils
+from utils import show_notification, validate_string_input, ContentTracker, get_config
 
 logger = logging.getLogger("markdown_module")
 
@@ -18,19 +18,7 @@ logger = logging.getLogger("markdown_module")
 _content_tracker = ContentTracker(max_history=5)
 _processing_lock = threading.Lock()
 
-def load_module_config():
-    """Load module configuration from config.json"""
-    try:
-        config_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'config.json')
-        if os.path.exists(config_path):
-            with open(config_path, 'r') as f:
-                config = json.load(f)
-                return config.get('modules', {})
-    except Exception as e:
-        logger.error(f"Error loading module config: {e}")
-    return {}
-
-def process(clipboard_content) -> bool:
+def process(clipboard_content, module_config=None) -> bool:
     """Process clipboard content as markdown and convert to RTF if it appears to be markdown"""
 
     # Prevent concurrent processing and loops
@@ -45,11 +33,11 @@ def process(clipboard_content) -> bool:
             return False
 
         if is_markdown(clipboard_content):
-            logger.info("[cyan]Markdown detected![/cyan]")
+            logger.info("Markdown detected!")
 
             # Check if clipboard modification is enabled for markdown
-            module_config = load_module_config()
-            modify_clipboard = module_config.get('markdown_modify_clipboard', True)  # Default to True for markdown
+            # Use module_config passed from main, or load if not provided (for standalone testing)
+            modify_clipboard = (module_config or get_config('modules')).get('markdown_modify_clipboard', True)
 
             if modify_clipboard:
                 logger.info("[cyan]Converting markdown to RTF...[/cyan]")
@@ -74,23 +62,10 @@ def process(clipboard_content) -> bool:
                             logger.info("[green]SUCCESS: Used pbcopy for RTF clipboard handling[/green]")
                             logger.info("[green]Converted to RTF and copied to clipboard![/green]")
                             show_notification("Markdown Converted", "Rich text copied to clipboard!")
+                            
+                            # Indicate that clipboard was modified. Main app will handle history.
+                            return True 
 
-                            # Manually add RTF content to history since clipboard monitoring might not detect RTF-only content
-                            try:
-                                import importlib.util
-                                import os
-                                history_module_path = os.path.join(os.path.dirname(__file__), 'history_module.py')
-                                spec = importlib.util.spec_from_file_location("history_module", history_module_path)
-                                history_module = importlib.util.module_from_spec(spec)
-                                spec.loader.exec_module(history_module)
-
-                                logger.info("[cyan]Manually adding RTF content to history...[/cyan]")
-                                history_module.add_to_history(rtf_text)
-                                logger.info("[green]RTF content added to history successfully![/green]")
-                            except Exception as history_error:
-                                logger.error(f"[yellow]Failed to add RTF content to history: {history_error}[/yellow]")
-
-                            return True  # Indicate that content was processed
                         except subprocess.SubprocessError as e:
                             logger.error(f"[bold red]Error using pbcopy for RTF:[/bold red] {e}")
                             # Fall back to pyperclip if pbcopy fails
@@ -98,20 +73,8 @@ def process(clipboard_content) -> bool:
                             pyperclip.copy(rtf_text)
                             logger.info("[yellow]Used pyperclip fallback for RTF copy[/yellow]")
 
-                            # Manually add RTF content to history for fallback method too
-                            try:
-                                import importlib.util
-                                import os
-                                history_module_path = os.path.join(os.path.dirname(__file__), 'history_module.py')
-                                spec = importlib.util.spec_from_file_location("history_module", history_module_path)
-                                history_module = importlib.util.module_from_spec(spec)
-                                spec.loader.exec_module(history_module)
-
-                                logger.info("[cyan]Manually adding RTF content to history (fallback)...[/cyan]")
-                                history_module.add_to_history(rtf_text)
-                                logger.info("[green]RTF content added to history successfully (fallback)![/green]")
-                            except Exception as history_error:
-                                logger.error(f"[yellow]Failed to add RTF content to history (fallback): {history_error}[/yellow]")
+                            # Indicate that clipboard was modified. Main app will handle history.
+                            return True
 
                             return True
 

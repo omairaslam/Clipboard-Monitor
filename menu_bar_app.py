@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import rumps
 import subprocess
+import threading
 import os
 import webbrowser
 import threading
@@ -16,66 +17,15 @@ from utils import safe_expanduser, ensure_directory_exists, get_config, set_conf
 class ClipboardMonitorMenuBar(rumps.App):
     def __init__(self):
         # Use a simple title with an emoji that works in the menu bar
-        super(ClipboardMonitorMenuBar, self).__init__("📋", quit_button=None)
-
-
+        super().__init__("📋", quit_button=None)
 
         # Configuration
         self.home_dir = str(Path.home())
         self.plist_path = f"{self.home_dir}/Library/LaunchAgents/com.omairaslam.clipboardmonitor.plist"
         self.log_path = f"{self.home_dir}/Library/Logs/ClipboardMonitor.out.log"
         self.error_log_path = f"{self.home_dir}/Library/Logs/ClipboardMonitor.err.log"
-        
-        # Create menu items
-        self.status_item = rumps.MenuItem("Status: Checking...")
-        
-        # Create pause/resume toggle
-        self.pause_toggle = rumps.MenuItem("Pause Monitoring")
-        self.pause_toggle.set_callback(self.toggle_monitoring)
-        
-        # Create service control submenu
-        self.start_item = rumps.MenuItem("Start Service")
-        self.start_item.set_callback(self.start_service)
-        
-        self.stop_item = rumps.MenuItem("Stop Service")
-        self.stop_item.set_callback(self.stop_service)
-        
-        self.restart_item = rumps.MenuItem("Restart Service")
-        self.restart_item.set_callback(self.restart_service)
-        
-        # Create logs submenu
-        self.output_log_item = rumps.MenuItem("View Output Log")
-        self.output_log_item.set_callback(self.view_output_log)
-        
-        self.error_log_item = rumps.MenuItem("View Error Log")
-        self.error_log_item.set_callback(self.view_error_log)
-        
-        self.clear_logs_item = rumps.MenuItem("Clear Logs")
-        self.clear_logs_item.set_callback(self.clear_logs)
-        
-        # Create quit item
-        self.quit_item = rumps.MenuItem("Quit")
-        self.quit_item.set_callback(self.quit_app)
-        
-        # Create service control submenu
-        service_control = rumps.MenuItem("Service Control")
-        service_control.add(self.start_item)
-        service_control.add(self.stop_item)
-        service_control.add(self.restart_item)
-        
-        # Create logs submenu
-        logs_menu = rumps.MenuItem("Logs")
-        logs_menu.add(self.output_log_item)
-        logs_menu.add(self.error_log_item)
-        logs_menu.add(self.clear_logs_item)
-        
-        # Add module management submenu
-        self.module_menu = rumps.MenuItem("Modules")
         self.module_status = {}
-        
-        # Load module configuration
         self.load_module_config()
-        
         # Map of module filenames to friendly display names
         self.module_display_names = {
             "markdown_module": "Markdown Processor",
@@ -83,96 +33,12 @@ class ClipboardMonitorMenuBar(rumps.App):
             "history_module": "Clipboard History Tracker",
             "code_formatter_module": "Code Formatter"
         }
-        
-        # Dynamically load and add modules to the menu
-        modules_dir = os.path.join(os.path.dirname(__file__), 'modules')
-        if os.path.exists(modules_dir):
-            for filename in os.listdir(modules_dir):
-                if filename.endswith('_module.py'):
-                    module_name = filename[:-3]  # Remove .py
-                    # Use friendly name if available, otherwise use module_name
-                    display_name = self.module_display_names.get(module_name, module_name)
-                    module_item = rumps.MenuItem(display_name)
-                    # Set state based on config or default to enabled
-                    # Convert config value to boolean (0 or False = disabled, anything else = enabled)
-                    config_value = self.module_status.get(module_name, True)
-                    module_item.state = config_value not in [0, False]
-                    # Store the actual module name as an attribute for callback reference
-                    module_item._module_name = module_name
-                    module_item.set_callback(self.toggle_module)
-                    self.module_menu.add(module_item)
-                    # Ensure it's in the status dict
-                    if module_name not in self.module_status:
-                        self.module_status[module_name] = True
-        
-        # Add history viewer submenu
-        self.history_menu = rumps.MenuItem("View Clipboard History")
-
-        # Web viewer option
-        web_viewer_item = rumps.MenuItem("Open in Browser")
-        web_viewer_item.set_callback(self.open_web_history_viewer)
-        self.history_menu.add(web_viewer_item)
-
-        # CLI viewer option
-        cli_viewer_item = rumps.MenuItem("Open in Terminal")
-        cli_viewer_item.set_callback(self.open_cli_history_viewer)
-        self.history_menu.add(cli_viewer_item)
-
-        # Add separator
-        self.history_menu.add(rumps.separator)
-
-        # Clear history option
-        clear_history_item = rumps.MenuItem("🗑️ Clear History")
-        clear_history_item.set_callback(self.clear_clipboard_history)
-        self.history_menu.add(clear_history_item)
-
-        # Create recent history submenu
-        self.recent_history_menu = rumps.MenuItem("Recent Clipboard Items")
-        # Initialize with a loading message
-        loading_item = rumps.MenuItem("🔄 Loading history...")
-        loading_item.set_callback(None)
-        self.recent_history_menu.add(loading_item)
-
-        # Schedule history menu update on main thread after initialization
-        rumps.Timer(self.initial_history_update, 3).start()
-
-        # Add preferences submenu
-        self.prefs_menu = rumps.MenuItem("Preferences")
-
-        # Add general settings
-        general_menu = rumps.MenuItem("General Settings")
-
-        # Add debug mode toggle
-        self.debug_mode = rumps.MenuItem("Debug Mode")
-        self.debug_mode.state = self.get_config_value('general', 'debug_mode', False)
-        self.debug_mode.set_callback(self.toggle_debug)
-        general_menu.add(self.debug_mode)
-
-        # Add notification title setting
-        notification_item = rumps.MenuItem("Set Notification Title...")
-        notification_item.set_callback(self.set_notification_title)
-        general_menu.add(notification_item)
-
-        # Add polling interval options
-        polling_menu = rumps.MenuItem("Polling Interval")
         self.polling_options = {
             "0.5s (Faster)": 0.5,
             "1.0s (Default)": 1.0,
             "2.0s (Battery Saving)": 2.0,
             "5.0s (Power Saving)": 5.0
         }
-
-        self.current_polling = self.get_config_value('general', 'polling_interval', 1.0)
-        for name, value in self.polling_options.items():
-            item = rumps.MenuItem(name)
-            item.state = (value == self.current_polling)
-            item.set_callback(self.set_polling_interval)
-            polling_menu.add(item)
-
-        general_menu.add(polling_menu)
-
-        # Add enhanced check interval
-        enhanced_menu = rumps.MenuItem("Enhanced Check Interval")
         self.enhanced_options = {
             "0.05s (Ultra Fast)": 0.05,
             "0.1s (Default)": 0.1,
@@ -180,127 +46,181 @@ class ClipboardMonitorMenuBar(rumps.App):
             "0.5s (Conservative)": 0.5
         }
 
-        current_enhanced = self.get_config_value('general', 'enhanced_check_interval', 0.1)
-        for name, value in self.enhanced_options.items():
-            item = rumps.MenuItem(name)
-            item.state = (value == current_enhanced)
-            item.set_callback(self.set_enhanced_interval)
-            enhanced_menu.add(item)
+        # Initialize menu components
+        self._init_menu_items()
+        self._init_submenus()
+        self._init_preferences_menu()
 
-        general_menu.add(enhanced_menu)
-        self.prefs_menu.add(general_menu)
-
-        # Add performance settings
-        perf_menu = rumps.MenuItem("Performance Settings")
-
-        # Performance toggles
-        self.lazy_loading = rumps.MenuItem("Lazy Module Loading")
-        self.lazy_loading.state = self.get_config_value('performance', 'lazy_module_loading', True)
-        self.lazy_loading.set_callback(self.toggle_performance_setting)
-        perf_menu.add(self.lazy_loading)
-
-        self.adaptive_checking = rumps.MenuItem("Adaptive Checking")
-        self.adaptive_checking.state = self.get_config_value('performance', 'adaptive_checking', True)
-        self.adaptive_checking.set_callback(self.toggle_performance_setting)
-        perf_menu.add(self.adaptive_checking)
-
-        self.memory_optimization = rumps.MenuItem("Memory Optimization")
-        self.memory_optimization.state = self.get_config_value('performance', 'memory_optimization', True)
-        self.memory_optimization.set_callback(self.toggle_performance_setting)
-        perf_menu.add(self.memory_optimization)
-
-        self.process_large_content = rumps.MenuItem("Process Large Content")
-        self.process_large_content.state = self.get_config_value('performance', 'process_large_content', True)
-        self.process_large_content.set_callback(self.toggle_performance_setting)
-        perf_menu.add(self.process_large_content)
-
-        # Max execution time setting
-        exec_time_item = rumps.MenuItem("Set Max Execution Time...")
-        exec_time_item.set_callback(self.set_max_execution_time)
-        perf_menu.add(exec_time_item)
-
-        self.prefs_menu.add(perf_menu)
-
-        # Add history settings
-        history_menu = rumps.MenuItem("History Settings")
-
-        # Max items setting
-        max_items_item = rumps.MenuItem("Set Max History Items...")
-        max_items_item.set_callback(self.set_max_history_items)
-        history_menu.add(max_items_item)
-
-        # Max content length setting
-        max_length_item = rumps.MenuItem("Set Max Content Length...")
-        max_length_item.set_callback(self.set_max_content_length)
-        history_menu.add(max_length_item)
-
-        # History location setting
-        location_item = rumps.MenuItem("Set History Location...")
-        location_item.set_callback(self.set_history_location)
-        history_menu.add(location_item)
-
-        self.prefs_menu.add(history_menu)
-
-        # Add security settings
-        security_menu = rumps.MenuItem("Security Settings")
-
-        self.sanitize_clipboard = rumps.MenuItem("Sanitize Clipboard")
-        self.sanitize_clipboard.state = self.get_config_value('security', 'sanitize_clipboard', True)
-        self.sanitize_clipboard.set_callback(self.toggle_security_setting)
-        security_menu.add(self.sanitize_clipboard)
-
-        # Max clipboard size setting
-        max_size_item = rumps.MenuItem("Set Max Clipboard Size...")
-        max_size_item.set_callback(self.set_max_clipboard_size)
-        security_menu.add(max_size_item)
-
-        self.prefs_menu.add(security_menu)
-
-        # Add clipboard modification settings
-        clipboard_menu = rumps.MenuItem("Clipboard Modification")
-
-        self.markdown_modify = rumps.MenuItem("Markdown Modify Clipboard")
-        self.markdown_modify.state = self.get_config_value('modules', 'markdown_modify_clipboard', True)
-        self.markdown_modify.set_callback(self.toggle_clipboard_modification)
-        clipboard_menu.add(self.markdown_modify)
-
-        self.code_formatter_modify = rumps.MenuItem("Code Formatter Modify Clipboard")
-        self.code_formatter_modify.state = self.get_config_value('modules', 'code_formatter_modify_clipboard', False)
-        self.code_formatter_modify.set_callback(self.toggle_clipboard_modification)
-        clipboard_menu.add(self.code_formatter_modify)
-
-        self.prefs_menu.add(clipboard_menu)
-
-        # Add configuration management
-        config_menu = rumps.MenuItem("Configuration")
-
-        # Add reset to defaults option
-        reset_item = rumps.MenuItem("Reset to Defaults")
-        reset_item.set_callback(self.reset_config_to_defaults)
-        config_menu.add(reset_item)
-
-        # Add export/import options
-        export_item = rumps.MenuItem("Export Configuration...")
-        export_item.set_callback(self.export_configuration)
-        config_menu.add(export_item)
-
-        import_item = rumps.MenuItem("Import Configuration...")
-        import_item.set_callback(self.import_configuration)
-        config_menu.add(import_item)
-
-        # Add view current config option
-        view_item = rumps.MenuItem("View Current Configuration")
-        view_item.set_callback(self.view_current_configuration)
-        config_menu.add(view_item)
-
-        self.prefs_menu.add(config_menu)
+        # Build the main menu structure
+        self._build_main_menu()
         
-        # Add to menu
+        # Schedule initial history update and periodic status checks
+        rumps.Timer(self.initial_history_update, 3).start()
+        self.timer = threading.Thread(target=self.update_status_periodically)
+        self.timer.daemon = True
+        self.timer.start()
+
+    def _init_menu_items(self):
+        """Initialize individual menu items."""
+        self.status_item = rumps.MenuItem("Status: Checking...")
+        self.pause_toggle = rumps.MenuItem("Pause Monitoring", callback=self.toggle_monitoring)
+        self.start_item = rumps.MenuItem("Start Service", callback=self.start_service)
+        self.stop_item = rumps.MenuItem("Stop Service", callback=self.stop_service)
+        self.restart_item = rumps.MenuItem("Restart Service", callback=self.restart_service)
+        self.output_log_item = rumps.MenuItem("View Output Log", callback=self.view_output_log)
+        self.error_log_item = rumps.MenuItem("View Error Log", callback=self.view_error_log)
+        self.clear_logs_item = rumps.MenuItem("Clear Logs", callback=self.clear_logs)
+        self.quit_item = rumps.MenuItem("Quit", callback=self.quit_app)
+        self.history_menu = rumps.MenuItem("View Clipboard History")
+        self.recent_history_menu = rumps.MenuItem("Recent Clipboard Items")
+        self.prefs_menu = rumps.MenuItem("Preferences")
+        self.module_menu = rumps.MenuItem("Modules")
+
+    def _init_submenus(self):
+        """Initialize and populate submenus."""
+        # Service Control Submenu
+        self.service_control_menu = rumps.MenuItem("Service Control")
+        self.service_control_menu.add(self.start_item, self.stop_item, self.restart_item)
+
+        # Logs Submenu
+        self.logs_menu = rumps.MenuItem("Logs")
+        self.logs_menu.add(self.output_log_item, self.error_log_item, self.clear_logs_item)
+
+        # Module Management Submenu
+        self._populate_module_menu()
+
+        # History Viewer Submenu
+        self._populate_history_viewer_menu()
+
+        # Recent History Submenu (initial state)
+        self.recent_history_menu.add(rumps.MenuItem("🔄 Loading history...", callback=None))
+
+    def _populate_module_menu(self):
+        """Dynamically load and add modules to the module menu."""
+        modules_dir = os.path.join(os.path.dirname(__file__), 'modules')
+        if os.path.exists(modules_dir):
+            for filename in os.listdir(modules_dir):
+                if filename.endswith('_module.py'):
+                    module_name = filename[:-3]
+                    display_name = self.module_display_names.get(module_name, module_name)
+                    module_item = rumps.MenuItem(display_name)
+                    config_value = self.module_status.get(module_name, True)
+                    module_item.state = config_value not in [0, False]
+                    module_item._module_name = module_name
+                    module_item.set_callback(self.toggle_module)
+                    self.module_menu.add(module_item)
+                    if module_name not in self.module_status:
+                        self.module_status[module_name] = True
+
+    def _populate_history_viewer_menu(self):
+        """Populate the 'View Clipboard History' submenu."""
+        self.history_menu.add(rumps.MenuItem("Open in Browser", callback=self.open_web_history_viewer))
+        self.history_menu.add(rumps.MenuItem("Open in Terminal", callback=self.open_cli_history_viewer))
+        self.history_menu.add(rumps.separator)
+        self.history_menu.add(rumps.MenuItem("🗑️ Clear History", callback=self.clear_clipboard_history))
+
+    def _init_preferences_menu(self):
+        """Initialize and populate the Preferences submenu."""
+        self.prefs_menu.add(self._create_general_settings_menu())
+        self.prefs_menu.add(self._create_performance_settings_menu())
+        self.prefs_menu.add(self._create_history_settings_menu())
+        self.prefs_menu.add(self._create_security_settings_menu())
+        self.prefs_menu.add(self._create_clipboard_modification_menu())
+        self.prefs_menu.add(self._create_configuration_management_menu())
+
+    def _create_general_settings_menu(self):
+        """Create the 'General Settings' submenu."""
+        general_menu = rumps.MenuItem("General Settings")
+        self.debug_mode = rumps.MenuItem("Debug Mode", callback=self.toggle_debug)
+        self.debug_mode.state = get_config('general', 'debug_mode', False)
+        general_menu.add(self.debug_mode)
+        general_menu.add(rumps.MenuItem("Set Notification Title...", callback=self.set_notification_title))
+        general_menu.add(self._create_polling_interval_menu())
+        general_menu.add(self._create_enhanced_interval_menu())
+        return general_menu
+
+    def _create_polling_interval_menu(self):
+        """Create the 'Polling Interval' submenu."""
+        polling_menu = rumps.MenuItem("Polling Interval")
+        current_polling = get_config('general', 'polling_interval', 1.0)
+        for name, value in self.polling_options.items():
+            item = rumps.MenuItem(name, callback=self.set_polling_interval)
+            item.state = (value == current_polling)
+            polling_menu.add(item)
+        return polling_menu
+
+    def _create_enhanced_interval_menu(self):
+        """Create the 'Enhanced Check Interval' submenu."""
+        enhanced_menu = rumps.MenuItem("Enhanced Check Interval")
+        current_enhanced = get_config('general', 'enhanced_check_interval', 0.1)
+        for name, value in self.enhanced_options.items():
+            item = rumps.MenuItem(name, callback=self.set_enhanced_interval)
+            item.state = (value == current_enhanced)
+            enhanced_menu.add(item)
+        return enhanced_menu
+
+    def _create_performance_settings_menu(self):
+        """Create the 'Performance Settings' submenu."""
+        perf_menu = rumps.MenuItem("Performance Settings")
+        self.lazy_loading = rumps.MenuItem("Lazy Module Loading", callback=self.toggle_performance_setting)
+        self.lazy_loading.state = get_config('performance', 'lazy_module_loading', True)
+        perf_menu.add(self.lazy_loading)
+        self.adaptive_checking = rumps.MenuItem("Adaptive Checking", callback=self.toggle_performance_setting)
+        self.adaptive_checking.state = get_config('performance', 'adaptive_checking', True)
+        perf_menu.add(self.adaptive_checking)
+        self.memory_optimization = rumps.MenuItem("Memory Optimization", callback=self.toggle_performance_setting)
+        self.memory_optimization.state = get_config('performance', 'memory_optimization', True)
+        perf_menu.add(self.memory_optimization)
+        self.process_large_content = rumps.MenuItem("Process Large Content", callback=self.toggle_performance_setting)
+        self.process_large_content.state = get_config('performance', 'process_large_content', True)
+        perf_menu.add(self.process_large_content)
+        perf_menu.add(rumps.MenuItem("Set Max Execution Time...", callback=self.set_max_execution_time))
+        return perf_menu
+
+    def _create_history_settings_menu(self):
+        """Create the 'History Settings' submenu."""
+        history_menu = rumps.MenuItem("History Settings")
+        history_menu.add(rumps.MenuItem("Set Max History Items...", callback=self.set_max_history_items))
+        history_menu.add(rumps.MenuItem("Set Max Content Length...", callback=self.set_max_content_length))
+        history_menu.add(rumps.MenuItem("Set History Location...", callback=self.set_history_location))
+        return history_menu
+
+    def _create_security_settings_menu(self):
+        """Create the 'Security Settings' submenu."""
+        security_menu = rumps.MenuItem("Security Settings")
+        self.sanitize_clipboard = rumps.MenuItem("Sanitize Clipboard", callback=self.toggle_security_setting)
+        self.sanitize_clipboard.state = get_config('security', 'sanitize_clipboard', True)
+        security_menu.add(self.sanitize_clipboard)
+        security_menu.add(rumps.MenuItem("Set Max Clipboard Size...", callback=self.set_max_clipboard_size))
+        return security_menu
+
+    def _create_clipboard_modification_menu(self):
+        """Create the 'Clipboard Modification' submenu."""
+        clipboard_menu = rumps.MenuItem("Clipboard Modification")
+        self.markdown_modify = rumps.MenuItem("Markdown Modify Clipboard", callback=self.toggle_clipboard_modification)
+        self.markdown_modify.state = get_config('modules', 'markdown_modify_clipboard', True)
+        clipboard_menu.add(self.markdown_modify)
+        self.code_formatter_modify = rumps.MenuItem("Code Formatter Modify Clipboard", callback=self.toggle_clipboard_modification)
+        self.code_formatter_modify.state = get_config('modules', 'code_formatter_modify_clipboard', False)
+        clipboard_menu.add(self.code_formatter_modify)
+        return clipboard_menu
+
+    def _create_configuration_management_menu(self):
+        """Create the 'Configuration' submenu."""
+        config_menu = rumps.MenuItem("Configuration")
+        config_menu.add(rumps.MenuItem("Reset to Defaults", callback=self.reset_config_to_defaults))
+        config_menu.add(rumps.MenuItem("Export Configuration...", callback=self.export_configuration))
+        config_menu.add(rumps.MenuItem("Import Configuration...", callback=self.import_configuration))
+        config_menu.add(rumps.MenuItem("View Current Configuration", callback=self.view_current_configuration))
+        return config_menu
+
+    def _build_main_menu(self):
+        """Build the main menu structure."""
         self.menu.add(self.status_item)
         self.menu.add(rumps.separator)
         self.menu.add(self.pause_toggle)  # Add the pause toggle
-        self.menu.add(service_control)
-        self.menu.add(logs_menu)
+        self.menu.add(self.service_control_menu)
+        self.menu.add(self.logs_menu)
         self.menu.add(rumps.separator)
         self.menu.add(self.module_menu)
         self.menu.add(rumps.separator)
@@ -309,13 +229,6 @@ class ClipboardMonitorMenuBar(rumps.App):
         self.menu.add(self.prefs_menu)
         self.menu.add(rumps.separator)
         self.menu.add(self.quit_item)
-        # Remove insert_before, as order is now explicit
-        # self.menu.insert_before("View Clipboard History", self.recent_history_menu)
-        
-        # Start status checking thread
-        self.timer = threading.Thread(target=self.update_status_periodically)
-        self.timer.daemon = True
-        self.timer.start()
     
     def load_module_config(self):
         """Load module configuration from config file"""
@@ -396,19 +309,19 @@ class ClipboardMonitorMenuBar(rumps.App):
     
     def start_service(self, _):
         try:
-            subprocess.run(["launchctl", "load", self.plist_path])
-            rumps.notification("Clipboard Monitor", "Service Started", "The clipboard monitor service has been started.")
+            subprocess.run(["launchctl", "load", self.plist_path]) # Use centralized notification
+            show_notification("Clipboard Monitor", "Service Started", "The clipboard monitor service has been started.", self.log_path, self.error_log_path)
             self.update_status()
         except Exception as e:
-            rumps.notification("Error", "Failed to start service", str(e))
+            show_notification("Error", "Failed to start service", str(e), self.log_path, self.error_log_path)
     
     def stop_service(self, _):
         try:
-            subprocess.run(["launchctl", "unload", self.plist_path])
-            rumps.notification("Clipboard Monitor", "Service Stopped", "The clipboard monitor service has been stopped.")
+            subprocess.run(["launchctl", "unload", self.plist_path]) # Use centralized notification
+            show_notification("Clipboard Monitor", "Service Stopped", "The clipboard monitor service has been stopped.", self.log_path, self.error_log_path)
             self.update_status()
         except Exception as e:
-            rumps.notification("Error", "Failed to stop service", str(e))
+            show_notification("Error", "Failed to stop service", str(e), self.log_path, self.error_log_path)
     
     def restart_service(self, _):
         try:
@@ -416,9 +329,9 @@ class ClipboardMonitorMenuBar(rumps.App):
             time.sleep(1)
             subprocess.run(["launchctl", "load", self.plist_path])
             rumps.notification("Clipboard Monitor", "Service Restarted", "The clipboard monitor service has been restarted.")
-            self.update_status()
+            self.update_status() # Use centralized notification
         except Exception as e:
-            rumps.notification("Error", "Failed to restart service", str(e))
+            show_notification("Error", "Failed to restart service", str(e), self.log_path, self.error_log_path)
     
     def view_output_log(self, _):
         self._open_file(self.log_path)
@@ -430,16 +343,16 @@ class ClipboardMonitorMenuBar(rumps.App):
         try:
             open(self.log_path, 'w').close()
             open(self.error_log_path, 'w').close()
-            rumps.notification("Clipboard Monitor", "Logs Cleared", "Log files have been cleared.")
+            show_notification("Clipboard Monitor", "Logs Cleared", "Log files have been cleared.", self.log_path, self.error_log_path)
         except Exception as e:
-            rumps.notification("Error", "Failed to clear logs", str(e))
+            show_notification("Error", "Failed to clear logs", str(e), self.log_path, self.error_log_path)
     
     def _open_file(self, path):
         """Open a file with the default application"""
         try:
             subprocess.run(["open", path])
         except Exception as e:
-            rumps.notification("Error", f"Failed to open {path}", str(e))
+            show_notification("Error", f"Failed to open {path}", str(e), self.log_path, self.error_log_path)
     
     def quit_app(self, _):
         rumps.quit_application()
@@ -1047,12 +960,12 @@ read -n 1
                 
                 if content_to_copy:
                     pyperclip.copy(content_to_copy)
-                    truncated = content_to_copy[:50] + '...' if len(content_to_copy) > 50 else content_to_copy
-                    rumps.notification("Clipboard", "Item Copied", f"Copied: {truncated}")
+                    truncated = content_to_copy[:50] + '...' if len(content_to_copy) > 50 else content_to_copy # Use centralized notification
+                    show_notification("Clipboard", "Item Copied", f"Copied: {truncated}", self.log_path, self.error_log_path)
                 else:
-                    rumps.notification("Error", "Copy Failed", "Content not found in history")
+                    show_notification("Error", "Copy Failed", "Content not found in history", self.log_path, self.error_log_path)
         except Exception as e:
-            rumps.notification("Error", "Copy Failed", str(e))
+            show_notification("Error", "Copy Failed", str(e), self.log_path, self.error_log_path)
 
     def refresh_history_menu(self, _):
         """Refresh the history menu - called from menu click (already on main thread)"""

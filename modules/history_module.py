@@ -12,9 +12,9 @@ from pathlib import Path
 import sys
 import logging
 
-# Add parent directory to path to import utils
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from utils import show_notification, validate_string_input, ContentTracker, safe_expanduser, ensure_directory_exists
+# Add parent directory to path to import utils (for get_config)
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__)))) 
+from utils import validate_string_input, ContentTracker, safe_expanduser, ensure_directory_exists, get_config
 
 logger = logging.getLogger("history_module")
 
@@ -29,23 +29,13 @@ DEFAULT_CONFIG = {
     "save_location": "~/Library/Application Support/ClipboardMonitor/clipboard_history.json"
 }
 
-def load_config():
-    """Load history configuration from config file"""
-    try:
-        config_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'config.json')
-        if os.path.exists(config_path):
-            with open(config_path, 'r') as f:
-                config = json.load(f)
-                if 'history' in config:
-                    return config['history']
-    except Exception as e:
-        logger.error(f"Error loading history config: {e}")
-    
-    return DEFAULT_CONFIG
+def get_history_config():
+    """Get history configuration from the main config.json."""
+    return get_config('history', default=DEFAULT_CONFIG)
 
 def get_history_path():
     """Get the path to the history file"""
-    config = load_config()
+    config = get_history_config()
     path = config.get('save_location', DEFAULT_CONFIG['save_location'])
     return safe_expanduser(path)
 
@@ -84,8 +74,8 @@ def add_to_history(content):
     """Add content to clipboard history"""
     if not content:
         return
-    
-    config = load_config()
+
+    config = get_history_config()
     max_items = config.get('max_items', DEFAULT_CONFIG['max_items'])
     max_content_length = config.get('max_content_length', DEFAULT_CONFIG['max_content_length'])
     
@@ -124,7 +114,7 @@ def add_to_history(content):
     # Save updated history
     save_history(history)
 
-def process(clipboard_content) -> bool:
+def process(clipboard_content, module_config=None) -> bool:
     """Process clipboard content by adding it to history"""
     
     # Prevent concurrent processing and loops

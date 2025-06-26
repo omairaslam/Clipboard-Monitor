@@ -397,7 +397,43 @@ def load_clipboard_history():
         logger.error(f"Error loading clipboard history from {history_path}: {e}")
         return []
 
+# Moved from main.py and ClipboardMonitorHandler
 def get_clipboard_content():
+    """Get clipboard content, trying multiple formats to capture RTF content."""
+    try:
+        # Try to get plain text first (most common case)
+        try:
+            text_content = subprocess.check_output(['pbpaste'],
+                                                 universal_newlines=True,
+                                                 timeout=2)
+            if text_content and text_content.strip():
+                logger.debug("Found plain text content in clipboard")
+                return text_content
+        except (subprocess.SubprocessError, subprocess.TimeoutExpired):
+            pass
+
+        # If no plain text, try RTF content
+        try:
+            rtf_content = subprocess.check_output(['pbpaste', '-Prefer', 'rtf'],
+                                                universal_newlines=True,
+                                                timeout=2)
+            if rtf_content and rtf_content.strip():
+                logger.debug("Found RTF content in clipboard")
+                return rtf_content
+        except (subprocess.SubprocessError, subprocess.TimeoutExpired):
+            pass
+
+        # Fallback to pyperclip
+        try:
+            pyperclip_content = pyperclip.paste()
+            if pyperclip_content and pyperclip_content.strip():
+                logger.debug("Found content via pyperclip")
+                return pyperclip_content
+        except pyperclip.PyperclipException:
+            pass
+
+        logger.debug("No clipboard content found")
+        return None
     """Get clipboard content with fallback mechanisms.
     
     Returns:
