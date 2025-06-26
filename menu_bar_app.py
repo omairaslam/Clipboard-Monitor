@@ -12,6 +12,13 @@ from pathlib import Path
 from utils import safe_expanduser, ensure_directory_exists, get_config, set_config_value, load_clipboard_history, setup_logging, get_app_paths, show_notification
 import pyperclip
 
+# Hide Dock icon for menu bar app
+try:
+    from AppKit import NSApplication, NSApplicationActivationPolicyAccessory
+    NSApplication.sharedApplication().setActivationPolicy_(NSApplicationActivationPolicyAccessory)
+except Exception:
+    pass
+
 
 
 
