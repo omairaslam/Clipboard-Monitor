@@ -9,9 +9,13 @@ import os
 import json
 import datetime
 
-# Add parent directory to path to import utils
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__)))) # For utils
-from utils import show_notification, validate_string_input, ContentTracker, get_config, log_event, log_error
+try:
+    # Try relative import first (when run as module)
+    from ..utils import show_notification, validate_string_input, ContentTracker, get_config, log_event, log_error
+except ImportError:
+    # Fallback to adding parent directory to path (for standalone testing)
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from utils import show_notification, validate_string_input, ContentTracker, get_config, log_event, log_error
 
 logger = logging.getLogger("markdown_module")
 

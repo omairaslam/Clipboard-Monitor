@@ -13,9 +13,13 @@ import sys
 import logging
 import datetime
 
-# Add parent directory to path to import utils (for get_config)
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__)))) 
-from utils import validate_string_input, ContentTracker, safe_expanduser, ensure_directory_exists, get_config, log_event, log_error
+try:
+    # Try relative import first (when run as module)
+    from ..utils import validate_string_input, ContentTracker, safe_expanduser, ensure_directory_exists, get_config, log_event, log_error
+except ImportError:
+    # Fallback to adding parent directory to path (for standalone testing)
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from utils import validate_string_input, ContentTracker, safe_expanduser, ensure_directory_exists, get_config, log_event, log_error
 
 logger = logging.getLogger("history_module")
 
