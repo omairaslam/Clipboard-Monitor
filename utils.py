@@ -520,11 +520,17 @@ ERR_LOG_HEADER = (
     "-------------------------------------\n"
 ).format(date=__import__('datetime').datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
 
-def log_event(message, log_path, level="INFO", section_separator=False):
+def log_event(message, log_path=None, level="INFO", section_separator=False):
     import datetime
     timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     padded_level = f"{level:<5}"
     log_line = f"[{timestamp}] [{padded_level}] | {message}\n"
+    
+    # Use provided log_path or get from app paths
+    if log_path is None:
+        paths = get_app_paths()
+        log_path = paths.get("out_log", os.path.expanduser("~/ClipboardMonitor_output.log"))
+    
     _write_log_header_if_needed(log_path, LOG_HEADER)
     with open(log_path, 'a') as f:
         if section_separator:
@@ -534,11 +540,17 @@ def log_event(message, log_path, level="INFO", section_separator=False):
             f.write("-" * 60 + "\n\n")
         f.flush()
 
-def log_error(message, log_path, multiline_details=None, section_separator=False):
+def log_error(message, log_path=None, multiline_details=None, section_separator=False):
     import datetime
     timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     padded_level = "ERROR"
     log_line = f"[{timestamp}] [{padded_level}] | {message}\n"
+    
+    # Use provided log_path or get from app paths
+    if log_path is None:
+        paths = get_app_paths()
+        log_path = paths.get("err_log", os.path.expanduser("~/ClipboardMonitor_error.log"))
+    
     _write_log_header_if_needed(log_path, ERR_LOG_HEADER)
     with open(log_path, 'a') as f:
         if section_separator:
@@ -557,5 +569,5 @@ __all__ = [
     'get_home_directory', 'safe_expanduser', 'ensure_directory_exists',
     'ContentTracker', 'get_app_paths', 'get_config', 'set_config_value',
     'load_clipboard_history', 'get_clipboard_content', 'update_service_status',
-    'get_service_status'
+    'get_service_status', 'log_event', 'log_error'
 ]
