@@ -6,7 +6,8 @@ Extracted from main.py for better modularity and testability.
 import os
 import json
 import logging
-from utils import get_config
+from pathlib import Path
+from constants import DEFAULT_CONFIG, DEFAULT_POLLING_INTERVAL, DEFAULT_ENHANCED_CHECK_INTERVAL, DEFAULT_MAX_CLIPBOARD_SIZE
 
 logger = logging.getLogger("config_manager")
 
@@ -16,15 +17,8 @@ class ConfigManager:
     Manages application configuration with defaults and validation.
     """
     
-    # Default configuration values
-    DEFAULT_CONFIG = {
-        'notification_title': 'Clipboard Monitor',
-        'polling_interval': 1.0,
-        'module_validation_timeout': 5.0,
-        'enhanced_check_interval': 0.1,
-        'max_clipboard_size': 10 * 1024 * 1024,
-        'debug_mode': False
-    }
+    # Use centralized default configuration
+    # DEFAULT_CONFIG is imported from constants.py
     
     def __init__(self, config_path=None):
         """
@@ -34,9 +28,9 @@ class ConfigManager:
             config_path (str, optional): Path to config file. If None, uses default location.
         """
         if config_path is None:
-            config_path = os.path.join(os.path.dirname(__file__), 'config.json')
+            config_path = Path(__file__).parent / 'config.json'
         
-        self.config_path = config_path
+        self.config_path = str(config_path)
         self.config = self._load_config()
     
     def _load_config(self):
@@ -46,11 +40,12 @@ class ConfigManager:
         Returns:
             dict: Loaded configuration with defaults applied
         """
-        config = self.DEFAULT_CONFIG.copy()
+        config = DEFAULT_CONFIG.copy()
         
         try:
-            if os.path.exists(self.config_path):
-                with open(self.config_path, 'r') as f:
+            config_file = Path(self.config_path)
+            if config_file.exists():
+                with config_file.open('r') as f:
                     user_config = json.load(f)
                 
                 # Update general settings
@@ -67,7 +62,7 @@ class ConfigManager:
                 logger.info(f"Loaded configuration from {self.config_path}")
             else:
                 logger.info("No config.json found, using defaults")
-        except Exception as e:
+        except (OSError, json.JSONDecodeError) as e:
             logger.error(f"Error loading config: {e}")
             logger.info("Using default configuration")
         
@@ -117,11 +112,12 @@ class ConfigManager:
             bool: True if saved successfully, False otherwise
         """
         try:
-            with open(self.config_path, 'w') as f:
+            config_file = Path(self.config_path)
+            with config_file.open('w') as f:
                 json.dump(self.config, f, indent=2)
             logger.info(f"Configuration saved to {self.config_path}")
             return True
-        except Exception as e:
+        except (OSError, json.JSONEncodeError) as e:
             logger.error(f"Error saving configuration: {e}")
             return False
     
@@ -151,7 +147,7 @@ class ConfigManager:
         Returns:
             float: Polling interval in seconds
         """
-        return self.config.get('polling_interval', 1.0)
+        return self.config.get('polling_interval', DEFAULT_POLLING_INTERVAL)
     
     def get_enhanced_check_interval(self):
         """
@@ -160,7 +156,7 @@ class ConfigManager:
         Returns:
             float: Check interval in seconds
         """
-        return self.config.get('enhanced_check_interval', 0.1)
+        return self.config.get('enhanced_check_interval', DEFAULT_ENHANCED_CHECK_INTERVAL)
     
     def get_max_clipboard_size(self):
         """
@@ -170,7 +166,7 @@ class ConfigManager:
             int: Maximum size in bytes
         """
         security_config = self.get_section('security', {})
-        return security_config.get('max_clipboard_size', self.DEFAULT_CONFIG['max_clipboard_size'])
+        return security_config.get('max_clipboard_size', DEFAULT_MAX_CLIPBOARD_SIZE)
     
     def get_module_config(self, module_name=None):
         """

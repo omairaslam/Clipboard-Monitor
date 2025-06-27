@@ -7,20 +7,27 @@ import sys
 import os
 import json
 import datetime
+from pathlib import Path
 
 try:
     # Try relative import first (when run as module)
-    from ..utils import show_notification, validate_string_input, ContentTracker, get_config, log_event, log_error
+    from ..utils import show_notification, validate_string_input, ContentTracker, log_event, log_error
+    from ..config_manager import ConfigManager
+    from ..lock_manager import LockManager
+    from ..constants import CODE_DETECTION_THRESHOLD, MIN_LINES_FOR_CODE_DETECTION, CONTENT_TRACKER_MAX_HISTORY
 except ImportError:
     # Fallback to adding parent directory to path (for standalone testing)
-    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    from utils import show_notification, validate_string_input, ContentTracker, get_config, log_event, log_error
+    sys.path.insert(0, str(Path(__file__).parent.parent))
+    from utils import show_notification, validate_string_input, ContentTracker, log_event, log_error
+    from config_manager import ConfigManager
+    from lock_manager import LockManager
+    from constants import CODE_DETECTION_THRESHOLD, MIN_LINES_FOR_CODE_DETECTION, CONTENT_TRACKER_MAX_HISTORY
 
 logger = logging.getLogger("code_formatter_module")
 
 # Global content tracker to prevent processing loops
-_content_tracker = ContentTracker(max_history=5)
-_processing_lock = threading.Lock()
+_content_tracker = ContentTracker(max_history=CONTENT_TRACKER_MAX_HISTORY)
+_lock_manager = LockManager()
 
 def is_code(text):
     """Detect if text is likely code"""
@@ -39,8 +46,8 @@ def is_code(text):
         if any(re.search(pattern, line) for pattern in code_patterns):
             code_lines += 1
     
-    # If at least 15% of lines match code patterns and there are at least 3 lines
-    return len(lines) >= 3 and (code_lines / len(lines) >= 0.15)
+    # Use constants for code detection thresholds
+    return len(lines) >= MIN_LINES_FOR_CODE_DETECTION and (code_lines / len(lines) >= CODE_DETECTION_THRESHOLD)
 
 def format_code(code_text):
     """Format code using black for Python, prettier for JS/TS, etc."""
@@ -71,7 +78,7 @@ def format_code(code_text):
 def process(clipboard_content, config=None):
     """Process clipboard content if it appears to be code"""
     # Prevent concurrent processing and loops
-    with _processing_lock:
+    with _lock_manager.get_clipboard_processing_lock():
         # Safety check for None or empty content
         if not validate_string_input(clipboard_content, "clipboard_content"):
             return False
@@ -86,7 +93,11 @@ def process(clipboard_content, config=None):
 
             # Check if clipboard modification is enabled for this module
             # Use module_config passed from main, or load if not provided (for standalone testing)
-            modify_clipboard = (config or get_config('modules')).get('code_formatter_modify_clipboard', False)
+            if config:
+                modify_clipboard = config.get('code_formatter_modify_clipboard', False)
+            else:
+                config_manager = ConfigManager()
+                modify_clipboard = config_manager.get_module_config('code_formatter_module').get('code_formatter_modify_clipboard', False)
 
             # Track this content to prevent reprocessing
             _content_tracker.add_content(clipboard_content)

@@ -4,6 +4,7 @@ import base64
 import json
 import re
 import logging # For logging
+from pathlib import Path
 try:
     # Try relative import first (when run as module)
     from ..utils import show_notification, log_event, log_error
@@ -11,7 +12,7 @@ except ImportError:
     # Fallback for standalone testing
     import sys
     import os
-    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    sys.path.insert(0, str(Path(__file__).parent.parent))
     from utils import show_notification, log_event, log_error
 import datetime
 import os

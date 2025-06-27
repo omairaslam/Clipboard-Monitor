@@ -5,10 +5,16 @@ import time
 import pyperclip # Cross-platform clipboard library
 import threading
 import logging
+from pathlib import Path
 from utils import show_notification, safe_expanduser, get_clipboard_content, log_event, log_error
 from clipboard_reader import ClipboardReader
 from module_manager import ModuleManager
 from config_manager import ConfigManager
+from constants import (
+    TIMER_INTERVAL_ACTIVE, TIMER_INTERVAL_IDLE, PAUSE_CHECK_INTERVAL,
+    ERROR_RETRY_DELAY, PYPERCLIP_ERROR_DELAY, MAX_CONSECUTIVE_ERRORS,
+    SYSTEM_IDLE_THRESHOLD, DEFAULT_MODULE_VALIDATION_TIMEOUT
+)
 import json
 import subprocess
 import re # For regex in _get_system_idle_time
@@ -23,9 +29,9 @@ try:
     import datetime
     from utils import get_app_paths, ensure_directory_exists
     paths = get_app_paths()
-    early_diag_path = paths.get("out_log", os.path.expanduser("~/ClipboardMonitor_early_diag.log"))
+    early_diag_path = paths.get("out_log", safe_expanduser("~/ClipboardMonitor_early_diag.log"))
     # Ensure log directory exists
-    ensure_directory_exists(os.path.dirname(early_diag_path))
+    ensure_directory_exists(str(Path(early_diag_path).parent))
     with open(early_diag_path, "a") as diag:
         diag.write(f"[{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Service starting. (early diagnostics)\n")
         diag.write(f"sys.argv: {sys.argv}\n")
@@ -51,23 +57,24 @@ logger = logging.getLogger("clipboard_monitor")
 
 def _write_log_header_if_needed(log_path, header):
     """Write a header to the log file if it is empty."""
-    if not os.path.exists(log_path) or os.path.getsize(log_path) == 0:
-        with open(log_path, 'a') as f:
+    log_file = Path(log_path)
+    if not log_file.exists() or log_file.stat().st_size == 0:
+        with log_file.open('a') as f:
             f.write(header)
 
 LOG_HEADER = (
-    "=== Clipboard Monitor Output Log ===\n"
-    "Created: {date}\n"
-    "Format: [YYYY-MM-DD HH:MM:SS] [LEVEL ] | Message\n"
-    "-------------------------------------\n"
-).format(date=datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+    f"=== Clipboard Monitor Output Log ===\n"
+    f"Created: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
+    f"Format: [YYYY-MM-DD HH:MM:SS] [LEVEL ] | Message\n"
+    f"-------------------------------------\n"
+)
 
 ERR_LOG_HEADER = (
-    "=== Clipboard Monitor Error Log ===\n"
-    "Created: {date}\n"
-    "Format: [YYYY-MM-DD HH:MM:SS] [LEVEL ] | Message\n"
-    "-------------------------------------\n"
-).format(date=datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+    f"=== Clipboard Monitor Error Log ===\n"
+    f"Created: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
+    f"Format: [YYYY-MM-DD HH:MM:SS] [LEVEL ] | Message\n"
+    f"-------------------------------------\n"
+)
 
 
 
@@ -164,9 +171,9 @@ if MACOS_ENHANCED:
             
             # Adaptive checking interval based on system activity
             idle_time = self._get_system_idle_time()
-            if idle_time > 60:  # seconds
+            if idle_time > SYSTEM_IDLE_THRESHOLD:  # seconds
                 # Reduce check frequency during idle periods
-                self.timer.setFireDate_(NSDate.dateWithTimeIntervalSinceNow_(1.0))
+                self.timer.setFireDate_(NSDate.dateWithTimeIntervalSinceNow_(TIMER_INTERVAL_IDLE))
             else:
                 # Normal frequency during active use
                 self.timer.setFireDate_(NSDate.dateWithTimeIntervalSinceNow_(config_manager.get_enhanced_check_interval()))
@@ -219,9 +226,9 @@ if MACOS_ENHANCED:
         def startMonitoring(self):
             """Start the timer-based monitoring."""
             if self.timer is None:
-                # Create a timer that fires every 0.1 seconds (much more responsive than 1 second polling)
+                # Create a timer that fires at the configured interval (much more responsive than polling)
                 self.timer = NSTimer.scheduledTimerWithTimeInterval_target_selector_userInfo_repeats_(
-                    0.1, self, objc.selector(self.checkClipboardChange_, signature=b'v@:@'), None, True
+                    TIMER_INTERVAL_ACTIVE, self, objc.selector(self.checkClipboardChange_, signature=b'v@:@'), None, True
                 )
                 logger.debug("Enhanced clipboard monitoring timer started")
 
@@ -253,7 +260,7 @@ if MACOS_ENHANCED:
                 idle_match = re.search(r'"HIDIdleTime" = (\d+)', idle_secs)
                 if idle_match:
                     return int(idle_match.group(1)) / 1000000000  # Convert to seconds
-            except:
+            except subprocess.SubprocessError:
                 pass
             return 0
 
@@ -262,134 +269,140 @@ def print_tracemalloc_snapshot():
         current, peak = tracemalloc.get_traced_memory()
         logger.info(f"[tracemalloc] Current memory usage: {current / 1024 / 1024:.2f} MB; Peak: {peak / 1024 / 1024:.2f} MB")
 
-def main():
-    """Main entry point for the clipboard monitor."""
-    # Log resolved log file paths and service start immediately
+def _setup_monitor():
+    """Setup and initialize the clipboard monitor."""
     log_event(f"Clipboard Monitor service starting... (out_log: {paths['out_log']}, err_log: {paths['err_log']})", level="INFO")
     logger.info(f"Clipboard Monitor service starting... (out_log: {paths['out_log']}, err_log: {paths['err_log']})")
 
     monitor = ClipboardMonitor()
-    modules_dir = os.path.join(os.path.dirname(__file__), 'modules')
-    monitor.load_modules(modules_dir)
+    modules_dir = Path(__file__).parent / 'modules'
+    monitor.load_modules(str(modules_dir))
 
     enabled_modules = monitor.module_manager.get_enabled_modules()
     if not enabled_modules:
         logger.warning("No modules enabled. Monitor will run but won't process clipboard content.")
     else:
         logger.info(f"Enabled modules: {', '.join(enabled_modules)}")
+    
+    return monitor
 
-    # --- Enhanced Monitoring Path (macOS with pyobjc) ---
-    if MACOS_ENHANCED:
-        logger.info("Using enhanced clipboard monitoring (macOS).")
 
-        initial_clipboard_content = None
-        try:
-            # Get the initial clipboard content when the script starts.
-            initial_clipboard_content = get_clipboard_content()
-            if initial_clipboard_content: # Only process if there's something initially
-                logger.info("Processing initial clipboard content (enhanced mode)...")
-                # Process this initial content once.
-                monitor.process_clipboard(initial_clipboard_content)
-        except Exception as e:
-            logger.error(f"Error reading initial clipboard content (enhanced): {e}")
+def _run_enhanced_monitoring(monitor):
+    """Run enhanced clipboard monitoring using macOS pyobjc."""
+    logger.info("Using enhanced clipboard monitoring (macOS).")
 
-        try:
-            app = NSApplication.sharedApplication() # Get a shared NSApplication instance
-            # Create an instance of our monitor handler, passing the monitor and initial content.
-            handler_instance = ClipboardMonitorHandler.alloc().initWithMonitor_andInitialContent_(monitor, initial_clipboard_content)
-
-            # Start the timer-based monitoring
-            handler_instance.startMonitoring()
-
-            logger.info("Enhanced clipboard monitor started. Press Ctrl+C to exit.")
-
-            try:
-                app.run() # Start the Cocoa event loop. This call will block and keep the script running,
-                          # with the timer checking for clipboard changes.
-            except KeyboardInterrupt:
-                logger.info("Keyboard interrupt received in enhanced mode.")
-            finally:
-                # Clean up the handler
-                if handler_instance:
-                    handler_instance.cleanup()
-
-        except Exception as e:
-            logger.error(f"Error setting up enhanced monitoring: {e}")
-            logger.info("Falling back to polling mode...")
-            # Fall through to polling mode
-        else:
-            # This line is unlikely to be reached if Ctrl+C terminates the app directly.
-            logger.info("Enhanced clipboard monitor shut down.")
-            return
-
-    # --- Polling Monitoring Path (Fallback if pyobjc is not available or not on macOS) ---
-    # This will also be reached if event-driven setup fails
-    logger.info("Clipboard monitor started (polling).")
-    log_event("Clipboard monitor started (polling).", level="INFO")
-    last_clipboard = None
-    consecutive_errors = 0
-    max_consecutive_errors = 10
+    initial_clipboard_content = None
+    try:
+        initial_clipboard_content = get_clipboard_content()
+        if initial_clipboard_content:
+            logger.info("Processing initial clipboard content (enhanced mode)...")
+            monitor.process_clipboard(initial_clipboard_content)
+    except Exception as e:
+        logger.error(f"Error reading initial clipboard content (enhanced): {e}")
 
     try:
-        # Process initial clipboard content for polling mode too
+        app = NSApplication.sharedApplication()
+        handler_instance = ClipboardMonitorHandler.alloc().initWithMonitor_andInitialContent_(monitor, initial_clipboard_content)
+        handler_instance.startMonitoring()
+        logger.info("Enhanced clipboard monitor started. Press Ctrl+C to exit.")
+
+        try:
+            app.run()
+        except KeyboardInterrupt:
+            logger.info("Keyboard interrupt received in enhanced mode.")
+        finally:
+            if handler_instance:
+                handler_instance.cleanup()
+
+    except Exception as e:
+        logger.error(f"Error setting up enhanced monitoring: {e}")
+        logger.info("Falling back to polling mode...")
+        return False
+    else:
+        logger.info("Enhanced clipboard monitor shut down.")
+        return True
+
+
+def _process_initial_clipboard_polling(monitor):
+    """Process initial clipboard content for polling mode."""
+    try:
         initial_clipboard_content = get_clipboard_content()
         if initial_clipboard_content:
             logger.info("Processing initial clipboard content (polling)...")
             log_event("Processing initial clipboard content (polling)...", level="INFO")
-            last_clipboard = initial_clipboard_content # Set for the first comparison
             monitor.process_clipboard(initial_clipboard_content)
+            return initial_clipboard_content
     except Exception as e:
         logger.error(f"Error reading initial clipboard content (polling): {e}")
         log_error(f"Error reading initial clipboard content (polling): {e}")
+    return None
 
-    # Main polling loop.
+
+def _handle_polling_iteration(monitor, last_clipboard, consecutive_errors, max_consecutive_errors):
+    """Handle a single iteration of the polling loop."""
+    try:
+        # Check for pause flag
+        pause_flag_path = Path(safe_expanduser("~/Library/Application Support/ClipboardMonitor/pause_flag"))
+        if pause_flag_path.exists():
+            log_event("Service paused via pause_flag.", level="INFO")
+            time.sleep(PAUSE_CHECK_INTERVAL)
+            return last_clipboard, consecutive_errors, True  # continue flag
+        
+        clipboard_content = get_clipboard_content()
+        if clipboard_content and clipboard_content != last_clipboard:
+            last_clipboard = clipboard_content
+            log_event("Clipboard content changed (polling).", level="INFO")
+            monitor.process_clipboard(clipboard_content)
+
+        consecutive_errors = 0
+        time.sleep(config_manager.get_polling_interval())
+        return last_clipboard, consecutive_errors, True
+
+    except pyperclip.PyperclipException as e:
+        consecutive_errors += 1
+        logger.error(f"pyperclip error in polling loop (#{consecutive_errors}): {e}")
+        log_error(f"pyperclip error in polling loop (#{consecutive_errors}): {e}")
+
+        if consecutive_errors >= max_consecutive_errors:
+            logger.error(f"Too many consecutive pyperclip errors ({consecutive_errors}). Exiting.")
+            log_error(f"Too many consecutive pyperclip errors ({consecutive_errors}). Exiting.")
+            return last_clipboard, consecutive_errors, False
+
+        time.sleep(PYPERCLIP_ERROR_DELAY)
+        return last_clipboard, consecutive_errors, True
+
+    except Exception as e:
+        consecutive_errors += 1
+        logger.error(f"Unexpected error in polling loop (#{consecutive_errors}): {e}")
+        log_error(f"Unexpected error in polling loop (#{consecutive_errors}): {e}")
+
+        if consecutive_errors >= max_consecutive_errors:
+            logger.error(f"Too many consecutive errors ({consecutive_errors}). Exiting.")
+            log_error(f"Too many consecutive errors ({consecutive_errors}). Exiting.")
+            return last_clipboard, consecutive_errors, False
+
+        time.sleep(ERROR_RETRY_DELAY)
+        return last_clipboard, consecutive_errors, True
+
+
+def _run_polling_monitoring(monitor):
+    """Run polling-based clipboard monitoring."""
+    logger.info("Clipboard monitor started (polling).")
+    log_event("Clipboard monitor started (polling).", level="INFO")
+    
+    last_clipboard = _process_initial_clipboard_polling(monitor)
+    consecutive_errors = 0
+    max_consecutive_errors = MAX_CONSECUTIVE_ERRORS
+
     try:
         while True:
-            try:
-                # Check for pause flag
-                pause_flag_path = safe_expanduser("~/Library/Application Support/ClipboardMonitor/pause_flag")
-                if os.path.exists(pause_flag_path):
-                    # Service is paused, just sleep and continue
-                    log_event("Service paused via pause_flag.", level="INFO")
-                    time.sleep(1)
-                    continue
-                
-                clipboard_content = get_clipboard_content()
-                # If the current clipboard content is different from the last known content.
-                if clipboard_content and clipboard_content != last_clipboard:
-                    last_clipboard = clipboard_content
-                    log_event("Clipboard content changed (polling).", level="INFO")
-                    monitor.process_clipboard(clipboard_content)
+            last_clipboard, consecutive_errors, should_continue = _handle_polling_iteration(
+                monitor, last_clipboard, consecutive_errors, max_consecutive_errors
+            )
+            if not should_continue:
+                break
 
-                # Reset error counter on successful iteration
-                consecutive_errors = 0
-                time.sleep(config_manager.get_polling_interval())  # Configurable polling interval
-
-            except pyperclip.PyperclipException as e:
-                consecutive_errors += 1
-                logger.error(f"pyperclip error in polling loop (#{consecutive_errors}): {e}")
-                log_error(f"pyperclip error in polling loop (#{consecutive_errors}): {e}")
-
-                if consecutive_errors >= max_consecutive_errors:
-                    logger.error(f"Too many consecutive pyperclip errors ({consecutive_errors}). Exiting.")
-                    log_error(f"Too many consecutive pyperclip errors ({consecutive_errors}). Exiting.")
-                    break
-
-                time.sleep(5) # Wait longer if there's a persistent pyperclip issue to avoid spamming errors.
-
-            except Exception as e:
-                consecutive_errors += 1
-                logger.error(f"Unexpected error in polling loop (#{consecutive_errors}): {e}")
-                log_error(f"Unexpected error in polling loop (#{consecutive_errors}): {e}")
-
-                if consecutive_errors >= max_consecutive_errors:
-                    logger.error(f"Too many consecutive errors ({consecutive_errors}). Exiting.")
-                    log_error(f"Too many consecutive errors ({consecutive_errors}). Exiting.")
-                    break
-
-                time.sleep(1) # Brief pause before retrying
-
-    except KeyboardInterrupt: # Handle Ctrl+C to gracefully stop the monitor.
+    except KeyboardInterrupt:
         logger.info("\nClipboard monitor stopped by user (polling).")
         log_event("Clipboard monitor stopped by user (polling).", level="INFO")
     except Exception as e:
@@ -398,6 +411,19 @@ def main():
     finally:
         logger.info("Clipboard monitor shutdown complete.")
         log_event("Clipboard monitor shutdown complete.", level="INFO")
+
+
+def main():
+    """Main entry point for the clipboard monitor."""
+    monitor = _setup_monitor()
+
+    # Try enhanced monitoring first (macOS with pyobjc)
+    if MACOS_ENHANCED:
+        if _run_enhanced_monitoring(monitor):
+            return
+
+    # Fall back to polling monitoring
+    _run_polling_monitoring(monitor)
 # Standard Python entry point.
 if __name__ == "__main__":
     main()

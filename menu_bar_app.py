@@ -9,7 +9,9 @@ import time
 import json
 import logging
 from pathlib import Path
-from utils import safe_expanduser, ensure_directory_exists, get_config, set_config_value, load_clipboard_history, setup_logging, get_app_paths, show_notification
+from utils import safe_expanduser, ensure_directory_exists, set_config_value, load_clipboard_history, setup_logging, get_app_paths, show_notification
+from config_manager import ConfigManager
+from constants import POLLING_INTERVALS, ENHANCED_CHECK_INTERVALS
 import pyperclip
 
 # Hide Dock icon for menu bar app
@@ -28,6 +30,7 @@ class ClipboardMonitorMenuBar(rumps.App):
         super().__init__("📋", quit_button=None)
 
         # Configuration
+        self.config_manager = ConfigManager()
         self.home_dir = str(Path.home())
         self.plist_path = f"{self.home_dir}/Library/LaunchAgents/com.omairaslam.clipboardmonitor.plist"
         # Always use get_app_paths() for log paths
@@ -44,18 +47,8 @@ class ClipboardMonitorMenuBar(rumps.App):
             "history_module": "Clipboard History Tracker",
             "code_formatter_module": "Code Formatter"
         }
-        self.polling_options = {
-            "0.5s (Faster)": 0.5,
-            "1.0s (Default)": 1.0,
-            "2.0s (Battery Saving)": 2.0,
-            "5.0s (Power Saving)": 5.0
-        }
-        self.enhanced_options = {
-            "0.05s (Ultra Fast)": 0.05,
-            "0.1s (Default)": 0.1,
-            "0.2s (Balanced)": 0.2,
-            "0.5s (Conservative)": 0.5
-        }
+        self.polling_options = POLLING_INTERVALS
+        self.enhanced_options = ENHANCED_CHECK_INTERVALS
 
         # Initialize menu components
         self._init_menu_items()
@@ -147,7 +140,7 @@ class ClipboardMonitorMenuBar(rumps.App):
         """Create the 'General Settings' submenu."""
         general_menu = rumps.MenuItem("General Settings")
         self.debug_mode = rumps.MenuItem("Debug Mode", callback=self.toggle_debug)
-        self.debug_mode.state = get_config('general', 'debug_mode', False)
+        self.debug_mode.state = self.config_manager.get_config_value('general', 'debug_mode', False)
         general_menu.add(self.debug_mode)
         general_menu.add(rumps.MenuItem("Set Notification Title...", callback=self.set_notification_title))
         general_menu.add(self._create_polling_interval_menu())
@@ -157,7 +150,7 @@ class ClipboardMonitorMenuBar(rumps.App):
     def _create_polling_interval_menu(self):
         """Create the 'Polling Interval' submenu."""
         polling_menu = rumps.MenuItem("Polling Interval")
-        current_polling = get_config('general', 'polling_interval', 1.0)
+        current_polling = self.config_manager.get_config_value('general', 'polling_interval', 1.0)
         for name, value in self.polling_options.items():
             item = rumps.MenuItem(name, callback=self.set_polling_interval)
             item.state = (value == current_polling)
@@ -167,7 +160,7 @@ class ClipboardMonitorMenuBar(rumps.App):
     def _create_enhanced_interval_menu(self):
         """Create the 'Enhanced Check Interval' submenu."""
         enhanced_menu = rumps.MenuItem("Enhanced Check Interval")
-        current_enhanced = get_config('general', 'enhanced_check_interval', 0.1)
+        current_enhanced = self.config_manager.get_config_value('general', 'enhanced_check_interval', 0.1)
         for name, value in self.enhanced_options.items():
             item = rumps.MenuItem(name, callback=self.set_enhanced_interval)
             item.state = (value == current_enhanced)
@@ -178,16 +171,16 @@ class ClipboardMonitorMenuBar(rumps.App):
         """Create the 'Performance Settings' submenu."""
         perf_menu = rumps.MenuItem("Performance Settings")
         self.lazy_loading = rumps.MenuItem("Lazy Module Loading", callback=self.toggle_performance_setting)
-        self.lazy_loading.state = get_config('performance', 'lazy_module_loading', True)
+        self.lazy_loading.state = self.config_manager.get_config_value('performance', 'lazy_module_loading', True)
         perf_menu.add(self.lazy_loading)
         self.adaptive_checking = rumps.MenuItem("Adaptive Checking", callback=self.toggle_performance_setting)
-        self.adaptive_checking.state = get_config('performance', 'adaptive_checking', True)
+        self.adaptive_checking.state = self.config_manager.get_config_value('performance', 'adaptive_checking', True)
         perf_menu.add(self.adaptive_checking)
         self.memory_optimization = rumps.MenuItem("Memory Optimization", callback=self.toggle_performance_setting)
-        self.memory_optimization.state = get_config('performance', 'memory_optimization', True)
+        self.memory_optimization.state = self.config_manager.get_config_value('performance', 'memory_optimization', True)
         perf_menu.add(self.memory_optimization)
         self.process_large_content = rumps.MenuItem("Process Large Content", callback=self.toggle_performance_setting)
-        self.process_large_content.state = get_config('performance', 'process_large_content', True)
+        self.process_large_content.state = self.config_manager.get_config_value('performance', 'process_large_content', True)
         perf_menu.add(self.process_large_content)
         perf_menu.add(rumps.MenuItem("Set Max Execution Time...", callback=self.set_max_execution_time))
         return perf_menu
@@ -204,7 +197,7 @@ class ClipboardMonitorMenuBar(rumps.App):
         """Create the 'Security Settings' submenu."""
         security_menu = rumps.MenuItem("Security Settings")
         self.sanitize_clipboard = rumps.MenuItem("Sanitize Clipboard", callback=self.toggle_security_setting)
-        self.sanitize_clipboard.state = get_config('security', 'sanitize_clipboard', True)
+        self.sanitize_clipboard.state = self.config_manager.get_config_value('security', 'sanitize_clipboard', True)
         security_menu.add(self.sanitize_clipboard)
         security_menu.add(rumps.MenuItem("Set Max Clipboard Size...", callback=self.set_max_clipboard_size))
         return security_menu
@@ -213,10 +206,10 @@ class ClipboardMonitorMenuBar(rumps.App):
         """Create the 'Clipboard Modification' submenu."""
         clipboard_menu = rumps.MenuItem("Clipboard Modification")
         self.markdown_modify = rumps.MenuItem("Markdown Modify Clipboard", callback=self.toggle_clipboard_modification)
-        self.markdown_modify.state = get_config('modules', 'markdown_modify_clipboard', True)
+        self.markdown_modify.state = self.config_manager.get_config_value('modules', 'markdown_modify_clipboard', True)
         clipboard_menu.add(self.markdown_modify)
         self.code_formatter_modify = rumps.MenuItem("Code Formatter Modify Clipboard", callback=self.toggle_clipboard_modification)
-        self.code_formatter_modify.state = get_config('modules', 'code_formatter_modify_clipboard', False)
+        self.code_formatter_modify.state = self.config_manager.get_config_value('modules', 'code_formatter_modify_clipboard', False)
         clipboard_menu.add(self.code_formatter_modify)
         return clipboard_menu
 
@@ -419,7 +412,7 @@ class ClipboardMonitorMenuBar(rumps.App):
 
     def set_notification_title(self, _):
         """Set custom notification title"""
-        current_title = get_config('general', 'notification_title', 'Clipboard Monitor')
+        current_title = self.config_manager.get_config_value('general', 'notification_title', 'Clipboard Monitor')
         response = rumps.Window(
             message="Enter notification title:",
             title="Set Notification Title",
@@ -476,7 +469,7 @@ class ClipboardMonitorMenuBar(rumps.App):
 
     def set_max_execution_time(self, _):
         """Set maximum module execution time"""
-        current_time = get_config('performance', 'max_module_execution_time', 500)
+        current_time = self.config_manager.get_config_value('performance', 'max_module_execution_time', 500)
         response = rumps.Window(
             message="Enter maximum execution time (milliseconds):",
             title="Set Max Execution Time",
@@ -520,7 +513,7 @@ class ClipboardMonitorMenuBar(rumps.App):
 
     def set_max_history_items(self, _):
         """Set maximum history items for both menu and storage"""
-        current_max = get_config('history', 'max_items', 20)
+        current_max = self.config_manager.get_config_value('history', 'max_items', 20)
         response = rumps.Window(
             message="Enter maximum number of recent items to show in menu:",
             title="Set Max Recent Menu Items",
@@ -552,7 +545,7 @@ class ClipboardMonitorMenuBar(rumps.App):
 
     def set_max_content_length(self, _):
         """Set maximum content length for history"""
-        current_length = get_config('history', 'max_content_length', 10000)
+        current_length = self.config_manager.get_config_value('history', 'max_content_length', 10000)
         response = rumps.Window(
             message="Enter maximum content length (characters):",
             title="Set Max Content Length",
@@ -579,8 +572,8 @@ class ClipboardMonitorMenuBar(rumps.App):
 
     def set_history_location(self, _):
         """Set history file location"""
-        current_location = get_config('history', 'save_location',
-                                                 "~/Library/Application Support/ClipboardMonitor/clipboard_history.json")
+        current_location = self.config_manager.get_config_value('history', 'save_location',
+        "~/Library/Application Support/ClipboardMonitor/clipboard_history.json")
         response = rumps.Window(
             message="Enter history file location:",
             title="Set History Location",
@@ -617,7 +610,7 @@ class ClipboardMonitorMenuBar(rumps.App):
 
     def set_max_clipboard_size(self, _):
         """Set maximum clipboard size"""
-        current_size = get_config('security', 'max_clipboard_size', 10485760)
+        current_size = self.config_manager.get_config_value('security', 'max_clipboard_size', 10485760)
         # Convert to MB for user-friendly display
         current_mb = current_size / (1024 * 1024)
         response = rumps.Window(
@@ -907,8 +900,8 @@ read -n 1
         import gc
         import traceback        
         # Read max_items from config file (history section), default to 20 if not set
-        max_items = get_config('history', 'max_items', 20)
-        debug_mode = get_config('general', 'debug_mode', False)
+        max_items = self.config_manager.get_config_value('history', 'max_items', 20)
+        debug_mode = self.config_manager.get_config_value('general', 'debug_mode', False)
         try:
             max_items = int(max_items)
         except (ValueError, TypeError):

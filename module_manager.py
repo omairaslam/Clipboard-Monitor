@@ -9,7 +9,10 @@ import importlib.util
 import logging
 import threading
 import hashlib
-from utils import get_config
+from pathlib import Path
+from config_manager import ConfigManager
+from lock_manager import LockManager
+from constants import DEFAULT_MAX_CLIPBOARD_SIZE
 
 logger = logging.getLogger("module_manager")
 
@@ -23,7 +26,7 @@ class ModuleManager:
         """Initialize the module manager."""
         self.modules = []
         self.module_specs = []
-        self.processing_lock = threading.Lock()
+        self.lock_manager = LockManager()
         self.last_processed_hash = None
     
     def load_modules(self, modules_dir):
@@ -39,21 +42,21 @@ class ModuleManager:
         # Load module configuration
         module_config = self._load_module_config()
         
-        if not os.path.exists(modules_dir) or not os.path.isdir(modules_dir):
+        modules_path = Path(modules_dir)
+        if not modules_path.exists() or not modules_path.is_dir():
             logger.error(f"Module directory issue: {modules_dir}")
             return
         
         # First pass: collect module specs without importing
-        for filename in os.listdir(modules_dir):
-            if filename.endswith('_module.py'):
-                module_path = os.path.join(modules_dir, filename)
-                module_name = filename[:-3]  # Remove .py
+        for module_file in modules_path.iterdir():
+            if module_file.name.endswith('_module.py'):
+                module_name = module_file.stem  # Remove .py
                 
                 # Check if module is enabled
                 module_enabled = module_config.get(module_name, True)
                 if module_enabled not in [0, False]:
                     # Store module spec for lazy loading
-                    spec = importlib.util.spec_from_file_location(module_name, module_path)
+                    spec = importlib.util.spec_from_file_location(module_name, str(module_file))
                     self.module_specs.append((module_name, spec))
                     logger.info(f"Found module: {module_name} (enabled: {module_enabled})")
                 else:
@@ -62,7 +65,8 @@ class ModuleManager:
     def _load_module_config(self):
         """Load module configuration from config.json."""
         try:
-            config = get_config('modules', default={})
+            config_manager = ConfigManager()
+            config = config_manager.get_section('modules', {})
             return config
         except Exception as e:
             logger.error(f"Error loading module config: {e}")
@@ -125,7 +129,7 @@ class ModuleManager:
             return "none"
         return hashlib.md5(str(content).encode()).hexdigest()
     
-    def process_content(self, clipboard_content, max_size=10485760):
+    def process_content(self, clipboard_content, max_size=DEFAULT_MAX_CLIPBOARD_SIZE):
         """
         Process clipboard content with all loaded modules.
         
@@ -141,7 +145,7 @@ class ModuleManager:
             logger.warning(f"Skipping oversized clipboard content ({len(clipboard_content)} bytes)")
             return False
         
-        with self.processing_lock:
+        with self.lock_manager.get_module_execution_lock():
             content_hash = self._get_content_hash(clipboard_content)
             if content_hash == self.last_processed_hash:
                 logger.debug("Skipping processing - content hash matches last processed")
@@ -156,7 +160,7 @@ class ModuleManager:
                     try:
                         module = self._load_module_if_needed(module_name, spec)
                         self.modules.append(module)
-                    except Exception as e:
+                    except (ImportError, AttributeError) as e:
                         logger.error(f"Error loading module {module_name}: {e}")
             
             # Process with loaded modules

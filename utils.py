@@ -342,17 +342,15 @@ class ContentTracker:
 def get_app_paths():
     """Return a dict of important app paths, unified with plist log locations."""
     # Use the same log paths as in the LaunchAgent plist
-    log_dir = os.path.expanduser("~/Library/Logs")
-    out_log = os.path.join(log_dir, "ClipboardMonitor.out.log")
-    err_log = os.path.join(log_dir, "ClipboardMonitor.err.log")
-    base_dir = safe_expanduser("~/Library/Application Support/ClipboardMonitor")
+    log_dir = Path(safe_expanduser("~/Library/Logs"))
+    base_dir = Path(safe_expanduser("~/Library/Application Support/ClipboardMonitor"))
     return {
-        "base_dir": base_dir,
-        "history_file": os.path.join(base_dir, "clipboard_history.json"),
-        "out_log": out_log,
-        "pause_flag": os.path.join(base_dir, "pause_flag"),
-        "err_log": err_log,
-        "status_file": os.path.join(base_dir, "status.txt")
+        "base_dir": str(base_dir),
+        "history_file": str(base_dir / "clipboard_history.json"),
+        "out_log": str(log_dir / "ClipboardMonitor.out.log"),
+        "pause_flag": str(base_dir / "pause_flag"),
+        "err_log": str(log_dir / "ClipboardMonitor.err.log"),
+        "status_file": str(base_dir / "status.txt")
     }
 
 def get_config(section=None, key=None, default=None):
@@ -367,9 +365,9 @@ def get_config(section=None, key=None, default=None):
         Full config dict, section dict, or specific value
     """
     try:
-        config_path = os.path.join(os.path.dirname(__file__), 'config.json')
-        if os.path.exists(config_path):
-            with open(config_path, 'r') as f:
+        config_path = Path(__file__).parent / 'config.json'
+        if config_path.exists():
+            with config_path.open('r') as f:
                 config = json.load(f)
                 
             if section is None:
@@ -380,18 +378,18 @@ def get_config(section=None, key=None, default=None):
                 else:
                     return config[section].get(key, default)
         return default
-    except Exception as e:
+    except (OSError, json.JSONDecodeError) as e:
         logging.error(f"Error loading config: {e}")
         return default
 
 def set_config_value(section, key, value):
     """Set a configuration value in config.json"""
     try:
-        config_path = os.path.join(os.path.dirname(__file__), 'config.json')
+        config_path = Path(__file__).parent / 'config.json'
 
         # Load existing config
-        if os.path.exists(config_path):
-            with open(config_path, 'r') as f:
+        if config_path.exists():
+            with config_path.open('r') as f:
                 config = json.load(f)
         else:
             config = {}
@@ -404,11 +402,11 @@ def set_config_value(section, key, value):
         config[section][key] = value
 
         # Save back to file
-        with open(config_path, 'w') as f:
+        with config_path.open('w') as f:
             json.dump(config, f, indent=2)
 
         return True
-    except Exception as e:
+    except (OSError, json.JSONDecodeError, json.JSONEncodeError) as e:
         logger.error(f"Error setting config value {section}.{key}: {e}")
         return False
 
@@ -420,14 +418,14 @@ def load_clipboard_history():
     try:
         # Get history file path from config, with a fallback default
         history_path_str = get_config('history', 'save_location', "~/Library/Application Support/ClipboardMonitor/clipboard_history.json")
-        history_path = safe_expanduser(history_path_str)
+        history_path = Path(safe_expanduser(history_path_str))
 
-        if os.path.exists(history_path):
-            with open(history_path, 'r') as f:
+        if history_path.exists():
+            with history_path.open('r') as f:
                 history = json.load(f)
                 return history
         return []
-    except Exception as e:
+    except (OSError, json.JSONDecodeError) as e:
         logger.error(f"Error loading clipboard history from {history_path}: {e}")
         return []
 
@@ -480,10 +478,11 @@ def update_service_status(status):
     """
     try:
         paths = get_app_paths()
-        ensure_directory_exists(os.path.dirname(paths["status_file"]))
-        with open(paths["status_file"], 'w') as f:
+        status_file = Path(paths["status_file"])
+        ensure_directory_exists(str(status_file.parent))
+        with status_file.open('w') as f:
             f.write(status)
-    except Exception as e:
+    except OSError as e:
         logging.error(f"Error updating status file: {e}")
 
 def get_service_status():
@@ -494,16 +493,18 @@ def get_service_status():
     """
     try:
         paths = get_app_paths()
-        if os.path.exists(paths["status_file"]):
-            with open(paths["status_file"], 'r') as f:
+        status_file = Path(paths["status_file"])
+        if status_file.exists():
+            with status_file.open('r') as f:
                 return f.read().strip()
         return "unknown"
-    except Exception:
+    except OSError:
         return "unknown"
 
 def _write_log_header_if_needed(log_path, header):
-    if not os.path.exists(log_path) or os.path.getsize(log_path) == 0:
-        with open(log_path, 'a') as f:
+    log_file = Path(log_path)
+    if not log_file.exists() or log_file.stat().st_size == 0:
+        with log_file.open('a') as f:
             f.write(header)
 
 LOG_HEADER = (
@@ -529,10 +530,10 @@ def log_event(message, log_path=None, level="INFO", section_separator=False):
     # Use provided log_path or get from app paths
     if log_path is None:
         paths = get_app_paths()
-        log_path = paths.get("out_log", os.path.expanduser("~/ClipboardMonitor_output.log"))
+        log_path = paths.get("out_log", safe_expanduser("~/ClipboardMonitor_output.log"))
     
     _write_log_header_if_needed(log_path, LOG_HEADER)
-    with open(log_path, 'a') as f:
+    with Path(log_path).open('a') as f:
         if section_separator:
             f.write("\n" + "-" * 60 + "\n")
         f.write(log_line)
@@ -549,10 +550,10 @@ def log_error(message, log_path=None, multiline_details=None, section_separator=
     # Use provided log_path or get from app paths
     if log_path is None:
         paths = get_app_paths()
-        log_path = paths.get("err_log", os.path.expanduser("~/ClipboardMonitor_error.log"))
+        log_path = paths.get("err_log", safe_expanduser("~/ClipboardMonitor_error.log"))
     
     _write_log_header_if_needed(log_path, ERR_LOG_HEADER)
-    with open(log_path, 'a') as f:
+    with Path(log_path).open('a') as f:
         if section_separator:
             f.write("\n" + "-" * 60 + "\n")
         f.write(log_line)

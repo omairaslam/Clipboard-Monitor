@@ -11,23 +11,29 @@ import datetime
 
 try:
     # Try relative import first (when run as module)
-    from ..utils import show_notification, validate_string_input, ContentTracker, get_config, log_event, log_error
+    from ..utils import show_notification, validate_string_input, ContentTracker, log_event, log_error
+    from ..config_manager import ConfigManager
+    from ..lock_manager import LockManager
+    from ..constants import MARKDOWN_DETECTION_THRESHOLD, CONTENT_TRACKER_MAX_HISTORY
 except ImportError:
     # Fallback to adding parent directory to path (for standalone testing)
     sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    from utils import show_notification, validate_string_input, ContentTracker, get_config, log_event, log_error
+    from utils import show_notification, validate_string_input, ContentTracker, log_event, log_error
+    from config_manager import ConfigManager
+    from lock_manager import LockManager
+    from constants import MARKDOWN_DETECTION_THRESHOLD, CONTENT_TRACKER_MAX_HISTORY
 
 logger = logging.getLogger("markdown_module")
 
 # Global content tracker to prevent processing loops
-_content_tracker = ContentTracker(max_history=5)
-_processing_lock = threading.Lock()
+_content_tracker = ContentTracker(max_history=CONTENT_TRACKER_MAX_HISTORY)
+_lock_manager = LockManager()
 
 def process(clipboard_content, config=None) -> bool:
     """Process clipboard content as markdown and convert to RTF if it appears to be markdown"""
 
     # Prevent concurrent processing and loops
-    with _processing_lock:
+    with _lock_manager.get_clipboard_processing_lock():
         # Safety check for None or empty content
         if not validate_string_input(clipboard_content, "clipboard_content"):
             return False
@@ -42,7 +48,11 @@ def process(clipboard_content, config=None) -> bool:
 
             # Check if clipboard modification is enabled for markdown
             # Use module_config passed from main, or load if not provided (for standalone testing)
-            modify_clipboard = (config or get_config('modules')).get('markdown_modify_clipboard', True)
+            if config:
+                modify_clipboard = config.get('markdown_modify_clipboard', True)
+            else:
+                config_manager = ConfigManager()
+                modify_clipboard = config_manager.get_module_config('markdown_module').get('markdown_modify_clipboard', True)
 
             if modify_clipboard:
                 logger.info("[cyan]Converting markdown to RTF...[/cyan]")
@@ -79,8 +89,6 @@ def process(clipboard_content, config=None) -> bool:
                             logger.info("[yellow]Used pyperclip fallback for RTF copy[/yellow]")
 
                             # Indicate that clipboard was modified. Main app will handle history.
-                            return True
-
                             return True
 
                     except pyperclip.PyperclipException as e:
@@ -161,8 +169,8 @@ def is_markdown(text) -> bool:
                 if any(pattern.match(line.strip()) for pattern in patterns):
                     markdown_lines += 1
 
-        # Require at least 25% of non-empty lines to be markdown
-        return markdown_lines > 0 and (markdown_lines / total_lines) >= 0.25
+        # Use constant for markdown detection threshold
+        return markdown_lines > 0 and (markdown_lines / total_lines) >= MARKDOWN_DETECTION_THRESHOLD
 
     except (AttributeError, re.error) as e:
         logger.error(f"[bold red]Error checking markdown patterns:[/bold red] {e}")
