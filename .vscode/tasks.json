@@ -24,6 +24,28 @@
             "problemMatcher": []
         },
         {
+            "label": "Tail Menu Service Output Log",
+            "type": "shell",
+            "command": "tail -f '/Users/omair.aslam/Library/Logs/ClipboardMonitorMenuBar.out.log'",
+            "group": "none",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Tail Menu Service Error Log",
+            "type": "shell",
+            "command": "tail -f '/Users/omair.aslam/Library/Logs/ClipboardMonitorMenuBar.err.log'",
+            "group": "none",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": []
+        },
+        {
             "label": "Restart Main Service",
             "type": "shell",
             "command": "launchctl unload ~/Library/LaunchAgents/com.omairaslam.clipboardmonitor.plist && sleep 1 && launchctl load ~/Library/LaunchAgents/com.omairaslam.clipboardmonitor.plist",

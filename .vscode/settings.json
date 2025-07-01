@@ -12,6 +12,16 @@
             "tooltip": "Tail the main service's error log"
         },
         {
+            "label": "Tail Menu Output",
+            "task": "Tail Menu Service Output Log",
+            "tooltip": "Tail the menubar application's output log"
+        },
+        {
+            "label": "Tail Menu Error",
+            "task": "Tail Menu Service Error Log",
+            "tooltip": "Tail the menubar application's error log"
+        },
+        {
             "label": "Restart Main",
             "task": "Restart Main Service",
             "tooltip": "Restart the main Clipboard Monitor service",
