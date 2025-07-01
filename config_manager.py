@@ -35,12 +35,13 @@ class ConfigManager:
     
     def _load_config(self):
         """
-        Load configuration from config.json if available.
+        Load configuration from config.json, merging with defaults.
         
         Returns:
             dict: Loaded configuration with defaults applied
         """
-        config = DEFAULT_CONFIG.copy()
+        # Start with a deep copy of the defaults to avoid modifying the original
+        config = json.loads(json.dumps(DEFAULT_CONFIG))
         
         try:
             config_file = Path(self.config_path)
@@ -48,16 +49,14 @@ class ConfigManager:
                 with config_file.open('r') as f:
                     user_config = json.load(f)
                 
-                # Update general settings
-                if 'general' in user_config:
-                    for key, value in user_config['general'].items():
-                        if key in config:
-                            config[key] = value
-                
-                # Add support for performance, history, and security sections
-                for section in ['performance', 'history', 'security', 'modules']:
-                    if section in user_config:
-                        config[section] = user_config[section]
+                # Deep merge user config over defaults
+                for section, settings in user_config.items():
+                    if section in config and isinstance(config[section], dict):
+                        # Update existing section
+                        config[section].update(settings)
+                    else:
+                        # Add new section if it doesn't exist in defaults
+                        config[section] = settings
                 
                 logger.info(f"Loaded configuration from {self.config_path}")
             else:
@@ -94,6 +93,20 @@ class ConfigManager:
         """
         return self.config.get(section, default or {})
     
+    def get_config_value(self, section, key, default=None):
+        """
+        Get a specific configuration value from a section.
+        
+        Args:
+            section (str): The configuration section (e.g., 'general').
+            key (str): The key within the section.
+            default: The default value to return if not found.
+            
+        Returns:
+            The configuration value or the default.
+        """
+        return self.config.get(section, {}).get(key, default)
+
     def set(self, key, value):
         """
         Set a configuration value (in memory only).
@@ -138,7 +151,7 @@ class ConfigManager:
         Returns:
             bool: True if debug mode enabled
         """
-        return self.config.get('debug_mode', False)
+        return self.get_config_value('general', 'debug_mode', False)
     
     def get_polling_interval(self):
         """
@@ -147,7 +160,7 @@ class ConfigManager:
         Returns:
             float: Polling interval in seconds
         """
-        return self.config.get('polling_interval', DEFAULT_POLLING_INTERVAL)
+        return self.get_config_value('general', 'polling_interval', DEFAULT_POLLING_INTERVAL)
     
     def get_enhanced_check_interval(self):
         """
@@ -156,7 +169,7 @@ class ConfigManager:
         Returns:
             float: Check interval in seconds
         """
-        return self.config.get('enhanced_check_interval', DEFAULT_ENHANCED_CHECK_INTERVAL)
+        return self.get_config_value('general', 'enhanced_check_interval', DEFAULT_ENHANCED_CHECK_INTERVAL)
     
     def get_max_clipboard_size(self):
         """
@@ -165,8 +178,7 @@ class ConfigManager:
         Returns:
             int: Maximum size in bytes
         """
-        security_config = self.get_section('security', {})
-        return security_config.get('max_clipboard_size', DEFAULT_MAX_CLIPBOARD_SIZE)
+        return self.get_config_value('security', 'max_clipboard_size', DEFAULT_MAX_CLIPBOARD_SIZE)
     
     def get_module_config(self, module_name=None):
         """
