@@ -44,29 +44,36 @@ def setup_logging(out_log_path=None, err_log_path=None):
     error_handler.setLevel(logging.WARNING)
     error_logger.addHandler(error_handler)
 
-def show_notification(title, message):
+def show_notification(title, subtitle=None, message=None, *args, **kwargs):
     """
     Show a notification using AppleScript (macOS).
-    
     Args:
         title (str): The notification title
-        message (str): The notification message
+        subtitle (str, optional): The notification subtitle (ignored in AppleScript, included for compatibility)
+        message (str, optional): The notification message
     """
     try:
         # Sanitize inputs to prevent AppleScript injection
         title = validate_string_input(title, "title", default="Notification")
-        message = validate_string_input(message, "message", default="")
-        
+        if subtitle is not None:
+            subtitle = validate_string_input(subtitle, "subtitle", default="")
+        if message is None and subtitle is not None:
+            message = subtitle
+        elif message is None:
+            message = ""
+        else:
+            message = validate_string_input(message, "message", default="")
+
         # Escape quotes to prevent AppleScript injection
-        title = title.replace('"', '\\"')
-        message = message.replace('"', '\\"')
-        
+        title = title.replace('"', '\"')
+        message = message.replace('"', '\"')
+
         # Show notification using AppleScript
         subprocess.run([
             "osascript", "-e",
             f'display notification "{message}" with title "{title}"'
         ], check=True, timeout=3)
-        
+
         logger.debug(f"Notification shown: {title} - {message}")
     except subprocess.TimeoutExpired:
         logger.error("Notification timed out")
