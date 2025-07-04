@@ -5,6 +5,7 @@ import json
 import re
 import logging # For logging
 from pathlib import Path
+import pyperclip
 try:
     # Try relative import first (when run as module)
     from ..utils import show_notification, log_event, log_error
@@ -82,16 +83,23 @@ def create_mermaid_url(mermaid_code):
         log_error(f"Error creating Mermaid URL: {str(e)}")
         return None
 
-def launch_mermaid_chart(mermaid_code):
-    """Launch the Mermaid diagram in browser"""
+def launch_mermaid_chart(mermaid_code, config=None):
+    """Launch the Mermaid diagram in browser and optionally copy URL to clipboard"""
     try:
         url = create_mermaid_url(mermaid_code)
-        if url:
-            log_event("Opening Mermaid diagram in browser...", level="INFO")
-            webbrowser.open_new(url)
-            show_notification("Mermaid Chart", "Opening diagram in Mermaid Live Editor...", "")
-            return True
-        return False
+        if not url:
+            return False
+
+        log_event("Opening Mermaid diagram in browser...", level="INFO")
+        webbrowser.open_new(url)
+        show_notification("Mermaid Chart", "Opening diagram in Mermaid Live Editor...", "")
+
+        if config and config.get('mermaid_copy_url', False):
+            pyperclip.copy(url)
+            show_notification("Mermaid URL Copied", "The encoded URL has been copied to the clipboard.", "")
+            return True  # Clipboard was modified
+
+        return False  # Clipboard was not modified
     except Exception as e:
         log_error(f"Error launching chart: {str(e)}")
         return False
@@ -113,8 +121,8 @@ def process(clipboard_content, config=None):
             sanitized_content = sanitize_mermaid_content(clipboard_content)
             
             # Launch mermaid chart but return False since clipboard isn't modified
-            launch_mermaid_chart(sanitized_content)
-            return False  # Changed from True to False as clipboard isn't modified
+            # Launch mermaid chart and check if clipboard was modified
+            return launch_mermaid_chart(sanitized_content, config)
     except Exception as e: # Log error
         log_error(f"Error processing clipboard: {str(e)}")
         

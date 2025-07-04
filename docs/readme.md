@@ -29,6 +29,7 @@
 ### 🛠️ **Content Processing**
 - 📝 **Markdown Processing**: Automatically convert markdown to rich text with comprehensive formatting support
 - 🎨 **Mermaid Diagram Detection**: Open Mermaid diagrams in the Mermaid Live Editor with multiple diagram types
+- 📈 **Draw.io Diagram Detection**: Detects Draw.io data on the clipboard and opens it directly in the Draw.io web editor for instant viewing and editing.
 - 💻 **Code Formatting**: Automatically format code snippets with language detection (read-only by default)
 
 ### 🔒 **Security & Performance**
@@ -99,10 +100,10 @@ launchctl load ~/Library/LaunchAgents/com.omairaslam.clipboardmonitor.plist
 | Module | Icon | Function | Clipboard Modification | Status |
 |--------|------|----------|----------------------|--------|
 | **Markdown** | 📝 | Converts markdown to rich text format (RTF) | ✅ **Modifies** (default: enabled) | ![Status](https://img.shields.io/badge/Status-Active-green) |
-| **Mermaid** | 🎨 | Opens Mermaid diagrams in Live Editor | ❌ **Read-only** (opens browser) | ![Status](https://img.shields.io/badge/Status-Active-green) |
+| **Mermaid** | 🎨 | Opens Mermaid diagrams in Live Editor | ⚠️ **Read-only by default** (configurable) | ![Status](https://img.shields.io/badge/Status-Active-green) |
 | **History** | 🕒 | Tracks clipboard history with timestamps | ❌ **Read-only** (tracking only) | ![Status](https://img.shields.io/badge/Status-Active-green) |
 | **Code Formatter** | 💻 | Detects and formats code snippets | ⚠️ **Read-only by default** (configurable) | ![Status](https://img.shields.io/badge/Status-Active-green) |
-| **Draw.io** | 📈 | Opens Draw.io diagrams in the browser | ❌ **Read-only** (opens browser) | ![Status](https://img.shields.io/badge/Status-Active-green) |
+| **Draw.io** | 📈 | Opens Draw.io diagrams in the browser | ⚠️ **Read-only by default** (configurable) | ![Status](https://img.shields.io/badge/Status-Active-green) |
 
 ### 📝 **Markdown Module**
 - 🎯 **Purpose**: Detects and converts markdown content to rich text format (RTF)
@@ -111,7 +112,7 @@ launchctl load ~/Library/LaunchAgents/com.omairaslam.clipboardmonitor.plist
 
 ### 🎨 **Mermaid Module**
 - 🎯 **Purpose**: Detects Mermaid diagram syntax and opens in Live Editor
-- 🔒 **Behavior**: **Never modifies clipboard content** - only opens browser
+- ⚙️ **Behavior**: **Read-only by default** - can be configured to write the encoded URL back to the clipboard.
 - 🛡️ **Security**: Sanitizes content for safe processing
 
 ### 🕒 **History Module**
@@ -126,7 +127,7 @@ launchctl load ~/Library/LaunchAgents/com.omairaslam.clipboardmonitor.plist
 
 ### 📈 **Draw.io Module**
 - 🎯 **Purpose**: Detects Draw.io diagram data and opens it in the Draw.io web editor.
-- 🔒 **Behavior**: **Never modifies clipboard content** - only opens the browser.
+- ⚙️ **Behavior**: **Read-only by default** - can be configured to write the encoded URL back to the clipboard.
 - 🔧 **Configuration**: Settings are available in the menu bar under **Preferences** → **Draw.io Settings**.
 
 ## 📚 History Viewers

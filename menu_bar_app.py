@@ -158,6 +158,7 @@ class ClipboardMonitorMenuBar(rumps.App):
         self.prefs_menu.add(self._create_security_settings_menu())
         self.prefs_menu.add(self._create_clipboard_modification_menu())
         self.prefs_menu.add(self._create_drawio_settings_menu())
+        self.prefs_menu.add(self._create_mermaid_settings_menu())
         self.prefs_menu.add(self._create_configuration_management_menu())
 
     def _create_general_settings_menu(self):
@@ -256,6 +257,31 @@ class ClipboardMonitorMenuBar(rumps.App):
         self.drawio_open_browser_item.state = self.config_manager.get_config_value('modules', 'drawio_open_in_browser', True)
         drawio_menu.add(self.drawio_open_browser_item)
         return drawio_menu
+
+    def _create_mermaid_settings_menu(self):
+        """Create the 'Mermaid Settings' submenu."""
+        mermaid_menu = rumps.MenuItem("Mermaid Settings")
+        self.mermaid_copy_url_item = rumps.MenuItem("Mermaid: Copy URL", callback=self.toggle_mermaid_setting)
+        self.mermaid_copy_url_item.state = self.config_manager.get_config_value('modules', 'mermaid_copy_url', False)
+        mermaid_menu.add(self.mermaid_copy_url_item)
+        return mermaid_menu
+
+    def toggle_mermaid_setting(self, sender):
+        """Toggle Mermaid specific settings."""
+        sender.state = not sender.state
+        
+        setting_map = {
+            "Mermaid: Copy URL": "mermaid_copy_url"
+        }
+        
+        config_key = setting_map.get(sender.title)
+        if config_key:
+            if set_config_value('modules', config_key, sender.state):
+                rumps.notification("Clipboard Monitor", "Mermaid Setting",
+                                  f"{sender.title} is now {'enabled' if sender.state else 'disabled'}")
+                self.restart_service(None)
+            else:
+                rumps.notification("Error", "Failed to update Mermaid setting", "Could not save configuration")
  
     def _build_main_menu(self):
         """Build the main menu structure."""

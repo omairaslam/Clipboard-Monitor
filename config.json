@@ -13,17 +13,18 @@
     "process_large_content": true,
     "max_module_execution_time": 500
   },
-    "modules": {
-        "markdown_module": 0,
-        "mermaid_module": true,
-        "drawio_module": true,
-        "history_module": true,
-        "code_formatter_module": false,
-        "markdown_modify_clipboard": true,
-        "code_formatter_modify_clipboard": false,
-        "drawio_copy_url": true,
-        "drawio_open_in_browser": true
-    },
+  "modules": {
+    "markdown_module": 0,
+    "mermaid_module": true,
+    "drawio_module": true,
+    "history_module": true,
+    "code_formatter_module": false,
+    "markdown_modify_clipboard": true,
+    "code_formatter_modify_clipboard": false,
+    "drawio_copy_url": true,
+    "drawio_open_in_browser": true,
+    "mermaid_copy_url": 1
+  },
   "history": {
     "max_items": 100,
     "max_content_length": 10000,
