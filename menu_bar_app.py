@@ -266,7 +266,7 @@ class ClipboardMonitorMenuBar(rumps.App):
     def _create_advanced_settings_menu(self):
         """Create the 'Advanced Settings' submenu."""
         advanced_menu = rumps.MenuItem("Advanced Settings")
-        advanced_menu.add(self._create_performance_settings_menu())
+        advanced_menu.add(self._create_performance_settings_menu())  # Corrected method name
         advanced_menu.add(self._create_security_settings_menu())
         advanced_menu.add(self._create_configuration_management_menu())
         return advanced_menu
