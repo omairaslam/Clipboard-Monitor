@@ -90,16 +90,34 @@ def launch_mermaid_chart(mermaid_code, config=None):
         if not url:
             return False
 
-        log_event("Opening Mermaid diagram in browser...", level="INFO")
-        webbrowser.open_new(url)
-        show_notification("Mermaid Chart", "Opening diagram in Mermaid Live Editor...", "")
+        # Determine whether to open in browser based on config
+        # Default to True if the setting is not present
+        open_browser = config.get('mermaid_open_in_browser', True) if config else True
+        copied_to_clipboard = False
+
+        if open_browser:
+            log_event("Opening Mermaid diagram in browser...", level="INFO")
+            webbrowser.open_new(url)
+            show_notification("Mermaid Chart", "Opening diagram in Mermaid Live Editor...", "")
+        else:
+            log_event("Mermaid diagram processed, browser launch disabled by user.", level="INFO")
 
         if config and config.get('mermaid_copy_url', False):
-            pyperclip.copy(url)
-            show_notification("Mermaid URL Copied", "The encoded URL has been copied to the clipboard.", "")
-            return True  # Clipboard was modified
+            if pyperclip:
+                pyperclip.copy(url)
+                # Adjust notification if browser was not opened
+                if open_browser:
+                    show_notification("Mermaid URL Copied", "The encoded URL has been copied to the clipboard.", "")
+                else:
+                    show_notification("Mermaid URL Copied", "URL copied. Browser launch is off.", "")
+                copied_to_clipboard = True
+            else:
+                log_error("pyperclip is not available, cannot copy URL for Mermaid.")
 
-        return False  # Clipboard was not modified
+        # The function should return True if the clipboard content was modified (URL copied),
+        # otherwise False. The act of opening a browser does not modify the clipboard.
+        return copied_to_clipboard
+
     except Exception as e:
         log_error(f"Error launching chart: {str(e)}")
         return False
@@ -109,24 +127,22 @@ def process(clipboard_content, config=None):
     log_event("Processing clipboard content...", level="DEBUG")
     
     if not clipboard_content:
-        return False
+        return False # Indicate no modification or action taken on clipboard
         
     try:
-        if is_mermaid_code(clipboard_content): # Use centralized notification
-            show_notification("Mermaid Detected", "",
-                "Processing Mermaid diagram..."
-            )
+        if is_mermaid_code(clipboard_content):
+            show_notification("Mermaid Detected", "", "Processing Mermaid diagram...")
             
-            # Sanitize parentheses in node text to prevent Mermaid parsing errors
             sanitized_content = sanitize_mermaid_content(clipboard_content)
             
-            # Launch mermaid chart but return False since clipboard isn't modified
-            # Launch mermaid chart and check if clipboard was modified
+            # Pass the config to launch_mermaid_chart
+            # The return value of process should indicate if clipboard was modified
             return launch_mermaid_chart(sanitized_content, config)
-    except Exception as e: # Log error
+
+    except Exception as e:
         log_error(f"Error processing clipboard: {str(e)}")
         
-    return False
+    return False # Indicate no modification or action taken on clipboard
 
 def sanitize_mermaid_content(mermaid_code):
     """Sanitize Mermaid content to handle problematic characters"""

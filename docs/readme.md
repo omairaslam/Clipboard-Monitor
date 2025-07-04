@@ -112,7 +112,12 @@ launchctl load ~/Library/LaunchAgents/com.omairaslam.clipboardmonitor.plist
 
 ### 🎨 **Mermaid Module**
 - 🎯 **Purpose**: Detects Mermaid diagram syntax and opens in Live Editor
-- ⚙️ **Behavior**: **Read-only by default** - can be configured to write the encoded URL back to the clipboard.
+- ⚙️ **Behavior**:
+    - **Read-only by default** for clipboard modification.
+    - **Opens in browser by default.**
+    - Both behaviors (copy URL to clipboard, open in browser) are configurable via the menu bar:
+        - **Copy URL**: `Preferences` → `Module Settings` → `Mermaid Settings` → `Copy URL`
+        - **Open in Browser**: `Preferences` → `Module Settings` → `Mermaid Settings` → `Open in Browser`
 - 🛡️ **Security**: Sanitizes content for safe processing
 
 ### 🕒 **History Module**
