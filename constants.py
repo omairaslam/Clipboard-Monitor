@@ -88,13 +88,32 @@ DEFAULT_MODULES_CONFIG = {
     'mermaid_modify_clipboard': False, # This likely refers to modifying clipboard content, not URL copying or browser opening
     'mermaid_copy_url': False, # Default for copying URL specifically for Mermaid
     'mermaid_open_in_browser': True, # Default for opening browser for Mermaid
+    'mermaid_theme': "default", # Options: "default", "dark", "forest", "neutral"
     'history_enabled': True,
-    # drawio settings are typically handled similarly, ensuring drawio_copy_url and drawio_open_in_browser have defaults
-    # (often True by default in their respective get_config_value calls if not found)
-    # For consistency, we can list them here if desired, though the current structure might rely on get_config_value defaults.
-    # 'drawio_copy_url': True, # Example if we wanted to explicitly define all module sub-settings here
-    # 'drawio_open_in_browser': True # Example
+    # Draw.io specific URL parameters
+    'drawio_copy_url': True, # Existing setting, kept for clarity
+    'drawio_open_in_browser': True, # Existing setting, kept for clarity
+    'drawio_lightbox': True,
+    'drawio_edit_mode': "_blank", # e.g., "_blank", "local", "device"
+    'drawio_layers': True,
+    'drawio_nav': True,
 }
+
+# Mermaid themes for menu
+MERMAID_THEMES = {
+    "Default": "default",
+    "Dark": "dark",
+    "Forest": "forest",
+    "Neutral": "neutral"
+}
+
+# Draw.io edit modes for menu
+DRAWIO_EDIT_MODES = {
+    "New Tab (_blank)": "_blank",
+    "Local": "local", # Assuming "local" is a valid option, placeholder
+    "Device": "device"  # Assuming "device" is a valid option, placeholder
+}
+
 
 # Complete default configuration
 DEFAULT_CONFIG = {

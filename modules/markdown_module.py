@@ -98,9 +98,13 @@ def process(clipboard_content, config=None) -> bool:
                         logger.error(f"[bold red]Unexpected error during RTF copy:[/bold red] {e}")
                         return False
             else:
-                # Read-only mode: just notify about markdown detection
-                show_notification("Markdown Detected", "Markdown detected (read-only mode)", "")
-                logger.info("[blue]Markdown detected but clipboard modification disabled[/blue]")
+                # Modification is disabled. Show an alert/notification.
+                logger.info("[yellow]Markdown detected but module is not allowed to modify clipboard. Alerting user.[/yellow]")
+                show_notification(
+                    "Clipboard Access Denied",
+                    "Markdown Module attempted to process clipboard content.",
+                    "Modification is disabled. You can enable it in Preferences > Security Settings > Clipboard Modification."
+                )
                 return False  # Don't modify clipboard
 
         return False    # Indicate that content was not processed

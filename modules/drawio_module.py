@@ -26,8 +26,9 @@ except ImportError:
     from utils import show_notification, log_event, log_error
     from config_manager import ConfigManager
 
-
-DRAWIO_URL_TEMPLATE = "https://app.diagrams.net/?lightbox=1&edit=_blank&layers=1&nav=1#R{encoded}"
+# Default base URL, can be overridden by config in the future if needed.
+# For now, we are not making base_url configurable based on user feedback.
+DRAWIO_BASE_URL = "https://app.diagrams.net/"
 
 def is_drawio_xml(xml_str):
     """
@@ -77,16 +78,37 @@ def process(clipboard_content, config=None):
     try:
         log_event("Encoding Draw.io URL.", level="DEBUG")
         url_fragment = encode_drawio_url(clipboard_content)
-        full_url = DRAWIO_URL_TEMPLATE.format(encoded=url_fragment)
 
-        copy_url = config.get("drawio_copy_url", True)
-        open_browser = config.get("drawio_open_in_browser", True)
-        log_event(f"Config settings: copy_url={copy_url}, open_browser={open_browser}", level="DEBUG")
+        # Retrieve URL parameters from config
+        lightbox = config.get("drawio_lightbox", True)
+        edit_mode = config.get("drawio_edit_mode", "_blank")
+        layers = config.get("drawio_layers", True)
+        nav = config.get("drawio_nav", True)
+
+        # Construct query parameters string
+        params = []
+        if lightbox:
+            params.append("lightbox=1")
+        if edit_mode: # Assuming edit_mode will always have a value, e.g., "_blank"
+            params.append(f"edit={edit_mode}")
+        if layers:
+            params.append("layers=1")
+        if nav:
+            params.append("nav=1")
+
+        param_string = "&".join(params)
+
+        full_url = f"{DRAWIO_BASE_URL}?{param_string}#R{url_fragment}"
+        log_event(f"Constructed Draw.io URL: {full_url}", level="DEBUG")
+
+        copy_url_enabled = config.get("drawio_copy_url", True) # Renamed to avoid conflict
+        open_browser_enabled = config.get("drawio_open_in_browser", True) # Renamed to avoid conflict
+        log_event(f"Config settings: copy_url={copy_url_enabled}, open_browser={open_browser_enabled}", level="DEBUG")
         
         notification_message = []
         new_clipboard_content = None
 
-        if copy_url:
+        if copy_url_enabled:
             if pyperclip:
                 pyperclip.copy(full_url)
                 new_clipboard_content = full_url
@@ -95,7 +117,7 @@ def process(clipboard_content, config=None):
             else:
                 log_error("pyperclip is not available, cannot copy URL.")
 
-        if open_browser:
+        if open_browser_enabled:
             webbrowser.open_new(full_url)
             notification_message.append("opened in browser")
             log_event("Opened URL in browser.", level="DEBUG")
