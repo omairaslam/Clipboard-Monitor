@@ -1,0 +1,888 @@
+test_cli_clear_history_command (tests.test_clear_history_comprehensive.TestClearHistoryFunctionality)
+Test CLI clear history command functionality ... FAIL
+test_concurrent_clear_operations (tests.test_clear_history_comprehensive.TestClearHistoryFunctionality)
+Test concurrent clear history operations ... FAIL
+test_history_file_error_handling (tests.test_clear_history_comprehensive.TestClearHistoryFunctionality)
+Test error handling when history file operations fail ... 
+🧪 Testing CLI clear history command...
+[93m📭 No history to clear.[0m
+
+🧪 Testing concurrent clear operations...
+[93m📭 No history to clear.[0m
+[93m📭 No history to clear.[0m
+[93m📭 No history to clear.[0m
+
+🧪 Testing clear history error handling...
+[93m📭 No history to clear.[0m
+  ✅ CLI handles file errors gracefully
+[2025-07-04 01:09:01] [INFO ] | Loaded configuration from /var/folders/j6/yqln6_ns6_v7sjb42yhbzxfm4vtyfm/T/tmprlmzgr57/config.json
+  ✅ Menu bar handles file errors gracefully
+[2025-07-04 01:09:01] [INFO ] | Loaded configuration from /var/folders/j6/yqln6_ns6_v7sjb42yhbzxfm4vtyfm/T/tmprlmzgr57/config.json
+ok
+test_menu_bar_clear_history (tests.test_clear_history_comprehensive.TestClearHistoryFunctionality)
+Test menu bar clear history functionality ... [2025-07-04 01:09:01] [INFO ] | Loaded configuration from /var/folders/j6/yqln6_ns6_v7sjb42yhbzxfm4vtyfm/T/tmph9i5zg14/config.json
+
+🧪 Testing menu bar clear history...
+[2025-07-04 01:09:01] [INFO ] | Loaded configuration from /var/folders/j6/yqln6_ns6_v7sjb42yhbzxfm4vtyfm/T/tmph9i5zg14/config.json
+/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/utils.py:34: ResourceWarning: unclosed file <_io.TextIOWrapper name='/var/folders/j6/yqln6_ns6_v7sjb42yhbzxfm4vtyfm/T/tmprlmzgr57/out.log' mode='a' encoding='UTF-8'>
+  for handler in logging.root.handlers[:]:
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+[2025-07-04 01:09:01] [INFO ] | Loaded configuration from /var/folders/j6/yqln6_ns6_v7sjb42yhbzxfm4vtyfm/T/tmph9i5zg14/config.json
+[2025-07-04 01:09:01] [INFO ] | Loaded configuration from /var/folders/j6/yqln6_ns6_v7sjb42yhbzxfm4vtyfm/T/tmph9i5zg14/config.json
+FAIL
+test_configuration_defaults (tests.test_configuration_comprehensive.TestConfiguration)
+Test configuration default values ... [2025-07-04 01:09:01] [INFO ] | No config.json found, using defaults
+
+🧪 Testing configuration defaults...
+[2025-07-04 01:09:01] [INFO ] | Loaded configuration from /var/folders/j6/yqln6_ns6_v7sjb42yhbzxfm4vtyfm/T/tmpf2krf1n8/config.json
+FAIL
+test_configuration_environment_override (tests.test_configuration_comprehensive.TestConfiguration)
+Test configuration override from environment variables ... [2025-07-04 01:09:01] [INFO ] | No config.json found, using defaults
+
+🧪 Testing configuration environment override...
+  ✅ Configuration environment override tested
+[2025-07-04 01:09:01] [INFO ] | Loaded configuration from /var/folders/j6/yqln6_ns6_v7sjb42yhbzxfm4vtyfm/T/tmpdmhqey8j/config.json
+ok
+test_configuration_file_permissions (tests.test_configuration_comprehensive.TestConfiguration)
+Test handling of configuration file permission issues ... [2025-07-04 01:09:01] [INFO ] | No config.json found, using defaults
+
+🧪 Testing configuration file permissions...
+[2025-07-04 01:09:01] [INFO ] | Loaded configuration from /var/folders/j6/yqln6_ns6_v7sjb42yhbzxfm4vtyfm/T/tmpt7mipcio/config.json
+FAIL
+test_configuration_type_safety (tests.test_configuration_comprehensive.TestConfiguration)
+Test configuration type safety ... [2025-07-04 01:09:01] [INFO ] | No config.json found, using defaults
+
+🧪 Testing configuration type safety...
+  ✅ Configuration type safety working correctly
+[2025-07-04 01:09:01] [INFO ] | Loaded configuration from /var/folders/j6/yqln6_ns6_v7sjb42yhbzxfm4vtyfm/T/tmp2xfqz0eh/config.json
+ok
+test_configuration_validation (tests.test_configuration_comprehensive.TestConfiguration)
+Test configuration value validation ... [2025-07-04 01:09:01] [INFO ] | No config.json found, using defaults
+
+🧪 Testing configuration validation...
+  ✅ Configuration validation working correctly
+[2025-07-04 01:09:01] [INFO ] | Loaded configuration from /var/folders/j6/yqln6_ns6_v7sjb42yhbzxfm4vtyfm/T/tmpnmjaom_o/config.json
+ok
+test_corrupted_configuration_file (tests.test_configuration_comprehensive.TestConfiguration)
+Test handling of corrupted configuration files ... [2025-07-04 01:09:01] [INFO ] | No config.json found, using defaults
+
+🧪 Testing corrupted configuration files...
+[2025-07-04 01:09:01] [INFO ] | Loaded configuration from /var/folders/j6/yqln6_ns6_v7sjb42yhbzxfm4vtyfm/T/tmp42qsthis/config.json
+FAIL
+test_missing_configuration_file (tests.test_configuration_comprehensive.TestConfiguration)
+Test handling of missing configuration file ... [2025-07-04 01:09:01] [INFO ] | No config.json found, using defaults
+
+🧪 Testing missing configuration file...
+[2025-07-04 01:09:01] [INFO ] | Loaded configuration from /var/folders/j6/yqln6_ns6_v7sjb42yhbzxfm4vtyfm/T/tmpbhjkhvh0/config.json
+FAIL
+test_valid_configuration_loading (tests.test_configuration_comprehensive.TestConfiguration)
+Test loading valid configuration ... [2025-07-04 01:09:01] [INFO ] | No config.json found, using defaults
+
+🧪 Testing valid configuration loading...
+[2025-07-04 01:09:01] [INFO ] | Loaded configuration from /var/folders/j6/yqln6_ns6_v7sjb42yhbzxfm4vtyfm/T/tmpxkg0icwa/config.json
+FAIL
+test_error_recovery_workflow (tests.test_end_to_end_workflows.TestEndToEndWorkflows)
+Test error recovery in complete workflows ... [2025-07-04 01:09:01] [INFO ] | Loaded configuration from /var/folders/j6/yqln6_ns6_v7sjb42yhbzxfm4vtyfm/T/tmpo278vay8/config.json
+
+🧪 Testing error recovery workflow...
+[2025-07-04 01:09:01] [INFO ] | Loaded configuration from /var/folders/j6/yqln6_ns6_v7sjb42yhbzxfm4vtyfm/T/tmpo278vay8/config.json
+[2025-07-04 01:09:01] [INFO ] | Loaded configuration from /var/folders/j6/yqln6_ns6_v7sjb42yhbzxfm4vtyfm/T/tmpo278vay8/config.json
+[2025-07-04 01:09:01] [INFO ] | Loaded configuration from /var/folders/j6/yqln6_ns6_v7sjb42yhbzxfm4vtyfm/T/tmpo278vay8/config.json
+[2025-07-04 01:09:01] [INFO ] | Loaded configuration from /var/folders/j6/yqln6_ns6_v7sjb42yhbzxfm4vtyfm/T/tmpo278vay8/config.json
+  ✅ Error recovery workflow complete
+[2025-07-04 01:09:01] [INFO ] | Loaded configuration from /var/folders/j6/yqln6_ns6_v7sjb42yhbzxfm4vtyfm/T/tmpo278vay8/config.json
+ok
+test_history_viewer_integration_workflow (tests.test_end_to_end_workflows.TestEndToEndWorkflows)
+Test integration between all history viewers ... [2025-07-04 01:09:01] [INFO ] | Loaded configuration from /var/folders/j6/yqln6_ns6_v7sjb42yhbzxfm4vtyfm/T/tmp274o566k/config.json
+
+🧪 Testing history viewer integration workflow...
+[2025-07-04 01:09:01] [INFO ] | Loaded configuration from /var/folders/j6/yqln6_ns6_v7sjb42yhbzxfm4vtyfm/T/tmp274o566k/config.json
+[2025-07-04 01:09:01] [INFO ] | Loaded configuration from /var/folders/j6/yqln6_ns6_v7sjb42yhbzxfm4vtyfm/T/tmp274o566k/config.json
+[2025-07-04 01:09:01] [INFO ] | Loaded configuration from /var/folders/j6/yqln6_ns6_v7sjb42yhbzxfm4vtyfm/T/tmp274o566k/config.json
+[2025-07-04 01:09:01] [INFO ] | Loaded configuration from /var/folders/j6/yqln6_ns6_v7sjb42yhbzxfm4vtyfm/T/tmp274o566k/config.json
+[2025-07-04 01:09:01] [INFO ] | Loaded configuration from /var/folders/j6/yqln6_ns6_v7sjb42yhbzxfm4vtyfm/T/tmp274o566k/config.json
+[2025-07-04 01:09:01] [INFO ] | Loaded configuration from /var/folders/j6/yqln6_ns6_v7sjb42yhbzxfm4vtyfm/T/tmp274o566k/config.json
+[2025-07-04 01:09:01] [INFO ] | Loaded configuration from /var/folders/j6/yqln6_ns6_v7sjb42yhbzxfm4vtyfm/T/tmp274o566k/config.json
+[2025-07-04 01:09:01] [INFO ] | Loaded configuration from /var/folders/j6/yqln6_ns6_v7sjb42yhbzxfm4vtyfm/T/tmp274o566k/config.json
+[2025-07-04 01:09:01] [INFO ] | Loaded configuration from /var/folders/j6/yqln6_ns6_v7sjb42yhbzxfm4vtyfm/T/tmp274o566k/config.json
+[2025-07-04 01:09:01] [INFO ] | Loaded configuration from /var/folders/j6/yqln6_ns6_v7sjb42yhbzxfm4vtyfm/T/tmp274o566k/config.json
+[2025-07-04 01:09:01] [INFO ] | Loaded configuration from /var/folders/j6/yqln6_ns6_v7sjb42yhbzxfm4vtyfm/T/tmp274o566k/config.json
+[2025-07-04 01:09:01] [INFO ] | Loaded configuration from /var/folders/j6/yqln6_ns6_v7sjb42yhbzxfm4vtyfm/T/tmp274o566k/config.json
+[2025-07-04 01:09:01] [INFO ] | Loaded configuration from /var/folders/j6/yqln6_ns6_v7sjb42yhbzxfm4vtyfm/T/tmp274o566k/config.json
+[2025-07-04 01:09:01] [INFO ] | Loaded configuration from /var/folders/j6/yqln6_ns6_v7sjb42yhbzxfm4vtyfm/T/tmp274o566k/config.json
+/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/utils.py:34: ResourceWarning: unclosed file <_io.TextIOWrapper name='/var/folders/j6/yqln6_ns6_v7sjb42yhbzxfm4vtyfm/T/tmprlmzgr57/out.log' mode='a' encoding='UTF-8'>
+  for handler in logging.root.handlers[:]:
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+[2025-07-04 01:09:01] [INFO ] | Loaded configuration from /var/folders/j6/yqln6_ns6_v7sjb42yhbzxfm4vtyfm/T/tmp274o566k/config.json
+FAIL
+test_markdown_processing_workflow (tests.test_end_to_end_workflows.TestEndToEndWorkflows)
+Test complete markdown processing workflow ... [2025-07-04 01:09:01] [INFO ] | Loaded configuration from /var/folders/j6/yqln6_ns6_v7sjb42yhbzxfm4vtyfm/T/tmprmrnbvia/config.json
+
+🧪 Testing markdown processing workflow...
+[2025-07-04 01:09:01] [INFO ] | Markdown detected!
+[2025-07-04 01:09:01] [INFO ] | Loaded configuration from /var/folders/j6/yqln6_ns6_v7sjb42yhbzxfm4vtyfm/T/tmprmrnbvia/config.json
+[2025-07-04 01:09:01] [INFO ] | [cyan]Converting markdown to RTF...[/cyan]
+[2025-07-04 01:09:01] [WARNING] | Parameter 'message' is empty, using default
+[2025-07-04 01:09:02] [INFO ] | [bold blue]ATTEMPTING TO USE PBCOPY METHOD FOR RTF CLIPBOARD HANDLING[/bold blue]
+[2025-07-04 01:09:02] [INFO ] | [green]SUCCESS: Used pbcopy for RTF clipboard handling[/green]
+[2025-07-04 01:09:02] [INFO ] | [green]Converted to RTF and copied to clipboard![/green]
+[2025-07-04 01:09:02] [WARNING] | Parameter 'message' is empty, using default
+[2025-07-04 01:09:02] [INFO ] | Loaded configuration from /var/folders/j6/yqln6_ns6_v7sjb42yhbzxfm4vtyfm/T/tmprmrnbvia/config.json
+[2025-07-04 01:09:02] [INFO ] | Loaded configuration from /var/folders/j6/yqln6_ns6_v7sjb42yhbzxfm4vtyfm/T/tmprmrnbvia/config.json
+[2025-07-04 01:09:02] [INFO ] | Loaded configuration from /var/folders/j6/yqln6_ns6_v7sjb42yhbzxfm4vtyfm/T/tmprmrnbvia/config.json
+[2025-07-04 01:09:02] [INFO ] | Loaded configuration from /var/folders/j6/yqln6_ns6_v7sjb42yhbzxfm4vtyfm/T/tmprmrnbvia/config.json
+FAIL
+test_mermaid_diagram_workflow (tests.test_end_to_end_workflows.TestEndToEndWorkflows)
+Test complete mermaid diagram processing workflow ... [2025-07-04 01:09:02] [INFO ] | Loaded configuration from /var/folders/j6/yqln6_ns6_v7sjb42yhbzxfm4vtyfm/T/tmpqoeqbt4a/config.json
+
+🧪 Testing mermaid diagram workflow...
+[2025-07-04 01:09:02] [WARNING] | Parameter 'subtitle' is empty, using default
+[2025-07-04 01:09:02] [WARNING] | Parameter 'message' is empty, using default
+[2025-07-04 01:09:02] [INFO ] | Loaded configuration from /var/folders/j6/yqln6_ns6_v7sjb42yhbzxfm4vtyfm/T/tmpqoeqbt4a/config.json
+[2025-07-04 01:09:02] [INFO ] | Loaded configuration from /var/folders/j6/yqln6_ns6_v7sjb42yhbzxfm4vtyfm/T/tmpqoeqbt4a/config.json
+[2025-07-04 01:09:02] [INFO ] | Loaded configuration from /var/folders/j6/yqln6_ns6_v7sjb42yhbzxfm4vtyfm/T/tmpqoeqbt4a/config.json
+[2025-07-04 01:09:02] [INFO ] | Loaded configuration from /var/folders/j6/yqln6_ns6_v7sjb42yhbzxfm4vtyfm/T/tmpqoeqbt4a/config.json
+FAIL
+test_multi_module_processing_chain (tests.test_end_to_end_workflows.TestEndToEndWorkflows)
+Test content processing through multiple modules ... [2025-07-04 01:09:02] [INFO ] | Loaded configuration from /var/folders/j6/yqln6_ns6_v7sjb42yhbzxfm4vtyfm/T/tmp1ep3rd7r/config.json
+
+🧪 Testing multi-module processing chain...
+[2025-07-04 01:09:02] [INFO ] | Markdown detected!
+[2025-07-04 01:09:02] [INFO ] | Loaded configuration from /var/folders/j6/yqln6_ns6_v7sjb42yhbzxfm4vtyfm/T/tmp1ep3rd7r/config.json
+[2025-07-04 01:09:02] [INFO ] | [cyan]Converting markdown to RTF...[/cyan]
+[2025-07-04 01:09:02] [WARNING] | Parameter 'message' is empty, using default
+[2025-07-04 01:09:03] [INFO ] | [bold blue]ATTEMPTING TO USE PBCOPY METHOD FOR RTF CLIPBOARD HANDLING[/bold blue]
+[2025-07-04 01:09:03] [INFO ] | [green]SUCCESS: Used pbcopy for RTF clipboard handling[/green]
+[2025-07-04 01:09:03] [INFO ] | [green]Converted to RTF and copied to clipboard![/green]
+[2025-07-04 01:09:03] [WARNING] | Parameter 'message' is empty, using default
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /var/folders/j6/yqln6_ns6_v7sjb42yhbzxfm4vtyfm/T/tmp1ep3rd7r/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /var/folders/j6/yqln6_ns6_v7sjb42yhbzxfm4vtyfm/T/tmp1ep3rd7r/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /var/folders/j6/yqln6_ns6_v7sjb42yhbzxfm4vtyfm/T/tmp1ep3rd7r/config.json
+  [DEBUG] History after add: []
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /var/folders/j6/yqln6_ns6_v7sjb42yhbzxfm4vtyfm/T/tmp1ep3rd7r/config.json
+FAIL
+test_service_lifecycle_workflow (tests.test_end_to_end_workflows.TestEndToEndWorkflows)
+Test complete service lifecycle workflow ... [2025-07-04 01:09:03] [INFO ] | Loaded configuration from /var/folders/j6/yqln6_ns6_v7sjb42yhbzxfm4vtyfm/T/tmpclbizh06/config.json
+
+🧪 Testing service lifecycle workflow...
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /var/folders/j6/yqln6_ns6_v7sjb42yhbzxfm4vtyfm/T/tmpclbizh06/config.json
+/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/utils.py:34: ResourceWarning: unclosed file <_io.TextIOWrapper name='/var/folders/j6/yqln6_ns6_v7sjb42yhbzxfm4vtyfm/T/tmprlmzgr57/out.log' mode='a' encoding='UTF-8'>
+  for handler in logging.root.handlers[:]:
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+  ✅ Service lifecycle workflow complete
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /var/folders/j6/yqln6_ns6_v7sjb42yhbzxfm4vtyfm/T/tmpclbizh06/config.json
+ok
+test_clipboard_access_failures (tests.test_error_handling_comprehensive.TestErrorHandling)
+Test handling of clipboard access failures ... [2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+
+🧪 Testing clipboard access failure handling...
+[2025-07-04 01:09:03] [ERROR] | Error getting clipboard content: Pyperclip error
+  ✅ Clipboard access failures handled gracefully
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+ok
+test_concurrent_access_errors (tests.test_error_handling_comprehensive.TestErrorHandling)
+Test handling of concurrent file access errors ... [2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+
+🧪 Testing concurrent access error handling...
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+  ✅ Concurrent access errors handled gracefully
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+ok
+test_configuration_file_errors (tests.test_error_handling_comprehensive.TestErrorHandling)
+Test handling of configuration file errors ... [2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+
+🧪 Testing configuration file error handling...
+  ✅ Configuration file errors handled gracefully
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+ok
+test_file_permission_errors (tests.test_error_handling_comprehensive.TestErrorHandling)
+Test handling of file permission errors ... [2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+
+🧪 Testing file permission error handling...
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+  ✅ Read-only file handled gracefully
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+  ✅ Directory permission errors handled gracefully
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+ok
+test_large_content_handling (tests.test_error_handling_comprehensive.TestErrorHandling)
+Test handling of extremely large content ... [2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+
+🧪 Testing large content handling...
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+  ✅ Large content handled gracefully
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+ok
+test_malformed_data_handling (tests.test_error_handling_comprehensive.TestErrorHandling)
+Test handling of malformed data files ... [2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+
+🧪 Testing malformed data handling...
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+  ✅ Malformed data files handled gracefully
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+ok
+test_module_import_failures (tests.test_error_handling_comprehensive.TestErrorHandling)
+Test handling of module import failures ... [2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+
+🧪 Testing module import failure handling...
+  ✅ Module import failures handled gracefully
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+ok
+test_network_failure_simulation (tests.test_error_handling_comprehensive.TestErrorHandling)
+Test handling of network-related failures ... [2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+
+🧪 Testing network failure handling...
+Error creating web viewer: Network error
+  ✅ Network failures handled gracefully
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+ok
+test_system_resource_exhaustion (tests.test_error_handling_comprehensive.TestErrorHandling)
+Test handling of system resource exhaustion ... [2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+
+🧪 Testing system resource exhaustion handling...
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+ERROR
+test_unicode_and_special_characters (tests.test_error_handling_comprehensive.TestErrorHandling)
+Test handling of unicode and special characters ... [2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+
+🧪 Testing unicode and special character handling...
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+  ✅ Unicode and special characters handled gracefully
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+ok
+test_clipboard_item_copy_functionality (tests.test_menu_bar_ui_comprehensive.TestMenuBarUI)
+Test copying items from history menu ... [2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+
+🧪 Testing clipboard item copy functionality...
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/utils.py:34: ResourceWarning: unclosed file <_io.TextIOWrapper name='/var/folders/j6/yqln6_ns6_v7sjb42yhbzxfm4vtyfm/T/tmprlmzgr57/out.log' mode='a' encoding='UTF-8'>
+  for handler in logging.root.handlers[:]:
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+  ✅ Clipboard item copy functionality works
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+ok
+test_error_handling_in_ui (tests.test_menu_bar_ui_comprehensive.TestMenuBarUI)
+Test error handling in UI operations ... [2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+
+🧪 Testing UI error handling...
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/utils.py:34: ResourceWarning: unclosed file <_io.TextIOWrapper name='/var/folders/j6/yqln6_ns6_v7sjb42yhbzxfm4vtyfm/T/tmprlmzgr57/out.log' mode='a' encoding='UTF-8'>
+  for handler in logging.root.handlers[:]:
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+  ✅ UI error handling works correctly
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+ok
+test_menu_bar_initialization (tests.test_menu_bar_ui_comprehensive.TestMenuBarUI)
+Test menu bar app initialization ... [2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+
+🧪 Testing menu bar initialization...
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/utils.py:34: ResourceWarning: unclosed file <_io.TextIOWrapper name='/var/folders/j6/yqln6_ns6_v7sjb42yhbzxfm4vtyfm/T/tmprlmzgr57/out.log' mode='a' encoding='UTF-8'>
+  for handler in logging.root.handlers[:]:
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+FAIL
+test_menu_item_callbacks (tests.test_menu_bar_ui_comprehensive.TestMenuBarUI)
+Test menu item callback functionality ... [2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+
+🧪 Testing menu item callbacks...
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/utils.py:34: ResourceWarning: unclosed file <_io.TextIOWrapper name='/var/folders/j6/yqln6_ns6_v7sjb42yhbzxfm4vtyfm/T/tmprlmzgr57/out.log' mode='a' encoding='UTF-8'>
+  for handler in logging.root.handlers[:]:
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+FAIL
+test_menu_refresh_functionality (tests.test_menu_bar_ui_comprehensive.TestMenuBarUI)
+Test menu refresh functionality ... [2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+
+🧪 Testing menu refresh functionality...
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+FAIL
+test_menu_structure_creation (tests.test_menu_bar_ui_comprehensive.TestMenuBarUI)
+Test that menu structure is created correctly ... [2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+
+🧪 Testing menu structure creation...
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/utils.py:34: ResourceWarning: unclosed file <_io.TextIOWrapper name='/var/folders/j6/yqln6_ns6_v7sjb42yhbzxfm4vtyfm/T/tmprlmzgr57/out.log' mode='a' encoding='UTF-8'>
+  for handler in logging.root.handlers[:]:
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+FAIL
+test_recent_history_menu_population (tests.test_menu_bar_ui_comprehensive.TestMenuBarUI)
+Test recent history menu population ... [2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+
+🧪 Testing recent history menu population...
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/utils.py:34: ResourceWarning: unclosed file <_io.TextIOWrapper name='/var/folders/j6/yqln6_ns6_v7sjb42yhbzxfm4vtyfm/T/tmprlmzgr57/out.log' mode='a' encoding='UTF-8'>
+  for handler in logging.root.handlers[:]:
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+FAIL
+test_service_status_display (tests.test_menu_bar_ui_comprehensive.TestMenuBarUI)
+Test service status display and updates ... [2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+
+🧪 Testing service status display...
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/utils.py:34: ResourceWarning: unclosed file <_io.TextIOWrapper name='/var/folders/j6/yqln6_ns6_v7sjb42yhbzxfm4vtyfm/T/tmprlmzgr57/out.log' mode='a' encoding='UTF-8'>
+  for handler in logging.root.handlers[:]:
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+  ✅ Service status display works correctly
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+ok
+tests.test_performance_comprehensive (unittest.loader._FailedTest) ... ERROR
+test_clipboard_change_detection (tests.test_realtime_monitoring_comprehensive.TestRealtimeMonitoring)
+Test clipboard change detection accuracy ... [2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/utils.py:34: ResourceWarning: unclosed file <_io.TextIOWrapper name='/var/folders/j6/yqln6_ns6_v7sjb42yhbzxfm4vtyfm/T/tmprlmzgr57/out.log' mode='a' encoding='UTF-8'>
+  for handler in logging.root.handlers[:]:
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+
+🧪 Testing clipboard change detection...
+[2025-07-04 01:09:03] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+  ✅ Clipboard change detection working
+[2025-07-04 01:09:04] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+ok
+test_clipboard_content_types (tests.test_realtime_monitoring_comprehensive.TestRealtimeMonitoring)
+Test monitoring different clipboard content types ... [2025-07-04 01:09:04] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+
+🧪 Testing different clipboard content types...
+  ✅ Different content types handled correctly
+[2025-07-04 01:09:04] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+ok
+test_content_deduplication (tests.test_realtime_monitoring_comprehensive.TestRealtimeMonitoring)
+Test content deduplication in monitoring ... [2025-07-04 01:09:04] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+
+🧪 Testing content deduplication...
+[2025-07-04 01:09:04] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:04] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:04] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:04] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:04] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:04] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:04] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:04] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:04] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:04] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:04] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:04] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:04] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:04] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:04] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:04] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+FAIL
+test_enhanced_mode_accuracy (tests.test_realtime_monitoring_comprehensive.TestRealtimeMonitoring)
+Test enhanced mode monitoring accuracy ... [2025-07-04 01:09:04] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+
+🧪 Testing enhanced mode accuracy...
+  ✅ Enhanced mode configuration correct
+[2025-07-04 01:09:04] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+ok
+test_error_recovery_in_monitoring (tests.test_realtime_monitoring_comprehensive.TestRealtimeMonitoring)
+Test error recovery during monitoring ... [2025-07-04 01:09:04] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+
+🧪 Testing error recovery in monitoring...
+[2025-07-04 01:09:04] [ERROR] | Error getting clipboard content: Clipboard error
+  ✅ Error recovery working correctly
+[2025-07-04 01:09:04] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+ok
+test_monitoring_pause_resume (tests.test_realtime_monitoring_comprehensive.TestRealtimeMonitoring)
+Test monitoring pause and resume functionality ... [2025-07-04 01:09:04] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+
+🧪 Testing monitoring pause/resume...
+  ✅ Pause/resume functionality working
+[2025-07-04 01:09:04] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+ok
+test_monitoring_performance_impact (tests.test_realtime_monitoring_comprehensive.TestRealtimeMonitoring)
+Test performance impact of monitoring ... [2025-07-04 01:09:04] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+
+🧪 Testing monitoring performance impact...
+[2025-07-04 01:09:05] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+FAIL
+test_monitoring_thread_safety (tests.test_realtime_monitoring_comprehensive.TestRealtimeMonitoring)
+Test thread safety of monitoring operations (SKIPPED: causes segmentation fault with pyperclip on macOS). ... [2025-07-04 01:09:05] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:05] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+skipped 'Skipped due to known segmentation fault with pyperclip and threads on macOS. See https://github.com/asweigart/pyperclip/issues/343'
+test_polling_mode_accuracy (tests.test_realtime_monitoring_comprehensive.TestRealtimeMonitoring)
+Test polling mode monitoring accuracy ... [2025-07-04 01:09:05] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+
+🧪 Testing polling mode accuracy...
+[2025-07-04 01:09:05] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+FAIL
+test_applescript_injection_prevention (tests.test_security_comprehensive.TestSecurity)
+Test AppleScript injection prevention ... [2025-07-04 01:09:05] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+
+🧪 Testing AppleScript injection prevention...
+[2025-07-04 01:09:05] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+FAIL
+test_data_sanitization (tests.test_security_comprehensive.TestSecurity)
+Test data sanitization for various outputs ... [2025-07-04 01:09:05] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+
+🧪 Testing data sanitization...
+  ✅ Data sanitization working correctly
+[2025-07-04 01:09:05] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+ok
+test_file_path_security (tests.test_security_comprehensive.TestSecurity)
+Test file path security and traversal prevention ... [2025-07-04 01:09:05] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+
+🧪 Testing file path security...
+[2025-07-04 01:09:05] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+FAIL
+test_input_validation (tests.test_security_comprehensive.TestSecurity)
+Test input validation functions ... [2025-07-04 01:09:05] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+
+🧪 Testing input validation...
+[2025-07-04 01:09:05] [WARNING] | Parameter 'param' is None, using default
+[2025-07-04 01:09:05] [WARNING] | Parameter 'param' is empty, using default
+[2025-07-04 01:09:05] [WARNING] | Parameter 'param' is empty, using default
+[2025-07-04 01:09:05] [WARNING] | Parameter 'param' is not a string, using default
+[2025-07-04 01:09:05] [WARNING] | Parameter 'param' is not a string, using default
+[2025-07-04 01:09:05] [WARNING] | Parameter 'param' is not a string, using default
+  ✅ Input validation working correctly
+[2025-07-04 01:09:05] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+ok
+test_malicious_content_handling (tests.test_security_comprehensive.TestSecurity)
+Test handling of malicious clipboard content ... [2025-07-04 01:09:05] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+
+🧪 Testing malicious content handling...
+[2025-07-04 01:09:05] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:05] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:05] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:05] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:05] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:05] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:05] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:05] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:05] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:05] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:05] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:05] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:05] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:05] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:05] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:05] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:05] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:05] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:05] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:05] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:05] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:05] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:05] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:05] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:05] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:05] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:05] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:05] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:05] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+[2025-07-04 01:09:05] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+  ✅ Malicious content handled safely
+[2025-07-04 01:09:05] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+ok
+test_subprocess_security (tests.test_security_comprehensive.TestSecurity)
+Test subprocess execution security ... [2025-07-04 01:09:05] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+
+🧪 Testing subprocess security...
+[2025-07-04 01:09:06] [ERROR] | Command timed out after 1s: sh -c echo dangerous | sudo tee /etc/hosts
+  ✅ Subprocess security working correctly
+[2025-07-04 01:09:06] [INFO ] | Loaded configuration from /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config.json
+ok
+
+======================================================================
+ERROR: test_system_resource_exhaustion (tests.test_error_handling_comprehensive.TestErrorHandling)
+Test handling of system resource exhaustion
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/tests/test_error_handling_comprehensive.py", line 271, in test_system_resource_exhaustion
+    history = load_history()
+  File "/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/cli_history_viewer.py", line 18, in load_history
+    return _load_history()
+  File "/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/modules/history_module.py", line 69, in load_history
+    history_path = Path(get_history_path())
+  File "/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/modules/history_module.py", line 49, in get_history_path
+    config = get_history_config()
+  File "/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/modules/history_module.py", line 44, in get_history_config
+    config_manager = ConfigManager()
+  File "/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config_manager.py", line 33, in __init__
+    self.config = self._load_config()
+  File "/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/config_manager.py", line 49, in _load_config
+    user_config = json.load(f)
+  File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/unittest/mock.py", line 1093, in __call__
+    return self._mock_call(*args, **kwargs)
+  File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/unittest/mock.py", line 1097, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+  File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/unittest/mock.py", line 1152, in _execute_mock_call
+    raise effect
+MemoryError: Out of memory
+
+======================================================================
+ERROR: tests.test_performance_comprehensive (unittest.loader._FailedTest)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: tests.test_performance_comprehensive
+Traceback (most recent call last):
+  File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/unittest/loader.py", line 436, in _find_test_path
+    module = self._get_module_from_name(name)
+  File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/unittest/loader.py", line 377, in _get_module_from_name
+    __import__(name)
+  File "/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/tests/test_performance_comprehensive.py", line 15, in <module>
+    import psutil
+ModuleNotFoundError: No module named 'psutil'
+
+
+======================================================================
+FAIL: test_cli_clear_history_command (tests.test_clear_history_comprehensive.TestClearHistoryFunctionality)
+Test CLI clear history command functionality
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/tests/test_clear_history_comprehensive.py", line 93, in test_cli_clear_history_command
+    self.assertEqual(len(history), 0, "History should be empty after clearing")
+AssertionError: 3 != 0 : History should be empty after clearing
+
+======================================================================
+FAIL: test_concurrent_clear_operations (tests.test_clear_history_comprehensive.TestClearHistoryFunctionality)
+Test concurrent clear history operations
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/tests/test_clear_history_comprehensive.py", line 268, in test_concurrent_clear_operations
+    self.assertEqual(len(history), 0, f"History {history_file} should be cleared")
+AssertionError: 3 != 0 : History /var/folders/j6/yqln6_ns6_v7sjb42yhbzxfm4vtyfm/T/tmp47s22cor/history_0.json should be cleared
+
+======================================================================
+FAIL: test_menu_bar_clear_history (tests.test_clear_history_comprehensive.TestClearHistoryFunctionality)
+Test menu bar clear history functionality
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/tests/test_clear_history_comprehensive.py", line 158, in test_menu_bar_clear_history
+    self.assertEqual(len(history), 0, "History should be empty after menu bar clear")
+AssertionError: 3 != 0 : History should be empty after menu bar clear
+
+======================================================================
+FAIL: test_configuration_defaults (tests.test_configuration_comprehensive.TestConfiguration)
+Test configuration default values
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/tests/test_configuration_comprehensive.py", line 238, in test_configuration_defaults
+    self.assertEqual(result, expected_default,
+AssertionError: "Omair's Clipboard Monitor" != 'Clipboard Monitor'
+- Omair's Clipboard Monitor
+? --------
++ Clipboard Monitor
+ : Should return default for general.notification_title
+
+======================================================================
+FAIL: test_configuration_file_permissions (tests.test_configuration_comprehensive.TestConfiguration)
+Test handling of configuration file permission issues
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/tests/test_configuration_comprehensive.py", line 164, in test_configuration_file_permissions
+    self.assertEqual(config, 4.0, "Should return default for unreadable file")
+AssertionError: 1.0 != 4.0 : Should return default for unreadable file
+
+======================================================================
+FAIL: test_corrupted_configuration_file (tests.test_configuration_comprehensive.TestConfiguration)
+Test handling of corrupted configuration files
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/tests/test_configuration_comprehensive.py", line 142, in test_corrupted_configuration_file
+    self.assertEqual(config, 3.0, f"Should return default for {config_name}")
+AssertionError: 1.0 != 3.0 : Should return default for empty_file
+
+======================================================================
+FAIL: test_missing_configuration_file (tests.test_configuration_comprehensive.TestConfiguration)
+Test handling of missing configuration file
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/tests/test_configuration_comprehensive.py", line 107, in test_missing_configuration_file
+    self.assertEqual(config, 2.0, "Should return default for missing file")
+AssertionError: 1.0 != 2.0 : Should return default for missing file
+
+======================================================================
+FAIL: test_valid_configuration_loading (tests.test_configuration_comprehensive.TestConfiguration)
+Test loading valid configuration
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/tests/test_configuration_comprehensive.py", line 81, in test_valid_configuration_loading
+    self.assertEqual(config, self.valid_config, "Should load complete valid config")
+AssertionError: {'gen[110 chars]le': "Omair's Clipboard Monitor", 'debug_mode'[583 chars]760}} != {'gen[110 chars]le': 'Test Clipboard Monitor', 'debug_mode': F[110 chars]rue}}
+Diff is 1513 characters long. Set self.maxDiff to None to see it. : Should load complete valid config
+
+======================================================================
+FAIL: test_history_viewer_integration_workflow (tests.test_end_to_end_workflows.TestEndToEndWorkflows)
+Test integration between all history viewers
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/tests/test_end_to_end_workflows.py", line 193, in test_history_viewer_integration_workflow
+    self.assertTrue(mock_app_instance.menu.__getitem__.called)
+AssertionError: False is not true
+
+======================================================================
+FAIL: test_markdown_processing_workflow (tests.test_end_to_end_workflows.TestEndToEndWorkflows)
+Test complete markdown processing workflow
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/tests/test_end_to_end_workflows.py", line 98, in test_markdown_processing_workflow
+    self.assertGreater(len(history), 0, "History should contain processed item")
+AssertionError: 0 not greater than 0 : History should contain processed item
+
+======================================================================
+FAIL: test_mermaid_diagram_workflow (tests.test_end_to_end_workflows.TestEndToEndWorkflows)
+Test complete mermaid diagram processing workflow
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/tests/test_end_to_end_workflows.py", line 125, in test_mermaid_diagram_workflow
+    self.assertIn("mermaid", html_content.lower(), "Web viewer should show mermaid content")
+AssertionError: 'mermaid' not found in '\n<!doctype html>\n<html lang="en">\n<head>\n    <meta charset="utf-8">\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n    <title>clipboard history viewer (1 items)</title>\n    <style>\n        body {\n            font-family: -apple-system, blinkmacsystemfont, \'segoe ui\', roboto, sans-serif;\n            margin: 0;\n            padding: 20px;\n            background-color: #f5f5f5;\n            line-height: 1.6;\n        }\n        .container {\n            max-width: 1000px;\n            margin: 0 auto;\n            background: white;\n            border-radius: 10px;\n            box-shadow: 0 2px 10px rgba(0,0,0,0.1);\n            overflow: hidden;\n        }\n        .header {\n            background: #007aff;\n            color: white;\n            padding: 20px;\n            text-align: center;\n        }\n        .header h1 {\n            margin: 0;\n            font-size: 24px;\n        }\n        .stats {\n            margin: 10px 0 0 0;\n            opacity: 0.9;\n        }\n        .content {\n            padding: 20px;\n        }\n        .history-item {\n            border: 1px solid #e0e0e0;\n            border-radius: 8px;\n            margin-bottom: 15px;\n            background: #fafafa;\n            overflow: hidden;\n        }\n        .item-header {\n            background: #f0f0f0;\n            padding: 12px 15px;\n            border-bottom: 1px solid #e0e0e0;\n            display: flex;\n            justify-content: space-between;\n            align-items: center;\n        }\n        .item-number {\n            font-weight: bold;\n            color: #007aff;\n        }\n        .item-timestamp {\n            color: #666;\n            font-size: 14px;\n        }\n        .item-content {\n            padding: 15px;\n            white-space: pre-wrap;\n            word-wrap: break-word;\n            font-family: \'monaco\', \'menlo\', monospace;\n            font-size: 13px;\n            background: white;\n            max-height: 200px;\n            overflow-y: auto;\n        }\n        .copy-btn {\n            background: #007aff;\n            color: white;\n            border: none;\n            padding: 6px 12px;\n            border-radius: 4px;\n            cursor: pointer;\n            font-size: 12px;\n            margin-right: 8px;\n        }\n        .copy-btn:hover {\n            background: #0056cc;\n        }\n        .select-btn {\n            background: #34c759;\n            color: white;\n            border: none;\n            padding: 6px 12px;\n            border-radius: 4px;\n            cursor: pointer;\n            font-size: 12px;\n        }\n        .select-btn:hover {\n            background: #28a745;\n        }\n        .no-history {\n            text-align: center;\n            padding: 40px;\n            color: #666;\n        }\n        .action-buttons {\n            position: fixed;\n            bottom: 20px;\n            right: 20px;\n            display: flex;\n            gap: 10px;\n            z-index: 1000;\n        }\n        .refresh-btn, .clear-btn {\n            background: #007aff;\n            color: white;\n            border: none;\n            padding: 12px 20px;\n            border-radius: 25px;\n            cursor: pointer;\n            box-shadow: 0 2px 10px rgba(0,0,0,0.2);\n            transition: all 0.3s ease;\n        }\n        .refresh-btn:hover, .clear-btn:hover {\n            background: #0056cc;\n            transform: translatey(-1px);\n            box-shadow: 0 4px 15px rgba(0,0,0,0.3);\n        }\n        .clear-btn {\n            background: #dc3545;\n        }\n        .clear-btn:hover {\n            background: #c82333;\n        }\n        .instructions {\n            background: #e3f2fd;\n            border: 1px solid #bbdefb;\n            border-radius: 8px;\n            padding: 15px;\n            margin-bottom: 20px;\n            font-size: 14px;\n        }\n        .instructions h4 {\n            margin: 0 0 10px 0;\n            color: #1976d2;\n        }\n        .rtf-content {\n            background: #fff3e0;\n            border: 1px solid #ffb74d;\n            border-radius: 6px;\n            padding: 12px;\n            margin: 8px 0;\n        }\n        .rtf-content strong {\n            color: #e65100;\n        }\n        .rtf-content code {\n            background: #f5f5f5;\n            padding: 2px 4px;\n            border-radius: 3px;\n            font-family: \'monaco\', \'menlo\', monospace;\n            font-size: 12px;\n            display: block;\n            margin: 8px 0;\n            white-space: pre-wrap;\n            word-break: break-all;\n        }\n        .rtf-content em {\n            color: #ff6f00;\n            font-style: italic;\n        }\n    </style>\n</head>\n<body>\n    <div class="container">\n        <div class="header">\n            <h1>📋 clipboard history viewer</h1>\n            <div class="stats">1 items in history</div>\n        </div>\n        <div class="content">\n            <div class="instructions">\n                <h4>📋 how to copy items:</h4>\n                <p><strong>method 1:</strong> click the "copy" button (may not work in all browsers due to security restrictions)</p>\n                <p><strong>method 2:</strong> click "select all" then press <kbd>cmd+c</kbd> (mac) or <kbd>ctrl+c</kbd> (windows)</p>\n                <p><strong>method 3:</strong> manually select the text and copy with <kbd>cmd+c</kbd> or <kbd>ctrl+c</kbd></p>\n            </div>\n\n            <div class="history-item">\n                <div class="item-header">\n                    <span class="item-number">item #1</span>\n                    <span class="item-timestamp">2025-07-04 01:09:02</span>\n                    <button class="copy-btn" onclick="copytoclipboard(\'0\')">copy</button>\n                    <button class="select-btn" onclick="selecttext(\'0\')">select all</button>\n                </div>\n                <div class="item-content" id="content-0">graph td\n    a[start] --&gt; b{decision}\n    b --&gt;|yes| c[action 1]\n    b --&gt;|no| d[action 2]\n    c --&gt; e[end]\n    d --&gt; e</div>\n            </div>\n\n        </div>\n    </div>\n\n    <div class="action-buttons">\n        <button class="refresh-btn" onclick="location.reload()">🔄 refresh</button>\n        <button class="clear-btn" onclick="clearhistory()">🗑️ clear history</button>\n    </div>\n    \n    <script>\n        function copytoclipboard(itemindex) {\n            const contentelement = document.getelementbyid(\'content-\' + itemindex);\n            const content = contentelement.textcontent;\n            const btn = event.target;\n            const originaltext = btn.textcontent;\n\n            // try modern clipboard api first\n            if (navigator.clipboard && window.issecurecontext) {\n                navigator.clipboard.writetext(content).then(function() {\n                    showcopysuccess(btn, originaltext);\n                }).catch(function(err) {\n                    fallbackcopy(content, btn, originaltext);\n                });\n            } else {\n                fallbackcopy(content, btn, originaltext);\n            }\n        }\n\n        function fallbackcopy(content, btn, originaltext) {\n            // fallback method using textarea\n            const textarea = document.createelement(\'textarea\');\n            textarea.value = content;\n            textarea.style.position = \'fixed\';\n            textarea.style.opacity = \'0\';\n            document.body.appendchild(textarea);\n            textarea.select();\n\n            try {\n                const successful = document.execcommand(\'copy\');\n                if (successful) {\n                    showcopysuccess(btn, originaltext);\n                } else {\n                    showcopyerror(btn, originaltext, \'copy command failed\');\n                }\n            } catch (err) {\n                showcopyerror(btn, originaltext, err.tostring());\n            }\n\n            document.body.removechild(textarea);\n        }\n\n        function showcopysuccess(btn, originaltext) {\n            btn.textcontent = \'✓ copied!\';\n            btn.style.background = \'#28a745\';\n\n            settimeout(function() {\n                btn.textcontent = originaltext;\n                btn.style.background = \'#007aff\';\n            }, 2000);\n        }\n\n        function showcopyerror(btn, originaltext, error) {\n            btn.textcontent = \'✗ failed\';\n            btn.style.background = \'#dc3545\';\n\n            // show detailed error in console\n            console.error(\'copy failed:\', error);\n\n            // show user-friendly message\n            alert(\'copy failed. please use the "select all" button and manually copy (cmd+c).\\n\\nerror: \' + error);\n\n            settimeout(function() {\n                btn.textcontent = originaltext;\n                btn.style.background = \'#007aff\';\n            }, 3000);\n        }\n\n        function selecttext(itemindex) {\n            const contentelement = document.getelementbyid(\'content-\' + itemindex);\n\n            // create a range and select the text\n            if (window.getselection && document.createrange) {\n                const range = document.createrange();\n                range.selectnodecontents(contentelement);\n                const selection = window.getselection();\n                selection.removeallranges();\n                selection.addrange(range);\n\n                // show instruction\n                alert(\'text selected! now press cmd+c (mac) or ctrl+c (windows) to copy.\');\n            } else {\n                alert(\'text selection not supported. please manually select the text and copy.\');\n            }\n        }\n\n        // auto-refresh every 30 seconds\n        settimeout(function() {\n            location.reload();\n        }, 30000);\n\n        function clearhistory() {\n            if (confirm(\'are you sure you want to clear all clipboard history? this action cannot be undone.\')) {\n                // note: this is a web interface, so we can\'t directly clear the history file\n                // instead, we\'ll show instructions to the user\n                alert(\'to clear history:\\n\\n1. use the menu bar app: click the clipboard icon → view clipboard history → clear history\\n2. or use the terminal: run "python3 cli_history_viewer.py clear"\\n\\nthen refresh this page.\');\n            }\n        }\n\n        // add keyboard shortcuts\n        document.addeventlistener(\'keydown\', function(e) {\n            if (e.key === \'r\' && (e.metakey || e.ctrlkey)) {\n                e.preventdefault();\n                location.reload();\n            }\n        });\n    </script>\n</body>\n</html>\n' : Web viewer should show mermaid content
+
+======================================================================
+FAIL: test_multi_module_processing_chain (tests.test_end_to_end_workflows.TestEndToEndWorkflows)
+Test content processing through multiple modules
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/tests/test_end_to_end_workflows.py", line 151, in test_multi_module_processing_chain
+    self.assertGreater(len(history), 0, "History should contain the mixed content")
+AssertionError: 0 not greater than 0 : History should contain the mixed content
+
+======================================================================
+FAIL: test_menu_bar_initialization (tests.test_menu_bar_ui_comprehensive.TestMenuBarUI)
+Test menu bar app initialization
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/unittest/mock.py", line 1337, in patched
+    return func(*newargs, **newkeywargs)
+  File "/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/tests/test_menu_bar_ui_comprehensive.py", line 83, in test_menu_bar_initialization
+    mock_app.assert_called_once()
+  File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/unittest/mock.py", line 886, in assert_called_once
+    raise AssertionError(msg)
+AssertionError: Expected 'App' to have been called once. Called 0 times.
+
+======================================================================
+FAIL: test_menu_item_callbacks (tests.test_menu_bar_ui_comprehensive.TestMenuBarUI)
+Test menu item callback functionality
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/tests/test_menu_bar_ui_comprehensive.py", line 216, in test_menu_item_callbacks
+    self.assertEqual(mock_popen.call_count, 2)
+AssertionError: 4 != 2
+
+======================================================================
+FAIL: test_menu_refresh_functionality (tests.test_menu_bar_ui_comprehensive.TestMenuBarUI)
+Test menu refresh functionality
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/tests/test_menu_bar_ui_comprehensive.py", line 273, in test_menu_refresh_functionality
+    self.assertTrue(mock_app_instance.menu.__getitem__.called)
+AssertionError: False is not true
+
+======================================================================
+FAIL: test_menu_structure_creation (tests.test_menu_bar_ui_comprehensive.TestMenuBarUI)
+Test that menu structure is created correctly
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/unittest/mock.py", line 1337, in patched
+    return func(*newargs, **newkeywargs)
+  File "/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/tests/test_menu_bar_ui_comprehensive.py", line 115, in test_menu_structure_creation
+    self.assertTrue(mock_app_instance.menu.__setitem__.called)
+AssertionError: False is not true
+
+======================================================================
+FAIL: test_recent_history_menu_population (tests.test_menu_bar_ui_comprehensive.TestMenuBarUI)
+Test recent history menu population
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/tests/test_menu_bar_ui_comprehensive.py", line 186, in test_recent_history_menu_population
+    self.assertTrue(mock_app_instance.menu.__getitem__.called)
+AssertionError: False is not true
+
+======================================================================
+FAIL: test_content_deduplication (tests.test_realtime_monitoring_comprehensive.TestRealtimeMonitoring)
+Test content deduplication in monitoring
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/tests/test_realtime_monitoring_comprehensive.py", line 205, in test_content_deduplication
+    self.assertEqual(len(matching_items), 1, "Should deduplicate identical content")
+AssertionError: 0 != 1 : Should deduplicate identical content
+
+======================================================================
+FAIL: test_monitoring_performance_impact (tests.test_realtime_monitoring_comprehensive.TestRealtimeMonitoring)
+Test performance impact of monitoring
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/tests/test_realtime_monitoring_comprehensive.py", line 305, in test_monitoring_performance_impact
+    self.assertLess(overhead_percentage, 50, f"Monitoring overhead should be < 50%, got {overhead_percentage:.1f}%")
+AssertionError: 6003.557602246275 not less than 50 : Monitoring overhead should be < 50%, got 6003.6%
+
+======================================================================
+FAIL: test_polling_mode_accuracy (tests.test_realtime_monitoring_comprehensive.TestRealtimeMonitoring)
+Test polling mode monitoring accuracy
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/tests/test_realtime_monitoring_comprehensive.py", line 131, in test_polling_mode_accuracy
+    self.assertTrue(hasattr(monitor, 'check_clipboard'), "Monitor should have clipboard check method")
+AssertionError: False is not true : Monitor should have clipboard check method
+
+======================================================================
+FAIL: test_applescript_injection_prevention (tests.test_security_comprehensive.TestSecurity)
+Test AppleScript injection prevention
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/tests/test_security_comprehensive.py", line 107, in test_applescript_injection_prevention
+    self.assertNotIn('"; do shell script', applescript_command, "Should escape shell script injection")
+AssertionError: '"; do shell script' unexpectedly found in 'display notification "Malicious command injection" with title ""; do shell script "rm -rf /"; ""' : Should escape shell script injection
+
+======================================================================
+FAIL: test_file_path_security (tests.test_security_comprehensive.TestSecurity)
+Test file path security and traversal prevention
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/tests/test_security_comprehensive.py", line 196, in test_file_path_security
+    self.assertNotIn("../", result, f"Should not contain traversal in result: {result}")
+AssertionError: '../' unexpectedly found in '../../../etc/passwd' : Should not contain traversal in result: ../../../etc/passwd
+
+----------------------------------------------------------------------
+Ran 52 tests in 5.820s
+
+FAILED (failures=22, errors=2, skipped=1)

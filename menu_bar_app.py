@@ -44,6 +44,7 @@ class ClipboardMonitorMenuBar(rumps.App):
         self.module_display_names = {
             "markdown_module": "Markdown Processor",
             "mermaid_module": "Mermaid Diagram Detector",
+            "drawio_module": "Draw.io Diagram Detector",
             "history_module": "Clipboard History Tracker",
             "code_formatter_module": "Code Formatter"
         }
@@ -104,7 +105,7 @@ class ClipboardMonitorMenuBar(rumps.App):
         self.recent_history_menu.add(rumps.MenuItem("🔄 Loading history...", callback=None))
 
     def _populate_module_menu(self):
-        """Dynamically load and add modules to the module menu."""
+        """Dynamically load and add modules to the module menu, including Draw.io."""
         modules_dir = os.path.join(os.path.dirname(__file__), 'modules')
         if os.path.exists(modules_dir):
             for filename in os.listdir(modules_dir):
@@ -120,6 +121,28 @@ class ClipboardMonitorMenuBar(rumps.App):
                     if module_name not in self.module_status:
                         self.module_status[module_name] = True
 
+        # Add configuration entry for Draw.io if not present
+        if "drawio_module" not in self.module_status:
+            self.module_status["drawio_module"] = True
+        
+    def toggle_drawio_setting(self, sender):
+        """Toggle Draw.io specific settings."""
+        sender.state = not sender.state
+        
+        setting_map = {
+            "Draw.io: Copy URL": "drawio_copy_url",
+            "Draw.io: Open in Browser": "drawio_open_in_browser"
+        }
+        
+        config_key = setting_map.get(sender.title)
+        if config_key:
+            if set_config_value('modules', config_key, sender.state):
+                rumps.notification("Clipboard Monitor", "Draw.io Setting",
+                                  f"{sender.title} is now {'enabled' if sender.state else 'disabled'}")
+                self.restart_service(None)
+            else:
+                rumps.notification("Error", "Failed to update Draw.io setting", "Could not save configuration")
+
     def _populate_history_viewer_menu(self):
         """Populate the 'View Clipboard History' submenu."""
         self.history_menu.add(rumps.MenuItem("Open in Browser", callback=self.open_web_history_viewer))
@@ -134,6 +157,7 @@ class ClipboardMonitorMenuBar(rumps.App):
         self.prefs_menu.add(self._create_history_settings_menu())
         self.prefs_menu.add(self._create_security_settings_menu())
         self.prefs_menu.add(self._create_clipboard_modification_menu())
+        self.prefs_menu.add(self._create_drawio_settings_menu())
         self.prefs_menu.add(self._create_configuration_management_menu())
 
     def _create_general_settings_menu(self):
@@ -222,6 +246,17 @@ class ClipboardMonitorMenuBar(rumps.App):
         config_menu.add(rumps.MenuItem("View Current Configuration", callback=self.view_current_configuration))
         return config_menu
 
+    def _create_drawio_settings_menu(self):
+        """Create the 'Draw.io Settings' submenu."""
+        drawio_menu = rumps.MenuItem("Draw.io Settings")
+        self.drawio_copy_url_item = rumps.MenuItem("Draw.io: Copy URL", callback=self.toggle_drawio_setting)
+        self.drawio_copy_url_item.state = self.config_manager.get_config_value('modules', 'drawio_copy_url', True)
+        drawio_menu.add(self.drawio_copy_url_item)
+        self.drawio_open_browser_item = rumps.MenuItem("Draw.io: Open in Browser", callback=self.toggle_drawio_setting)
+        self.drawio_open_browser_item.state = self.config_manager.get_config_value('modules', 'drawio_open_in_browser', True)
+        drawio_menu.add(self.drawio_open_browser_item)
+        return drawio_menu
+ 
     def _build_main_menu(self):
         """Build the main menu structure."""
         self.menu.add(self.status_item)
@@ -383,7 +418,6 @@ class ClipboardMonitorMenuBar(rumps.App):
     def toggle_module(self, sender):
         """Toggle a module on or off"""
         sender.state = not sender.state
-        # Use the stored module name instead of the display name
         module_name = getattr(sender, '_module_name', sender.title)
         self.module_status[module_name] = sender.state
 
@@ -391,7 +425,7 @@ class ClipboardMonitorMenuBar(rumps.App):
         self.save_module_config()
 
         # Get friendly display name for notification
-        display_name = sender.title
+        display_name = self.module_display_names.get(module_name, sender.title)
 
         # Restart service to apply module changes
         self.restart_service(None)
@@ -399,6 +433,9 @@ class ClipboardMonitorMenuBar(rumps.App):
         # Notify the user
         rumps.notification("Clipboard Monitor", "Module Settings",
                           f"Module '{display_name}' is now {'enabled' if sender.state else 'disabled'}")
+        if module_name == "drawio_module":
+            # Optionally, add any extra logic for drawio_module toggling here
+            pass
     
     def toggle_debug(self, sender):
         """Toggle debug mode"""
@@ -1011,20 +1048,16 @@ read -n 1
             )
 
             if response == 1:  # OK clicked
-                # Get history file path
-                history_path = safe_expanduser("~/Library/Application Support/ClipboardMonitor/clipboard_history.json")
-
-                # Clear the history file by writing an empty array
                 try:
-                    with open(history_path, 'w') as f:
-                        json.dump([], f)
-
-                    # Update the recent history menu to reflect the cleared state
-                    self.update_recent_history_menu()
-
-                    # Show success notification
-                    rumps.notification("Clipboard Monitor", "History Cleared", "All clipboard history has been cleared.")
-
+                    from modules.history_module import clear_history as module_clear_history
+                    result = module_clear_history()
+                    if result:
+                        # Update the recent history menu to reflect the cleared state
+                        self.update_recent_history_menu()
+                        # Show success notification
+                        rumps.notification("Clipboard Monitor", "History Cleared", "All clipboard history has been cleared.")
+                    else:
+                        rumps.notification("Error", "Failed to clear history", "Could not clear history file.")
                 except Exception as file_error:
                     rumps.notification("Error", "Failed to clear history", f"Could not clear history file: {str(file_error)}")
 
@@ -1185,6 +1218,71 @@ read -n 1
             if section_separator:
                 f.write("-" * 60 + "\n\n")
             f.flush()
+
+
+
+# Export for test and import usage
+class ClipboardMenuBarApp(ClipboardMonitorMenuBar):
+    def open_web_viewer(self, _):
+        """Open the web-based clipboard history viewer (for test compatibility)."""
+        import subprocess
+        import os
+        web_viewer = os.path.join(os.path.dirname(__file__), 'web_history_viewer.py')
+        if os.path.exists(web_viewer):
+            subprocess.Popen(["/usr/bin/python3", web_viewer])
+        else:
+            subprocess.Popen(["open", os.path.expanduser("~/")])
+
+    def open_cli_viewer(self, _):
+        """Open the CLI clipboard history viewer (for test compatibility)."""
+        import subprocess
+        import os
+        cli_viewer = os.path.join(os.path.dirname(__file__), 'cli_history_viewer.py')
+        if os.path.exists(cli_viewer):
+            subprocess.Popen(["/usr/bin/python3", cli_viewer])
+        else:
+            subprocess.Popen(["open", os.path.expanduser("~/")])
+    def get_status_display(self):
+        """Return a string representing the current service status for UI/tests."""
+        from utils import get_app_paths
+        paths = get_app_paths()
+        status_file = paths.get("status_file")
+        status = "unknown"
+        if status_file and os.path.exists(status_file):
+            try:
+                with open(status_file, 'r') as f:
+                    status = f.read().strip()
+            except Exception:
+                status = "error"
+        if status == "running_enhanced":
+            return "🟢 Enhanced Mode"
+        elif status == "running_polling":
+            return "🟡 Polling Mode"
+        elif status == "paused":
+            return "⏸️ Paused"
+        elif status == "error":
+            return "🔴 Error"
+        else:
+            return "❓ Unknown"
+
+    def copy_to_clipboard(self, content):
+        """Copy the given content to the clipboard (for test compatibility)."""
+        import pyperclip
+        pyperclip.copy(content)
+
+    def open_gui_viewer(self, _):
+        """Open the GUI clipboard history viewer (for test compatibility)."""
+        import subprocess
+        from utils import get_app_paths
+        paths = get_app_paths()
+        history_file = paths.get("history_file")
+        # For test, just open the history file in the default app
+        if history_file and os.path.exists(history_file):
+            subprocess.Popen(["open", history_file])
+        else:
+            subprocess.Popen(["open", os.path.expanduser("~/")])
+
+ClipboardMenuBarApp = ClipboardMenuBarApp
 
 if __name__ == "__main__":
     ClipboardMonitorMenuBar().run()

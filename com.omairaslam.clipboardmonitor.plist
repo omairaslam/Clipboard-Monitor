@@ -10,7 +10,7 @@
     <key>ProgramArguments</key>
     <array>
         <!-- Full path to Python 3 interpreter -->
-        <string>/usr/bin/python3</string> 
+        <string>/usr/bin/python3</string>
         <!-- Full path to your main.py script -->
         <string>/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/main.py</string>
     </array>

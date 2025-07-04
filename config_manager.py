@@ -2,11 +2,11 @@
 ConfigManager class - Handles all configuration operations.
 Extracted from main.py for better modularity and testability.
 """
-
 import os
 import json
 import logging
 from pathlib import Path
+CONFIG_PATH = str(Path(__file__).parent / 'config.json')
 from constants import DEFAULT_CONFIG, DEFAULT_POLLING_INTERVAL, DEFAULT_ENHANCED_CHECK_INTERVAL, DEFAULT_MAX_CLIPBOARD_SIZE
 
 logger = logging.getLogger("config_manager")
@@ -16,6 +16,12 @@ class ConfigManager:
     """
     Manages application configuration with defaults and validation.
     """
+    _instance = None
+
+    def __new__(cls, *args, **kwargs):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+        return cls._instance
     
     # Use centralized default configuration
     # DEFAULT_CONFIG is imported from constants.py
@@ -23,13 +29,15 @@ class ConfigManager:
     def __init__(self, config_path=None):
         """
         Initialize the config manager.
-        
         Args:
-            config_path (str, optional): Path to config file. If None, uses default location.
+            config_path (str, optional): Path to config file. If None, uses CONFIG_PATH.
         """
+        if hasattr(self, 'config'):
+            return
+
         if config_path is None:
-            config_path = Path(__file__).parent / 'config.json'
-        
+            # Use the module-level CONFIG_PATH
+            config_path = CONFIG_PATH
         self.config_path = str(config_path)
         self.config = self._load_config()
     
@@ -191,11 +199,14 @@ class ConfigManager:
             dict: Module configuration
         """
         modules_config = self.get_section('modules', {})
-        
+        # Always return a dict, never an int or other type
         if module_name:
-            return modules_config.get(module_name, {})
-        
-        return modules_config
+            value = modules_config.get(module_name, {})
+            if isinstance(value, dict):
+                return value
+            else:
+                return {}  # fallback to empty dict if misconfigured
+        return modules_config if isinstance(modules_config, dict) else {}
     
     def is_module_enabled(self, module_name):
         """

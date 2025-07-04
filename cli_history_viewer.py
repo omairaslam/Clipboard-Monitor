@@ -10,10 +10,12 @@ import pyperclip
 import sys
 from utils import load_clipboard_history
 
-# If logging is used in this file, import and use the improved log_event/log_error from utils.py
-# Example usage:
-# from utils import log_event, log_error
-# log_event("CLI history viewer started", log_path)
+from modules.history_module import load_history as _load_history
+
+# Exported for test compatibility
+def load_history():
+    """Load clipboard history using the main history module (for tests)."""
+    return _load_history()
 
 # ANSI color codes for terminal formatting
 class Colors:
@@ -214,21 +216,18 @@ def clear_history():
         prompt = Colors.colorize("\n❓ Are you sure you want to clear all history? (y/N): ", Colors.CYAN)
         response = input(prompt).strip().lower()
 
+
         if response in ['y', 'yes']:
-            # Clear the history file
-            from utils import get_config, safe_expanduser
-            history_path_str = get_config('history', 'save_location', "~/Library/Application Support/ClipboardMonitor/clipboard_history.json")
-            history_path = safe_expanduser(history_path_str)
-
+            # Use the robust clear_history from the main history module
             try:
-                with open(history_path, 'w') as f:
-                    json.dump([], f)
-
-                # Success message
-                print(Colors.colorize("\n✅ History cleared successfully!", Colors.GREEN))
-                print(Colors.colorize("📭 All clipboard history has been removed.", Colors.GREEN))
-                print(Colors.colorize("💡 Copy something to start tracking again.", Colors.CYAN))
-
+                from modules.history_module import clear_history as module_clear_history
+                result = module_clear_history()
+                if result:
+                    print(Colors.colorize("\n✅ History cleared successfully!", Colors.GREEN))
+                    print(Colors.colorize("📭 All clipboard history has been removed.", Colors.GREEN))
+                    print(Colors.colorize("💡 Copy something to start tracking again.", Colors.CYAN))
+                else:
+                    print(Colors.colorize("❌ Failed to clear history file.", Colors.RED))
             except Exception as file_error:
                 error_msg = f"❌ Failed to clear history file: {file_error}"
                 print(Colors.colorize(error_msg, Colors.RED))

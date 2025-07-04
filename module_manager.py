@@ -138,23 +138,20 @@ class ModuleManager:
             max_size (int): Maximum content size to process
             
         Returns:
-            bool: True if any module processed the content, False otherwise
+            str or None: The new clipboard content if modified, otherwise None.
         """
-        # Prevent processing extremely large content
         if clipboard_content and len(clipboard_content) > max_size:
             logger.warning(f"Skipping oversized clipboard content ({len(clipboard_content)} bytes)")
-            return False
-        
+            return None
+
         with self.lock_manager.get_module_execution_lock():
             content_hash = self._get_content_hash(clipboard_content)
             if content_hash == self.last_processed_hash:
                 logger.debug("Skipping processing - content hash matches last processed")
-                return False
+                return None
             
             self.last_processed_hash = content_hash
-            processed = False
             
-            # Lazy load modules if not already loaded
             if not self.modules and self.module_specs:
                 for module_name, spec in self.module_specs:
                     try:
@@ -163,18 +160,17 @@ class ModuleManager:
                     except (ImportError, AttributeError) as e:
                         logger.error(f"Error loading module {module_name}: {e}")
             
-            # Process with loaded modules
             for module in self.modules:
                 try:
-                    # Pass the relevant module config to the module's process function
-                    module_specific_config = self._load_module_config().get(module.__name__, {})
-                    if module.process(clipboard_content, module_specific_config):
-                        processed = True
+                    new_content = module.process(clipboard_content, self._load_module_config())
+                    if new_content:
                         logger.info(f"Processed with module: {getattr(module, '__name__', 'unknown')}")
+                        # Return the new content to break the loop
+                        return new_content
                 except Exception as e:
                     logger.error(f"Error processing with module: {e}")
             
-            return processed
+            return None
     
     def get_enabled_modules(self):
         """

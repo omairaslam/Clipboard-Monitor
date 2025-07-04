@@ -88,8 +88,10 @@ if CONFIG.get('performance', {}).get('enable_tracemalloc', False):
     logger.info('tracemalloc started for memory profiling')
 
 # Apply debug mode if enabled in config
-if CONFIG.get('debug_mode', False):
+if CONFIG.get('general', {}).get('debug_mode', False):
     logging.getLogger().setLevel(logging.DEBUG)
+    for handler in logging.getLogger().handlers:
+        handler.setLevel(logging.DEBUG)
     logger.info("Debug mode enabled")
 
 # Attempt to import pyobjc for enhanced clipboard monitoring on macOS.
@@ -128,10 +130,7 @@ class ClipboardMonitor:
 
     def process_clipboard(self, clipboard_content) -> bool:
         """Process clipboard content using the module manager."""
-        return self.module_manager.process_content(
-            clipboard_content, 
-            config_manager.get_max_clipboard_size()
-        )
+        return self.module_manager.process_content(clipboard_content)
 
 # Check if enhanced monitoring is enabled (pyobjc was successfully imported).
 if MACOS_ENHANCED:
@@ -213,7 +212,9 @@ if MACOS_ENHANCED:
                     # If the monitor instance is available, process the new clipboard content.
                     if self.monitor_instance:
                         try:
-                            self.monitor_instance.process_clipboard(current_clipboard_content)
+                            new_content = self.monitor_instance.process_clipboard(current_clipboard_content)
+                            if new_content:
+                                self.last_processed_clipboard_content = new_content
                         except Exception as e:
                             # Log any errors during the processing by the modules.
                             logger.error(f"Error during monitor.process_clipboard from timer handler: {e}")

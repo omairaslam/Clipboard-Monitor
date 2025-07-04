@@ -12,20 +12,25 @@ from pathlib import Path
 import sys
 import logging
 import datetime
+import tempfile
+import shutil
+try:
+    import fcntl  # Unix only
+except ImportError:
+    fcntl = None
 
 try:
-    # Try relative import first (when run as module)
-    from ..utils import validate_string_input, ContentTracker, safe_expanduser, ensure_directory_exists, log_event, log_error
-    from ..config_manager import ConfigManager
-    from ..lock_manager import LockManager
-    from ..constants import DEFAULT_HISTORY_CONFIG, CONTENT_TRACKER_MAX_HISTORY
-except ImportError:
-    # Fallback to adding parent directory to path (for standalone testing)
-    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    # Try absolute import first (for normal execution and testing)
     from utils import validate_string_input, ContentTracker, safe_expanduser, ensure_directory_exists, log_event, log_error
     from config_manager import ConfigManager
     from lock_manager import LockManager
     from constants import DEFAULT_HISTORY_CONFIG, CONTENT_TRACKER_MAX_HISTORY
+except ImportError:
+    # Fallback to relative import (for package/module execution)
+    from ..utils import validate_string_input, ContentTracker, safe_expanduser, ensure_directory_exists, log_event, log_error
+    from ..config_manager import ConfigManager
+    from ..lock_manager import LockManager
+    from ..constants import DEFAULT_HISTORY_CONFIG, CONTENT_TRACKER_MAX_HISTORY
 
 logger = logging.getLogger("history_module")
 
@@ -44,38 +49,63 @@ def get_history_path():
     path = config.get('save_location', DEFAULT_HISTORY_CONFIG['save_location'])
     return safe_expanduser(path)
 
+def _acquire_file_lock(f):
+    if fcntl:
+        try:
+            fcntl.flock(f.fileno(), fcntl.LOCK_EX)
+        except Exception:
+            pass
+
+def _release_file_lock(f):
+    if fcntl:
+        try:
+            fcntl.flock(f.fileno(), fcntl.LOCK_UN)
+        except Exception:
+            pass
+
 def load_history():
-    """Load clipboard history from file"""
+    """Load clipboard history from file, with file lock and corruption recovery."""
     history_path = Path(get_history_path())
-    
     try:
-        # Create directory if it doesn't exist
         ensure_directory_exists(str(history_path.parent))
-        
-        # Load history if file exists
         if history_path.exists():
             with history_path.open('r') as f:
-                return json.load(f)
+                _acquire_file_lock(f)
+                try:
+                    data = json.load(f)
+                except json.JSONDecodeError:
+                    # Corrupted file: backup and reset
+                    backup_path = history_path.with_suffix('.corrupt.bak')
+                    shutil.copy(str(history_path), str(backup_path))
+                    f.seek(0)
+                    f.truncate()
+                    data = []
+                finally:
+                    _release_file_lock(f)
+                return data
     except (OSError, json.JSONDecodeError) as e:
         logger.error(f"Error loading history: {e}")
-        log_error(f"Error loading history: {e}")  # Log using improved logger
-    
+        log_error(f"Error loading history: {e}")
     return []
 
 def save_history(history):
-    """Save clipboard history to file"""
+    """Save clipboard history to file atomically with file lock."""
     history_path = Path(get_history_path())
-    
     try:
-        # Create directory if it doesn't exist
         ensure_directory_exists(str(history_path.parent))
-        
-        # Save history
-        with history_path.open('w') as f:
-            json.dump(history, f, indent=2)
+        # Write to a temp file first
+        with tempfile.NamedTemporaryFile('w', dir=str(history_path.parent), delete=False) as tf:
+            _acquire_file_lock(tf)
+            json.dump(history, tf, indent=2)
+            tf.flush()
+            os.fsync(tf.fileno())
+            _release_file_lock(tf)
+            temp_path = Path(tf.name)
+        # Atomically replace the original file
+        temp_path.replace(history_path)
     except (OSError, json.JSONEncodeError) as e:
         logger.error(f"Error saving history: {e}")
-        log_error(f"Error saving history: {e}")  # Log using improved logger
+        log_error(f"Error saving history: {e}")
 
 def add_to_history(content):
     """Add content to clipboard history"""
@@ -150,74 +180,32 @@ def process(clipboard_content, config=None):
             log_error(f"Error adding to history: {e}")  # Log using improved logger
             return False
 
-def _write_log_header_if_needed(log_path, header):
-    """Write a header to the log file if it is empty."""
-    log_file = Path(log_path)
-    if not log_file.exists() or log_file.stat().st_size == 0:
-        with log_file.open('a') as f:
-            f.write(header)
+def reset_content_tracker():
+    """Reset the in-memory content tracker (for test isolation)."""
+    global _content_tracker
+    _content_tracker = ContentTracker(max_history=CONTENT_TRACKER_MAX_HISTORY)
 
-LOG_HEADER = (
-    f"=== Clipboard Monitor Output Log ===\n"
-    f"Created: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
-    f"Format: [YYYY-MM-DD HH:MM:SS] [LEVEL ] | Message\n"
-    f"-------------------------------------\n"
-)
-
-ERR_LOG_HEADER = (
-    f"=== Clipboard Monitor Error Log ===\n"
-    f"Created: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
-    f"Format: [YYYY-MM-DD HH:MM:SS] [LEVEL ] | Message\n"
-    f"-------------------------------------\n"
-)
-
-def log_event(message, level="INFO", section_separator=False, paths=None):
-    import datetime
-    timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    padded_level = f"{level:<5}"
-    log_line = f"[{timestamp}] [{padded_level}] | {message}\n"
-    # Use get_app_paths if available, else fallback
-    if paths is not None:
-        out_log = paths.get("out_log")
-    else:
-        try:
-            from utils import get_app_paths, safe_expanduser
-            out_log = get_app_paths().get("out_log", safe_expanduser("~/ClipboardMonitor_output.log"))
-        except Exception:
-            out_log = safe_expanduser("~/ClipboardMonitor_output.log")
-    _write_log_header_if_needed(out_log, LOG_HEADER)
-    with Path(out_log).open('a') as f:
-        if section_separator:
-            f.write("\n" + "-" * 60 + "\n")
-        f.write(log_line)
-        if section_separator:
-            f.write("-" * 60 + "\n\n")
-        f.flush()
-
-def log_error(message, multiline_details=None, section_separator=False, paths=None):
-    import datetime
-    timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    padded_level = f"ERROR"
-    log_line = f"[{timestamp}] [{padded_level}] | {message}\n"
-    # Use get_app_paths if available, else fallback
-    if paths is not None:
-        err_log = paths.get("err_log")
-    else:
-        try:
-            from utils import get_app_paths, safe_expanduser
-            err_log = get_app_paths().get("err_log", safe_expanduser("~/ClipboardMonitor_error.log"))
-        except Exception:
-            err_log = safe_expanduser("~/ClipboardMonitor_error.log")
-    _write_log_header_if_needed(err_log, ERR_LOG_HEADER)
-    with Path(err_log).open('a') as f:
-        if section_separator:
-            f.write("\n" + "-" * 60 + "\n")
-        f.write(log_line)
-        if multiline_details:
-            for line in multiline_details.splitlines():
-                f.write(f"    {line}\n")
-        if section_separator:
-            f.write("-" * 60 + "\n\n")
-        f.flush()
-
-# Replace all logger.info, logger.warning, logger.error, logger.debug calls with log_event or log_error as appropriate
+# --- History Clearing Function ---
+def clear_history():
+    """Clear the clipboard history file and reset in-memory tracker."""
+    history_path = Path(get_history_path())
+    try:
+        ensure_directory_exists(str(history_path.parent))
+        # Overwrite the file with an empty list atomically
+        with tempfile.NamedTemporaryFile('w', dir=str(history_path.parent), delete=False) as tf:
+            _acquire_file_lock(tf)
+            json.dump([], tf, indent=2)
+            tf.flush()
+            os.fsync(tf.fileno())
+            _release_file_lock(tf)
+            temp_path = Path(tf.name)
+        temp_path.replace(history_path)
+        # Reset in-memory content tracker
+        global _content_tracker
+        _content_tracker = ContentTracker(max_history=CONTENT_TRACKER_MAX_HISTORY)
+        log_event("Clipboard history cleared.")
+        return True
+    except Exception as e:
+        logger.error(f"Error clearing history: {e}")
+        log_error(f"Error clearing history: {e}")
+        return False

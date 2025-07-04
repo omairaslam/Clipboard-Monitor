@@ -24,6 +24,12 @@ def setup_logging(out_log_path=None, err_log_path=None):
     out_log = out_log_path or paths["out_log"]
     err_log = err_log_path or paths["err_log"]
 
+    # Ensure parent directories for log files exist
+    for log_path in [out_log, err_log]:
+        dir_path = os.path.dirname(log_path)
+        if dir_path and not os.path.exists(dir_path):
+            os.makedirs(dir_path, exist_ok=True)
+
     # Remove all handlers
     for handler in logging.root.handlers[:]:
         logging.root.removeHandler(handler)
@@ -189,14 +195,13 @@ def get_home_directory():
     except Exception as e:
         logger.debug(f"expanduser failed: {e}")
 
-    # If all methods fail, raise an error
+
     raise RuntimeError("Unable to determine user home directory using any method")
 
 def safe_expanduser(path):
     """
-    Safely expand user home directory in paths, with robust fallback methods.
-    This prevents the creation of literal ~ folders when working directory
-    is set incorrectly.
+    Safely expand user home directory in paths, with robust fallback methods and directory traversal prevention.
+    This prevents the creation of literal ~ folders and blocks directory traversal.
 
     Args:
         path (str): Path that may contain ~ for home directory
@@ -205,33 +210,39 @@ def safe_expanduser(path):
         str: Path with ~ properly expanded to home directory
 
     Raises:
-        RuntimeError: If home directory cannot be determined
+        RuntimeError: If home directory cannot be determined or path is unsafe
     """
     if not isinstance(path, str):
         raise ValueError("Path must be a string")
 
     # If path doesn't start with ~, return as-is
     if not path.startswith("~"):
-        return path
+        expanded = path
+    else:
+        try:
+            # Get the home directory using our robust method
+            home_dir = get_home_directory()
 
-    try:
-        # Get the home directory using our robust method
-        home_dir = get_home_directory()
+            # Handle different tilde patterns
+            if path == "~":
+                expanded = home_dir
+            elif path.startswith("~/"):
+                expanded = os.path.join(home_dir, path[2:])
+            elif path.startswith("~"):
+                # Handle ~username patterns (though less common)
+                expanded = os.path.expanduser(path)
+            else:
+                expanded = path
+        except Exception as e:
+            logger.error(f"Failed to expand path '{path}': {e}")
+            raise RuntimeError(f"Unable to expand user path: {path}")
 
-        # Handle different tilde patterns
-        if path == "~":
-            return home_dir
-        elif path.startswith("~/"):
-            return os.path.join(home_dir, path[2:])
-        elif path.startswith("~"):
-            # Handle ~username patterns (though less common)
-            return os.path.expanduser(path)
-        else:
-            return path
+    # Directory traversal prevention: block ../ or ..\\ in any part of the path
+    if any(part in expanded for part in ["../", "..\\"]):
+        logger.error(f"Blocked directory traversal attempt in path: {expanded}")
+        raise RuntimeError(f"Directory traversal detected in path: {expanded}")
 
-    except Exception as e:
-        logger.error(f"Failed to expand path '{path}': {e}")
-        raise RuntimeError(f"Unable to expand user path: {path}")
+    return expanded
 
 def ensure_directory_exists(path):
     """
@@ -361,33 +372,24 @@ def get_app_paths():
     }
 
 def get_config(section=None, key=None, default=None):
-    """Get configuration value from config.json
-    
-    Args:
-        section: Optional section name (e.g., 'general', 'modules')
-        key: Optional key within section
-        default: Default value if section/key not found
-        
-    Returns:
-        Full config dict, section dict, or specific value
     """
-    try:
-        config_path = Path(__file__).parent / 'config.json'
-        if config_path.exists():
-            with config_path.open('r') as f:
-                config = json.load(f)
-                
-            if section is None:
-                return config
-            elif section in config:
-                if key is None:
-                    return config[section]
-                else:
-                    return config[section].get(key, default)
-        return default
-    except (OSError, json.JSONDecodeError) as e:
-        logging.error(f"Error loading config: {e}")
-        return default
+    Get configuration value from config.json using the centralized ConfigManager.
+    Args:
+        section (str, optional): The configuration section.
+        key (str, optional): The key within the section.
+        default: The default value to return if not found.
+    Returns:
+        The configuration value, section, or full config.
+    """
+    from config_manager import ConfigManager
+    # Always create a new instance to ensure it loads the latest config,
+    # especially important in tests where the config file is frequently changed.
+    config_manager = ConfigManager()
+    if section is None:
+        return config_manager.config
+    if key is None:
+        return config_manager.get_section(section, default=default or {})
+    return config_manager.get_config_value(section, key, default=default)
 
 def set_config_value(section, key, value):
     """Set a configuration value in config.json"""
@@ -509,10 +511,17 @@ def get_service_status():
         return "unknown"
 
 def _write_log_header_if_needed(log_path, header):
-    log_file = Path(log_path)
-    if not log_file.exists() or log_file.stat().st_size == 0:
-        with log_file.open('a') as f:
-            f.write(header)
+    try:
+        log_file = Path(log_path)
+        log_file.parent.mkdir(parents=True, exist_ok=True)
+        if not log_file.exists() or log_file.stat().st_size == 0:
+            with log_file.open('a') as f:
+                f.write(header)
+    except (OSError, PermissionError) as e:
+        # This is a critical error, as logging is failing.
+        # We can't use the logger here, so we print to stderr.
+        import sys
+        print(f"CRITICAL: Failed to write to log file {log_path}. Error: {e}", file=sys.stderr)
 
 LOG_HEADER = (
     "=== Clipboard Monitor Output Log ===\n"

@@ -36,18 +36,15 @@ ERR_LOG_HEADER = (
     "-------------------------------------\n"
 ).format(date=datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
 
-def create_html_viewer():
-    """Create HTML file for clipboard history"""
-    
+def generate_html():
+    """Create HTML file for clipboard history (renamed for export)"""
     history = load_clipboard_history()
-    
-    # Create HTML content
     html_content = f"""
 <!DOCTYPE html>
-<html lang="en">
+<html lang=\"en\">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset=\"UTF-8\">
+    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">
     <title>Clipboard History Viewer ({len(history)} items)</title>
     <style>
         body {{
@@ -244,15 +241,24 @@ def create_html_viewer():
                 # Detect content type
                 content_type = "text"
                 content_icon = "📄"
+                is_mermaid = False
                 if content.startswith('{\\rtf') or (content.startswith('{') and 'deff0' in content and 'ttbl' in content):
                     content_type = "rtf"
                     content_icon = "🎨"
                 elif content.startswith(('http://', 'https://')):
                     content_type = "url"
                     content_icon = "🔗"
+                # Detect mermaid diagrams (simple heuristic: starts with 'graph ' or 'sequenceDiagram' or 'stateDiagram')
+                elif content.strip().lower().startswith(('graph ', 'sequence', 'state', 'erdiagram', 'journey', 'gantt')):
+                    is_mermaid = True
+                    content_type = "mermaid"
+                    content_icon = "🧩"
 
-                # Escape HTML characters
-                content_html = content.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+                # Escape HTML characters (unless mermaid)
+                if is_mermaid:
+                    content_html = f'<div class="mermaid">{content}</div>'
+                else:
+                    content_html = content.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
 
                 # Special handling for RTF content
                 if content_type == "rtf":
@@ -286,6 +292,12 @@ def create_html_viewer():
             </div>
 """
     
+    # If any mermaid diagrams, include mermaid.js script
+    if any((item.get('content','').strip().lower().startswith(('graph ', 'sequence', 'state', 'erdiagram', 'journey', 'gantt')) for item in history)):
+        html_content += """
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <script>mermaid.initialize({startOnLoad:true});</script>
+"""
     html_content += """
         </div>
     </div>
@@ -408,35 +420,34 @@ def create_html_viewer():
     
     return html_content
 
-def open_web_viewer():
-    """Create and open web-based history viewer"""
+def open_browser(url=None):
+    """Create and open web-based history viewer (renamed for export). Accepts optional URL for test compatibility."""
+    import webbrowser
+    import tempfile
+    import os
     try:
-        # Create HTML content
-        html_content = create_html_viewer()
-        
-        # Create temporary HTML file
+        if url:
+            # If a URL is provided, open it directly (for test compatibility)
+            webbrowser.open(url)
+            print(f"Opened provided URL in browser: {url}")
+            log_event("Opened browser with provided URL", url)
+            return True
+        html_content = generate_html()
         temp_dir = tempfile.mkdtemp()
         html_file = os.path.join(temp_dir, 'clipboard_history.html')
-        
         with open(html_file, 'w', encoding='utf-8') as f:
             f.write(html_content)
-        
-        # Open in browser
         webbrowser.open(f'file://{html_file}')
-        
         print(f"Opened clipboard history viewer in browser")
         print(f"HTML file: {html_file}")
-        
-        # Log event
         log_event("Opened clipboard history viewer", html_file)
-        
         return True
-        
     except Exception as e:
         print(f"Error creating web viewer: {e}")
-        # Log error
         log_error(f"Error creating web viewer: {e}")
         return False
+# Export for test and import usage
+__all__ = ["generate_html", "open_browser"]
 
 def log_event(message, level="INFO", section_separator=False, paths=None):
     import datetime
@@ -488,4 +499,4 @@ def log_error(message, multiline_details=None, section_separator=False, paths=No
         f.flush()
 
 if __name__ == "__main__":
-    open_web_viewer()
+    open_browser()

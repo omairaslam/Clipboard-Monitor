@@ -1,0 +1,45 @@
+## Draw.io XML Clipboard Module
+
+### Overview
+This module detects draw.io (diagrams.net) XML in the clipboard, encodes it for use with diagrams.net, copies the resulting URL to the clipboard, and opens it in the default browser. The user is notified of success or failure. The module can be enabled/disabled from the menubar utility.
+
+### Detection Criteria
+A clipboard XML is considered draw.io XML if:
+- The root element is `<mxfile>`
+- Contains one or more `<diagram>` elements
+- Each `<diagram>` has an `<mxGraphModel>` element
+- Inside `<mxGraphModel>`, there is a `<root>` element with multiple `<mxCell>` elements
+- `<mxCell>` elements often have attributes like `vertex`, `edge`, and may contain `<mxGeometry>`
+
+### How It Works
+1. **Detection**: On clipboard change, the module checks if the content matches the above structure.
+2. **Encoding**: If detected, the XML is compressed (zlib, raw), base64-encoded, and URL-encoded as per diagrams.net spec.
+3. **URL Generation**: The encoded string is inserted into the diagrams.net URL template: `https://app.diagrams.net/?lightbox=1&edit=_blank&layers=1&nav=1#R{encoded}`
+4. **Clipboard & Browser**: The URL is copied to the clipboard and opened in the default browser.
+5. **Notification**: The user is notified of success or any errors (invalid XML, browser launch failure, etc.).
+6. **Activation**: The module can be enabled/disabled from the menubar, similar to the mermaid module.
+
+### Error Handling
+- If the XML is invalid or not draw.io, nothing happens.
+- If browser launch fails, the user is notified with the error.
+
+### Testing
+Automated tests cover:
+- Valid draw.io XML (success)
+- Invalid XML (structure or parse errors)
+- Browser launch failure
+- Module activation/deactivation
+- Clipboard and notification behaviors
+
+### Requirements
+- Python standard libraries: `xml.etree.ElementTree`, `zlib`, `base64`, `urllib.parse`, `webbrowser`
+- `pyperclip` for clipboard (optional, fallback to no copy if unavailable)
+
+### Example
+Copy the following XML to your clipboard:
+
+```
+<mxfile><diagram><mxGraphModel><root><mxCell id="0"/><mxCell id="1" vertex="1"><mxGeometry/></mxCell></root></mxGraphModel></diagram></mxfile>
+```
+
+If the module is enabled, a diagrams.net tab will open and the URL will be in your clipboard.

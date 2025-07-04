@@ -14,15 +14,16 @@ Each module should be a Python file in the `modules/` directory with a name endi
 Each module must implement the following function:
 
 ```python
-def process(clipboard_content) -> bool:
+def process(clipboard_content, config=None):
     """
     Process clipboard content and optionally modify it.
     
     Args:
         clipboard_content (str): The current clipboard content
+        config (dict, optional): The application's module configuration. Defaults to None.
         
     Returns:
-        bool: True if the clipboard was modified, False otherwise
+        str or None: The new clipboard content if modified, otherwise None.
     """
     # Your processing logic here
     pass
@@ -36,13 +37,13 @@ The `process` function should:
 
 The `process()` function in each module **MUST** follow this return value convention:
 
-- Return `True` ONLY if the module has modified the clipboard content
-- Return `False` if:
+- Return the new content if the module has modified the clipboard.
+- Return `None` if:
   - The module didn't process the content (not applicable)
   - The module processed the content but didn't modify the clipboard
   - The module performed other actions (notifications, browser launch, etc.)
 
-This is critical because the main application uses this return value to determine if it needs to re-fetch and re-process the clipboard content with remaining modules.
+This is critical because the main application uses this return value to prevent processing loops.
 
 ## Module Loading Process
 
