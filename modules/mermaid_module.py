@@ -60,11 +60,15 @@ def is_mermaid_code(text):
         log_error(f"Error checking Mermaid code: {str(e)}")
         return False
 
-def create_mermaid_url(mermaid_code):
-    """Create Mermaid Live Editor URL using JSON and base64url encoding"""
+def create_mermaid_url(mermaid_code, theme="default"):
+    """Create Mermaid Live Editor URL using JSON and base64url encoding, including theme."""
     try:
         # Create the payload structure
-        data = {"code": mermaid_code, "mermaid": {}}
+        mermaid_config = {}
+        if theme and theme.lower() != "default":
+            mermaid_config["theme"] = theme
+
+        data = {"code": mermaid_code, "mermaid": mermaid_config}
         
         # Convert to JSON with minimal whitespace
         json_str = json.dumps(data, separators=(',', ':'))
@@ -86,7 +90,11 @@ def create_mermaid_url(mermaid_code):
 def launch_mermaid_chart(mermaid_code, config=None):
     """Launch the Mermaid diagram in browser and optionally copy URL to clipboard"""
     try:
-        url = create_mermaid_url(mermaid_code)
+        mermaid_theme = "default"
+        if config:
+            mermaid_theme = config.get('mermaid_theme', "default")
+
+        url = create_mermaid_url(mermaid_code, theme=mermaid_theme)
         if not url:
             return False
 

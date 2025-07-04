@@ -119,9 +119,13 @@ def process(clipboard_content, config=None):
                 else:
                     log_event("Code already properly formatted")
             else:
-                # Read-only mode: just notify about code detection
-                show_notification("Code Detected", "Code detected (read-only mode)", "")
-                logger.info("[blue]Code detected but clipboard modification disabled for safety[/blue]")
+                # Modification is disabled. Show an alert/notification.
+                logger.info("[yellow]Code detected but module is not allowed to modify clipboard. Alerting user.[/yellow]")
+                show_notification(
+                    "Clipboard Access Denied",
+                    "Code Formatter Module attempted to process clipboard content.",
+                    "Modification is disabled. You can enable it in Preferences > Security Settings > Clipboard Modification."
+                )
                 return False  # Don't modify clipboard
                 
     return False

@@ -125,23 +125,62 @@ class ClipboardMonitorMenuBar(rumps.App):
         if "drawio_module" not in self.module_status:
             self.module_status["drawio_module"] = True
         
-    def toggle_drawio_setting(self, sender):
-        """Toggle Draw.io specific settings."""
+    def toggle_drawio_url_behavior_setting(self, sender):
+        """Toggle Draw.io URL behavior settings like 'Copy URL' or 'Open in Browser'."""
         sender.state = not sender.state
         
         setting_map = {
             "Copy URL": "drawio_copy_url",
-            "Open in Browser": "drawio_open_in_browser"
+            "Open in Browser": "drawio_open_in_browser",
         }
-        
         config_key = setting_map.get(sender.title)
+
         if config_key:
             if set_config_value('modules', config_key, sender.state):
                 rumps.notification("Clipboard Monitor", "Draw.io Setting",
-                                  f"{sender.title} is now {'enabled' if sender.state else 'disabled'}")
-                self.restart_service(None)
+                                  f"{sender.title} behavior is now {'enabled' if sender.state else 'disabled'}.")
+                self.restart_service(None) # Restart to apply changes if needed by module logic
             else:
-                rumps.notification("Error", "Failed to update Draw.io setting", "Could not save configuration")
+                rumps.notification("Error", "Failed to update Draw.io setting", "Could not save configuration.")
+        else:
+            rumps.notification("Error", "Unknown Draw.io Setting", f"No configuration key found for '{sender.title}'.")
+
+    def toggle_drawio_url_param_setting(self, sender):
+        """Toggle Draw.io URL parameter settings like 'Lightbox', 'Layers', 'Navigation'."""
+        sender.state = not sender.state
+
+        setting_map = {
+            "Lightbox": "drawio_lightbox",
+            "Layers": "drawio_layers",
+            "Navigation": "drawio_nav",
+        }
+        config_key = setting_map.get(sender.title)
+
+        if config_key:
+            if set_config_value('modules', config_key, sender.state):
+                rumps.notification("Clipboard Monitor", "Draw.io URL Parameter",
+                                  f"{sender.title} is now {'enabled' if sender.state else 'disabled'}.")
+                self.restart_service(None) # Restart as URL construction changes
+            else:
+                rumps.notification("Error", "Failed to update Draw.io URL parameter", "Could not save configuration.")
+        else:
+            rumps.notification("Error", "Unknown Draw.io Parameter", f"No configuration key found for '{sender.title}'.")
+
+    def set_drawio_edit_mode(self, sender):
+        """Set the Draw.io edit mode."""
+        new_mode_value = sender._edit_mode_value # Get value stored during menu creation
+
+        # Update state for all items in the submenu
+        for item_title, item_obj in sender.parent.items():
+            if isinstance(item_obj, rumps.MenuItem): # Ensure it's a menu item
+                 item_obj.state = (item_obj.title == sender.title)
+
+        if set_config_value('modules', 'drawio_edit_mode', new_mode_value):
+            rumps.notification("Clipboard Monitor", "Draw.io Edit Mode",
+                              f"Edit mode set to: {sender.title}")
+            self.restart_service(None) # Restart as URL construction changes
+        else:
+            rumps.notification("Error", "Failed to update Draw.io edit mode", "Could not save configuration.")
 
     def _populate_history_viewer_menu(self):
         """Populate the 'View Clipboard History' submenu."""
@@ -203,12 +242,43 @@ class ClipboardMonitorMenuBar(rumps.App):
     def _create_drawio_settings_menu(self):
         """Create the 'Draw.io Settings' submenu."""
         drawio_menu = rumps.MenuItem("Draw.io Settings")
-        self.drawio_copy_url_item = rumps.MenuItem("Copy URL", callback=self.toggle_drawio_setting)
+        self.drawio_copy_url_item = rumps.MenuItem("Copy URL", callback=self.toggle_drawio_url_behavior_setting)
         self.drawio_copy_url_item.state = self.config_manager.get_config_value('modules', 'drawio_copy_url', True)
         drawio_menu.add(self.drawio_copy_url_item)
-        self.drawio_open_browser_item = rumps.MenuItem("Open in Browser", callback=self.toggle_drawio_setting)
+
+        self.drawio_open_browser_item = rumps.MenuItem("Open in Browser", callback=self.toggle_drawio_url_behavior_setting)
         self.drawio_open_browser_item.state = self.config_manager.get_config_value('modules', 'drawio_open_in_browser', True)
         drawio_menu.add(self.drawio_open_browser_item)
+
+        drawio_menu.add(rumps.separator)
+
+        # URL Parameters
+        url_params_menu = rumps.MenuItem("URL Parameters")
+
+        self.drawio_lightbox_item = rumps.MenuItem("Lightbox", callback=self.toggle_drawio_url_param_setting)
+        self.drawio_lightbox_item.state = self.config_manager.get_config_value('modules', 'drawio_lightbox', True)
+        url_params_menu.add(self.drawio_lightbox_item)
+
+        # Edit Mode submenu
+        edit_mode_submenu = rumps.MenuItem("Edit Mode")
+        current_edit_mode = self.config_manager.get_config_value('modules', 'drawio_edit_mode', '_blank')
+        from constants import DRAWIO_EDIT_MODES # Import for menu creation
+        for mode_name, mode_value in DRAWIO_EDIT_MODES.items():
+            item = rumps.MenuItem(mode_name, callback=self.set_drawio_edit_mode)
+            item.state = (mode_value == current_edit_mode)
+            item._edit_mode_value = mode_value # Store actual value
+            edit_mode_submenu.add(item)
+        url_params_menu.add(edit_mode_submenu)
+
+        self.drawio_layers_item = rumps.MenuItem("Layers", callback=self.toggle_drawio_url_param_setting)
+        self.drawio_layers_item.state = self.config_manager.get_config_value('modules', 'drawio_layers', True)
+        url_params_menu.add(self.drawio_layers_item)
+
+        self.drawio_nav_item = rumps.MenuItem("Navigation", callback=self.toggle_drawio_url_param_setting)
+        self.drawio_nav_item.state = self.config_manager.get_config_value('modules', 'drawio_nav', True)
+        url_params_menu.add(self.drawio_nav_item)
+
+        drawio_menu.add(url_params_menu)
         return drawio_menu
 
     def _create_mermaid_settings_menu(self):
@@ -221,14 +291,38 @@ class ClipboardMonitorMenuBar(rumps.App):
         self.mermaid_open_browser_item = rumps.MenuItem("Open in Browser", callback=self.toggle_mermaid_setting)
         self.mermaid_open_browser_item.state = self.config_manager.get_config_value('modules', 'mermaid_open_in_browser', True) # Default True
         mermaid_menu.add(self.mermaid_open_browser_item)
+
+        mermaid_menu.add(rumps.separator)
+
+        # Mermaid Theme submenu
+        theme_submenu = rumps.MenuItem("Editor Theme")
+        current_theme = self.config_manager.get_config_value('modules', 'mermaid_theme', 'default')
+        from constants import MERMAID_THEMES # Import for menu creation
+        for theme_name, theme_value in MERMAID_THEMES.items():
+            item = rumps.MenuItem(theme_name, callback=self.set_mermaid_theme)
+            item.state = (theme_value == current_theme)
+            item._theme_value = theme_value # Store actual value
+            theme_submenu.add(item)
+        mermaid_menu.add(theme_submenu)
+
         return mermaid_menu
 
     def _create_module_settings_menu(self):
         """Create the 'Module Settings' submenu."""
         module_menu = rumps.MenuItem("Module Settings")
-        module_menu.add(self._create_clipboard_modification_menu())
+        # Clipboard modification menu is now under Security Settings
         module_menu.add(self._create_drawio_settings_menu())
         module_menu.add(self._create_mermaid_settings_menu())
+
+        # If no other module-specific settings are present, indicate this
+        if not module_menu.values(): # Check if any items were added
+            module_menu.add(rumps.MenuItem("(No specific module settings)", callback=None))
+            # Disable the main "Module Settings" menu item if it's empty or just has the placeholder
+            # This requires a way to access the parent menu item from _init_preferences_menu,
+            # or restructuring how it's added. For now, we'll leave it clickable.
+            # A simpler approach is to not add it to prefs_menu if it would be empty.
+            # However, for now, let's keep it and it will show the placeholder.
+
         return module_menu
 
     def _create_performance_settings_menu(self):
@@ -256,6 +350,8 @@ class ClipboardMonitorMenuBar(rumps.App):
         self.sanitize_clipboard.state = self.config_manager.get_config_value('security', 'sanitize_clipboard', True)
         security_menu.add(self.sanitize_clipboard)
         security_menu.add(rumps.MenuItem("Set Max Clipboard Size...", callback=self.set_max_clipboard_size))
+        security_menu.add(rumps.separator)
+        security_menu.add(self._create_clipboard_modification_menu())  # Moved here
         return security_menu
 
     def _create_configuration_management_menu(self):
@@ -299,6 +395,22 @@ class ClipboardMonitorMenuBar(rumps.App):
                 self.restart_service(None) # Restart service to apply changes
             else:
                 rumps.notification("Error", "Failed to update Mermaid setting", "Could not save configuration")
+
+    def set_mermaid_theme(self, sender):
+        """Set the Mermaid Live editor theme."""
+        new_theme_value = sender._theme_value # Get value stored during menu creation
+
+        # Update state for all items in the submenu
+        for item_title, item_obj in sender.parent.items():
+            if isinstance(item_obj, rumps.MenuItem): # Ensure it's a menu item
+                item_obj.state = (item_obj.title == sender.title)
+
+        if set_config_value('modules', 'mermaid_theme', new_theme_value):
+            rumps.notification("Clipboard Monitor", "Mermaid Theme",
+                              f"Editor theme set to: {sender.title}")
+            self.restart_service(None) # Restart as URL construction changes
+        else:
+            rumps.notification("Error", "Failed to update Mermaid theme", "Could not save configuration.")
  
     def _build_main_menu(self):
         """Build the main menu structure."""
