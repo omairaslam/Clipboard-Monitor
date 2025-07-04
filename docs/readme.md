@@ -28,8 +28,10 @@
 
 ### 🛠️ **Content Processing**
 - 📝 **Markdown Processing**: Automatically convert markdown to rich text with comprehensive formatting support
-- 🎨 **Mermaid Diagram Detection**: Open Mermaid diagrams in the Mermaid Live Editor with multiple diagram types
-- 📈 **Draw.io Diagram Detection**: Detects Draw.io data on the clipboard and opens it directly in the Draw.io web editor for instant viewing and editing.
+- 🎨 **Mermaid Diagram Detection**: Opens Mermaid diagrams in the Mermaid Live Editor.
+    - **Configurable**: Editor theme ("default", "dark", "forest", "neutral"), copy URL, open in browser.
+- 📈 **Draw.io Diagram Detection**: Opens Draw.io diagrams in the diagrams.net web editor.
+    - **Configurable**: Copy URL, open in browser, and various URL parameters (Lightbox, Edit Mode, Layers, Navigation, Appearance, Link Behavior, Border Color).
 - 💻 **Code Formatting**: Automatically format code snippets with language detection (read-only by default)
 
 ### 🔒 **Security & Performance**
@@ -118,6 +120,7 @@ launchctl load ~/Library/LaunchAgents/com.omairaslam.clipboardmonitor.plist
     - Both behaviors (copy URL to clipboard, open in browser) are configurable via the menu bar:
         - **Copy URL**: `Preferences` → `Module Settings` → `Mermaid Settings` → `Copy URL`
         - **Open in Browser**: `Preferences` → `Module Settings` → `Mermaid Settings` → `Open in Browser`
+    - **Editor Theme**: `Preferences` → `Module Settings` → `Mermaid Settings` → `Editor Theme` (Submenu: Default/Dark/Forest/Neutral)
 - 🛡️ **Security**: Sanitizes content for safe processing
 
 ### 🕒 **History Module**
@@ -131,9 +134,21 @@ launchctl load ~/Library/LaunchAgents/com.omairaslam.clipboardmonitor.plist
 - 🔧 **Configuration**: Can be enabled to modify clipboard content
 
 ### 📈 **Draw.io Module**
-- 🎯 **Purpose**: Detects Draw.io diagram data and opens it in the Draw.io web editor.
-- ⚙️ **Behavior**: **Read-only by default** - can be configured to write the encoded URL back to the clipboard.
-- 🔧 **Configuration**: Settings are available in the menu bar under **Preferences** → **Draw.io Settings**.
+- 🎯 **Purpose**: Detects Draw.io diagram data and opens it in the diagrams.net web editor.
+- ⚙️ **Behavior**:
+    - **Copy URL to clipboard**: Configurable (Default: True)
+    - **Open in browser**: Configurable (Default: True)
+- 🔧 **Configuration**: Settings for URL generation and behavior are available in the menu bar under **Preferences** → **Module Settings** → **Draw.io Settings**. This includes:
+    - Copy URL (Toggle)
+    - Open in Browser (Toggle)
+    - **URL Parameters** (Submenu):
+        - Lightbox (Toggle)
+        - Edit Mode (Submenu: e.g., New Tab (_blank))
+        - Layers Enabled (Toggle)
+        - Navigation Enabled (Toggle)
+        - Appearance (Submenu: Auto/Light/Dark)
+        - Link Behavior (Submenu: Auto/New Tab/Same Tab)
+        - Set Border Color... (Text Input)
 
 ## 📚 History Viewers
 
@@ -274,7 +289,7 @@ Only specific content types can modify your clipboard:
 
 **🔧 Access clipboard modification settings through:**
 
-**Menu Bar** → **Preferences** → **Clipboard Modification**
+**Menu Bar** → **Preferences** → **Advanced Settings** → **Security Settings** → **Clipboard Modification**
 
 </div>
 
@@ -431,16 +446,14 @@ launchctl load ~/Library/LaunchAgents/com.omairaslam.clipboardmonitor.menubar.pl
 | Category | Icon | Settings |
 |----------|------|----------|
 | **General** | ⚙️ | Debug mode, notification title, polling intervals |
-| **Performance** | ⚡ | Lazy loading, adaptive checking, memory optimization |
-| **History** | 📚 | Max items, content length, file location |
-| **Security** | 🔒 | Clipboard sanitization, size limits |
-| **Clipboard Modification** | ✏️ | Control which modules can modify clipboard content |
-| **Draw.io Settings** | 📈 | URL encoding, theme, and other Draw.io specific settings |
-| **Configuration Management** | 🔧 | Reset, export, import, and view settings |
+| **History Settings** | 📚 | Max items, content length, file location |
+| **Module Settings** | 🧩 | Module-specific settings including: <br> - **Draw.io Settings**: Copy URL, Open in Browser, URL Parameters (Lightbox, Edit Mode, Layers, Nav, Appearance, Links, Border Color) <br> - **Mermaid Settings**: Copy URL, Open in Browser, Editor Theme |
+| **Advanced Settings** | 🚀 | Includes: <br> - **Performance Settings**: Lazy loading, adaptive checking, etc. <br> - **Security Settings**: Sanitize Clipboard, Max Clipboard Size, **Clipboard Modification** (Markdown & Code Formatter toggles) <br> - **Configuration Management**: Reset, export, import, view |
+
 
 #### 🎯 **Access Path**
 ```
-📋 Menu Bar Icon → Preferences → Choose Category
+📋 Menu Bar Icon → Preferences → [General Settings | History Settings | Module Settings | Advanced Settings]
 ```
 
 #### ✨ **Benefits**
@@ -489,11 +502,19 @@ launchctl load ~/Library/LaunchAgents/com.omairaslam.clipboardmonitor.menubar.pl
     "code_formatter_module": true,
     "drawio_module": true,
     "markdown_modify_clipboard": true,
-    "code_formatter_modify_clipboard": false
-  },
-  "drawio": {
-    "url_encode": true,
-    "url_parameters": "embed=1&ui=atlas&spin=1&modified=unsavedChanges&proto=json"
+    "code_formatter_modify_clipboard": false,
+    "mermaid_copy_url": false,
+    "mermaid_open_in_browser": true,
+    "mermaid_theme": "default",
+    "drawio_copy_url": true,
+    "drawio_open_in_browser": true,
+    "drawio_lightbox": true,
+    "drawio_edit_mode": "_blank",
+    "drawio_layers": true,
+    "drawio_nav": true,
+    "drawio_appearance": "auto",
+    "drawio_border_color": "none",
+    "drawio_links": "auto"
   },
   "history": {
     "max_items": 100,
