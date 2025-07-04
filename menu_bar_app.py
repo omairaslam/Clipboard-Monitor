@@ -217,6 +217,10 @@ class ClipboardMonitorMenuBar(rumps.App):
         self.mermaid_copy_url_item = rumps.MenuItem("Copy URL", callback=self.toggle_mermaid_setting)
         self.mermaid_copy_url_item.state = self.config_manager.get_config_value('modules', 'mermaid_copy_url', False)
         mermaid_menu.add(self.mermaid_copy_url_item)
+
+        self.mermaid_open_browser_item = rumps.MenuItem("Open in Browser", callback=self.toggle_mermaid_setting)
+        self.mermaid_open_browser_item.state = self.config_manager.get_config_value('modules', 'mermaid_open_in_browser', True) # Default True
+        mermaid_menu.add(self.mermaid_open_browser_item)
         return mermaid_menu
 
     def _create_module_settings_menu(self):
@@ -283,7 +287,8 @@ class ClipboardMonitorMenuBar(rumps.App):
         sender.state = not sender.state
         
         setting_map = {
-            "Copy URL": "mermaid_copy_url"
+            "Copy URL": "mermaid_copy_url",
+            "Open in Browser": "mermaid_open_in_browser"
         }
         
         config_key = setting_map.get(sender.title)
@@ -291,7 +296,7 @@ class ClipboardMonitorMenuBar(rumps.App):
             if set_config_value('modules', config_key, sender.state):
                 rumps.notification("Clipboard Monitor", "Mermaid Setting",
                                   f"{sender.title} is now {'enabled' if sender.state else 'disabled'}")
-                self.restart_service(None)
+                self.restart_service(None) # Restart service to apply changes
             else:
                 rumps.notification("Error", "Failed to update Mermaid setting", "Could not save configuration")
  
