@@ -84,24 +84,49 @@ def process(clipboard_content, config=None):
         edit_mode = config.get("drawio_edit_mode", "_blank")
         layers = config.get("drawio_layers", True)
         nav = config.get("drawio_nav", True)
+        appearance = config.get("drawio_appearance", "auto") # New
+        border_color = config.get("drawio_border_color", "none") # New
+        links_config = config.get("drawio_links", "auto") # New
 
         # Construct query parameters string
         params = []
-        if lightbox:
+        if lightbox: # Parameter is 'lightbox=1' or not present
             params.append("lightbox=1")
-        if edit_mode: # Assuming edit_mode will always have a value, e.g., "_blank"
+        # edit_mode: value directly used, e.g. 'edit=_blank'
+        if edit_mode:
             params.append(f"edit={edit_mode}")
-        if layers:
+        if layers: # Parameter is 'layers=1' or not present
             params.append("layers=1")
-        if nav:
+        if nav: # Parameter is 'nav=1' or not present
             params.append("nav=1")
 
-        param_string = "&".join(params)
+        # Appearance: 'ui=auto|light|dark'
+        if appearance and appearance != "auto": # "auto" is often default, no need to send
+            params.append(f"ui={appearance}")
 
-        full_url = f"{DRAWIO_BASE_URL}?{param_string}#R{url_fragment}"
+        # Border Color: 'border=HEXCOLOR' (without #) or 'border=none'
+        if border_color: # Could be "none" or a hex string
+            # diagrams.net expects hex colors without '#' for the 'border' URL param.
+            actual_border_color = border_color.lstrip('#')
+            if actual_border_color: # Ensure it's not empty after stripping
+                 params.append(f"border={actual_border_color}")
+
+        # Links: 'links=auto|blank|self'
+        if links_config and links_config != "auto": # "auto" is often default
+            params.append(f"links={links_config}")
+
+        param_string = "&".join(params)
+        if not param_string: # Ensure param_string is not empty if all options are default/off
+            full_url = f"{DRAWIO_BASE_URL}#R{url_fragment}"
+        else:
+            full_url = f"{DRAWIO_BASE_URL}?{param_string}#R{url_fragment}"
+
+        # The line above correctly assigns full_url based on param_string.
+        # The duplicated line below is removed:
+        # full_url = f"{DRAWIO_BASE_URL}?{param_string}#R{url_fragment}"
         log_event(f"Constructed Draw.io URL: {full_url}", level="DEBUG")
 
-        copy_url_enabled = config.get("drawio_copy_url", True) # Renamed to avoid conflict
+        copy_url_enabled = config.get("drawio_copy_url", True)
         open_browser_enabled = config.get("drawio_open_in_browser", True) # Renamed to avoid conflict
         log_event(f"Config settings: copy_url={copy_url_enabled}, open_browser={open_browser_enabled}", level="DEBUG")
         
