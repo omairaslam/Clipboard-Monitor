@@ -489,19 +489,26 @@ class ClipboardMonitorMenuBar(rumps.App):
             rumps.notification("Error", "Failed to update Mermaid theme", "Could not save configuration.")
  
     def _build_main_menu(self):
-        """Build the main menu structure."""
+        """Build the main menu structure to match docs/MENU_ORGANIZATION.md."""
+        # Section 1: Status & Service Control
         self.menu.add(self.status_item)
         self.menu.add(rumps.separator)
-        self.menu.add(self.pause_toggle)  # Add the pause toggle
+        self.menu.add(self.pause_toggle)
         self.menu.add(self.service_control_menu)
-        self.menu.add(self.logs_menu)
         self.menu.add(rumps.separator)
+
+        # Section 2: History & Modules (as per docs: History items first, then Modules)
+        self.menu.add(self.recent_history_menu)
+        self.menu.add(self.history_menu)
         self.menu.add(self.module_menu)
         self.menu.add(rumps.separator)
-        self.menu.add(self.recent_history_menu)  # Add Recent Clipboard Items just before history
-        self.menu.add(self.history_menu)
+
+        # Section 3: Preferences
         self.menu.add(self.prefs_menu)
         self.menu.add(rumps.separator)
+
+        # Section 4: Application (Logs then Quit)
+        self.menu.add(self.logs_menu)
         self.menu.add(self.quit_item)
     
     def load_module_config(self):
