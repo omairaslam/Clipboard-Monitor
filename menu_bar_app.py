@@ -151,8 +151,8 @@ class ClipboardMonitorMenuBar(rumps.App):
 
         setting_map = {
             "Lightbox": "drawio_lightbox",
-            "Layers": "drawio_layers",
-            "Navigation": "drawio_nav",
+            "Layers Enabled": "drawio_layers", # Updated title
+            "Navigation Enabled": "drawio_nav", # Updated title
         }
         config_key = setting_map.get(sender.title)
 
@@ -181,6 +181,60 @@ class ClipboardMonitorMenuBar(rumps.App):
             self.restart_service(None) # Restart as URL construction changes
         else:
             rumps.notification("Error", "Failed to update Draw.io edit mode", "Could not save configuration.")
+
+    def set_drawio_appearance(self, sender):
+        """Set the Draw.io appearance mode."""
+        new_appearance_value = sender._appearance_value
+        for item_title, item_obj in sender.parent.items():
+            if isinstance(item_obj, rumps.MenuItem):
+                item_obj.state = (item_obj.title == sender.title)
+
+        if set_config_value('modules', 'drawio_appearance', new_appearance_value):
+            rumps.notification("Clipboard Monitor", "Draw.io Appearance", f"Appearance set to: {sender.title}")
+            self.restart_service(None)
+        else:
+            rumps.notification("Error", "Failed to update Draw.io appearance", "Could not save configuration.")
+
+    def set_drawio_links_mode(self, sender):
+        """Set the Draw.io links mode."""
+        new_links_value = sender._links_value
+        for item_title, item_obj in sender.parent.items():
+            if isinstance(item_obj, rumps.MenuItem):
+                item_obj.state = (item_obj.title == sender.title)
+
+        if set_config_value('modules', 'drawio_links', new_links_value):
+            rumps.notification("Clipboard Monitor", "Draw.io Link Behavior", f"Link behavior set to: {sender.title}")
+            self.restart_service(None)
+        else:
+            rumps.notification("Error", "Failed to update Draw.io link behavior", "Could not save configuration.")
+
+    def set_drawio_border_color(self, _):
+        """Set Draw.io border color via text input."""
+        current_color = self.config_manager.get_config_value('modules', 'drawio_border_color', 'none')
+        response = rumps.Window(
+            message="Enter border color (e.g., FF0000 or 'none'):",
+            title="Set Draw.io Border Color",
+            default_text=current_color,
+            ok="Set",
+            cancel="Cancel",
+            dimensions=(320, 20) # Adjusted width for longer message
+        ).run()
+
+        if response.clicked:
+            new_color = response.text.strip()
+            if not new_color: # User cleared the input, treat as "none" or default
+                new_color = "none"
+
+            # Basic validation: 'none' or hex (3, 6, 8 digits for RRGGBBAA)
+            import re
+            if new_color.lower() == "none" or re.fullmatch(r"^[0-9a-fA-F]{3}([0-9a-fA-F]{3})?([0-9a-fA-F]{2})?$", new_color):
+                if set_config_value('modules', 'drawio_border_color', new_color):
+                    rumps.notification("Clipboard Monitor", "Draw.io Border Color", f"Border color set to: {new_color}")
+                    self.restart_service(None)
+                else:
+                    rumps.notification("Error", "Failed to update Draw.io border color", "Could not save configuration.")
+            else:
+                rumps.notification("Error", "Invalid Color", "Please enter 'none' or a valid hex color code (e.g., FF0000).")
 
     def _populate_history_viewer_menu(self):
         """Populate the 'View Clipboard History' submenu."""
@@ -262,7 +316,7 @@ class ClipboardMonitorMenuBar(rumps.App):
         # Edit Mode submenu
         edit_mode_submenu = rumps.MenuItem("Edit Mode")
         current_edit_mode = self.config_manager.get_config_value('modules', 'drawio_edit_mode', '_blank')
-        from constants import DRAWIO_EDIT_MODES # Import for menu creation
+        from constants import DRAWIO_EDIT_MODES, DRAWIO_APPEARANCE_MODES, DRAWIO_LINKS_MODES # Import for menu creation
         for mode_name, mode_value in DRAWIO_EDIT_MODES.items():
             item = rumps.MenuItem(mode_name, callback=self.set_drawio_edit_mode)
             item.state = (mode_value == current_edit_mode)
@@ -270,13 +324,35 @@ class ClipboardMonitorMenuBar(rumps.App):
             edit_mode_submenu.add(item)
         url_params_menu.add(edit_mode_submenu)
 
-        self.drawio_layers_item = rumps.MenuItem("Layers", callback=self.toggle_drawio_url_param_setting)
+        self.drawio_layers_item = rumps.MenuItem("Layers Enabled", callback=self.toggle_drawio_url_param_setting)
         self.drawio_layers_item.state = self.config_manager.get_config_value('modules', 'drawio_layers', True)
         url_params_menu.add(self.drawio_layers_item)
 
-        self.drawio_nav_item = rumps.MenuItem("Navigation", callback=self.toggle_drawio_url_param_setting)
+        self.drawio_nav_item = rumps.MenuItem("Navigation Enabled", callback=self.toggle_drawio_url_param_setting)
         self.drawio_nav_item.state = self.config_manager.get_config_value('modules', 'drawio_nav', True)
         url_params_menu.add(self.drawio_nav_item)
+
+        # Appearance submenu
+        appearance_submenu = rumps.MenuItem("Appearance")
+        current_appearance = self.config_manager.get_config_value('modules', 'drawio_appearance', 'auto')
+        for appearance_name, appearance_value in DRAWIO_APPEARANCE_MODES.items():
+            item = rumps.MenuItem(appearance_name, callback=self.set_drawio_appearance)
+            item.state = (appearance_value == current_appearance)
+            item._appearance_value = appearance_value
+            appearance_submenu.add(item)
+        url_params_menu.add(appearance_submenu)
+
+        # Link Behavior submenu
+        links_submenu = rumps.MenuItem("Link Behavior")
+        current_links_mode = self.config_manager.get_config_value('modules', 'drawio_links', 'auto')
+        for links_name, links_value in DRAWIO_LINKS_MODES.items():
+            item = rumps.MenuItem(links_name, callback=self.set_drawio_links_mode)
+            item.state = (links_value == current_links_mode)
+            item._links_value = links_value
+            links_submenu.add(item)
+        url_params_menu.add(links_submenu)
+
+        url_params_menu.add(rumps.MenuItem("Set Border Color...", callback=self.set_drawio_border_color))
 
         drawio_menu.add(url_params_menu)
         return drawio_menu

@@ -97,6 +97,9 @@ DEFAULT_MODULES_CONFIG = {
     'drawio_edit_mode': "_blank", # e.g., "_blank", "local", "device"
     'drawio_layers': True,
     'drawio_nav': True,
+    'drawio_appearance': "auto",  # "auto", "light", "dark"
+    'drawio_border_color': "none", # "none" or hex color e.g., "FF0000"
+    'drawio_links': "auto",       # "auto", "blank" (for new tab), "self" (for same tab)
 }
 
 # Mermaid themes for menu
@@ -110,8 +113,22 @@ MERMAID_THEMES = {
 # Draw.io edit modes for menu
 DRAWIO_EDIT_MODES = {
     "New Tab (_blank)": "_blank",
-    "Local": "local", # Assuming "local" is a valid option, placeholder
-    "Device": "device"  # Assuming "device" is a valid option, placeholder
+    # "Local": "local", # diagrams.net doc does not explicitly list "local" for #R URLs
+    # "Device": "device" # diagrams.net doc does not explicitly list "device" for #R URLs
+}
+
+# Draw.io appearance modes for menu
+DRAWIO_APPEARANCE_MODES = {
+    "Automatic": "auto",
+    "Light": "light",
+    "Dark": "dark"
+}
+
+# Draw.io link behaviors for menu
+DRAWIO_LINKS_MODES = {
+    "Automatic": "auto", # Default browser behavior
+    "Open in New Tab": "blank",
+    "Open in Same Tab": "self"
 }
 
 
