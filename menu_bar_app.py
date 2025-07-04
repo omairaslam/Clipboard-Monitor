@@ -130,8 +130,8 @@ class ClipboardMonitorMenuBar(rumps.App):
         sender.state = not sender.state
         
         setting_map = {
-            "Draw.io: Copy URL": "drawio_copy_url",
-            "Draw.io: Open in Browser": "drawio_open_in_browser"
+            "Copy URL": "drawio_copy_url",
+            "Open in Browser": "drawio_open_in_browser"
         }
         
         config_key = setting_map.get(sender.title)
@@ -149,28 +149,6 @@ class ClipboardMonitorMenuBar(rumps.App):
         self.history_menu.add(rumps.MenuItem("Open in Terminal", callback=self.open_cli_history_viewer))
         self.history_menu.add(rumps.separator)
         self.history_menu.add(rumps.MenuItem("🗑️ Clear History", callback=self.clear_clipboard_history))
-
-    def _init_preferences_menu(self):
-        """Initialize and populate the Preferences submenu."""
-        self.prefs_menu.add(self._create_general_settings_menu())
-        self.prefs_menu.add(self._create_performance_settings_menu())
-        self.prefs_menu.add(self._create_history_settings_menu())
-        self.prefs_menu.add(self._create_security_settings_menu())
-        self.prefs_menu.add(self._create_clipboard_modification_menu())
-        self.prefs_menu.add(self._create_drawio_settings_menu())
-        self.prefs_menu.add(self._create_mermaid_settings_menu())
-        self.prefs_menu.add(self._create_configuration_management_menu())
-
-    def _create_general_settings_menu(self):
-        """Create the 'General Settings' submenu."""
-        general_menu = rumps.MenuItem("General Settings")
-        self.debug_mode = rumps.MenuItem("Debug Mode", callback=self.toggle_debug)
-        self.debug_mode.state = self.config_manager.get_config_value('general', 'debug_mode', False)
-        general_menu.add(self.debug_mode)
-        general_menu.add(rumps.MenuItem("Set Notification Title...", callback=self.set_notification_title))
-        general_menu.add(self._create_polling_interval_menu())
-        general_menu.add(self._create_enhanced_interval_menu())
-        return general_menu
 
     def _create_polling_interval_menu(self):
         """Create the 'Polling Interval' submenu."""
@@ -192,6 +170,63 @@ class ClipboardMonitorMenuBar(rumps.App):
             enhanced_menu.add(item)
         return enhanced_menu
 
+    def _create_general_settings_menu(self):
+        """Create the 'General Settings' submenu."""
+        general_menu = rumps.MenuItem("General Settings")
+        self.debug_mode = rumps.MenuItem("Debug Mode", callback=self.toggle_debug)
+        self.debug_mode.state = self.config_manager.get_config_value('general', 'debug_mode', False)
+        general_menu.add(self.debug_mode)
+        general_menu.add(rumps.MenuItem("Set Notification Title...", callback=self.set_notification_title))
+        general_menu.add(self._create_polling_interval_menu())
+        general_menu.add(self._create_enhanced_interval_menu())
+        return general_menu
+
+    def _create_history_settings_menu(self):
+        """Create the 'History Settings' submenu."""
+        history_menu = rumps.MenuItem("History Settings")
+        history_menu.add(rumps.MenuItem("Set Max History Items...", callback=self.set_max_history_items))
+        history_menu.add(rumps.MenuItem("Set Max Content Length...", callback=self.set_max_content_length))
+        history_menu.add(rumps.MenuItem("Set History Location...", callback=self.set_history_location))
+        return history_menu
+
+    def _create_clipboard_modification_menu(self):
+        """Create the 'Clipboard Modification' submenu."""
+        clipboard_menu = rumps.MenuItem("Clipboard Modification")
+        self.markdown_modify = rumps.MenuItem("Markdown Modify Clipboard", callback=self.toggle_clipboard_modification)
+        self.markdown_modify.state = self.config_manager.get_config_value('modules', 'markdown_modify_clipboard', True)
+        clipboard_menu.add(self.markdown_modify)
+        self.code_formatter_modify = rumps.MenuItem("Code Formatter Modify Clipboard", callback=self.toggle_clipboard_modification)
+        self.code_formatter_modify.state = self.config_manager.get_config_value('modules', 'code_formatter_modify_clipboard', False)
+        clipboard_menu.add(self.code_formatter_modify)
+        return clipboard_menu
+
+    def _create_drawio_settings_menu(self):
+        """Create the 'Draw.io Settings' submenu."""
+        drawio_menu = rumps.MenuItem("Draw.io Settings")
+        self.drawio_copy_url_item = rumps.MenuItem("Copy URL", callback=self.toggle_drawio_setting)
+        self.drawio_copy_url_item.state = self.config_manager.get_config_value('modules', 'drawio_copy_url', True)
+        drawio_menu.add(self.drawio_copy_url_item)
+        self.drawio_open_browser_item = rumps.MenuItem("Open in Browser", callback=self.toggle_drawio_setting)
+        self.drawio_open_browser_item.state = self.config_manager.get_config_value('modules', 'drawio_open_in_browser', True)
+        drawio_menu.add(self.drawio_open_browser_item)
+        return drawio_menu
+
+    def _create_mermaid_settings_menu(self):
+        """Create the 'Mermaid Settings' submenu."""
+        mermaid_menu = rumps.MenuItem("Mermaid Settings")
+        self.mermaid_copy_url_item = rumps.MenuItem("Copy URL", callback=self.toggle_mermaid_setting)
+        self.mermaid_copy_url_item.state = self.config_manager.get_config_value('modules', 'mermaid_copy_url', False)
+        mermaid_menu.add(self.mermaid_copy_url_item)
+        return mermaid_menu
+
+    def _create_module_settings_menu(self):
+        """Create the 'Module Settings' submenu."""
+        module_menu = rumps.MenuItem("Module Settings")
+        module_menu.add(self._create_clipboard_modification_menu())
+        module_menu.add(self._create_drawio_settings_menu())
+        module_menu.add(self._create_mermaid_settings_menu())
+        return module_menu
+
     def _create_performance_settings_menu(self):
         """Create the 'Performance Settings' submenu."""
         perf_menu = rumps.MenuItem("Performance Settings")
@@ -210,14 +245,6 @@ class ClipboardMonitorMenuBar(rumps.App):
         perf_menu.add(rumps.MenuItem("Set Max Execution Time...", callback=self.set_max_execution_time))
         return perf_menu
 
-    def _create_history_settings_menu(self):
-        """Create the 'History Settings' submenu."""
-        history_menu = rumps.MenuItem("History Settings")
-        history_menu.add(rumps.MenuItem("Set Max History Items...", callback=self.set_max_history_items))
-        history_menu.add(rumps.MenuItem("Set Max Content Length...", callback=self.set_max_content_length))
-        history_menu.add(rumps.MenuItem("Set History Location...", callback=self.set_history_location))
-        return history_menu
-
     def _create_security_settings_menu(self):
         """Create the 'Security Settings' submenu."""
         security_menu = rumps.MenuItem("Security Settings")
@@ -226,17 +253,6 @@ class ClipboardMonitorMenuBar(rumps.App):
         security_menu.add(self.sanitize_clipboard)
         security_menu.add(rumps.MenuItem("Set Max Clipboard Size...", callback=self.set_max_clipboard_size))
         return security_menu
-
-    def _create_clipboard_modification_menu(self):
-        """Create the 'Clipboard Modification' submenu."""
-        clipboard_menu = rumps.MenuItem("Clipboard Modification")
-        self.markdown_modify = rumps.MenuItem("Markdown Modify Clipboard", callback=self.toggle_clipboard_modification)
-        self.markdown_modify.state = self.config_manager.get_config_value('modules', 'markdown_modify_clipboard', True)
-        clipboard_menu.add(self.markdown_modify)
-        self.code_formatter_modify = rumps.MenuItem("Code Formatter Modify Clipboard", callback=self.toggle_clipboard_modification)
-        self.code_formatter_modify.state = self.config_manager.get_config_value('modules', 'code_formatter_modify_clipboard', False)
-        clipboard_menu.add(self.code_formatter_modify)
-        return clipboard_menu
 
     def _create_configuration_management_menu(self):
         """Create the 'Configuration' submenu."""
@@ -247,31 +263,27 @@ class ClipboardMonitorMenuBar(rumps.App):
         config_menu.add(rumps.MenuItem("View Current Configuration", callback=self.view_current_configuration))
         return config_menu
 
-    def _create_drawio_settings_menu(self):
-        """Create the 'Draw.io Settings' submenu."""
-        drawio_menu = rumps.MenuItem("Draw.io Settings")
-        self.drawio_copy_url_item = rumps.MenuItem("Draw.io: Copy URL", callback=self.toggle_drawio_setting)
-        self.drawio_copy_url_item.state = self.config_manager.get_config_value('modules', 'drawio_copy_url', True)
-        drawio_menu.add(self.drawio_copy_url_item)
-        self.drawio_open_browser_item = rumps.MenuItem("Draw.io: Open in Browser", callback=self.toggle_drawio_setting)
-        self.drawio_open_browser_item.state = self.config_manager.get_config_value('modules', 'drawio_open_in_browser', True)
-        drawio_menu.add(self.drawio_open_browser_item)
-        return drawio_menu
+    def _create_advanced_settings_menu(self):
+        """Create the 'Advanced Settings' submenu."""
+        advanced_menu = rumps.MenuItem("Advanced Settings")
+        advanced_menu.add(self._create_performance_settings_menu())
+        advanced_menu.add(self._create_security_settings_menu())
+        advanced_menu.add(self._create_configuration_management_menu())
+        return advanced_menu
 
-    def _create_mermaid_settings_menu(self):
-        """Create the 'Mermaid Settings' submenu."""
-        mermaid_menu = rumps.MenuItem("Mermaid Settings")
-        self.mermaid_copy_url_item = rumps.MenuItem("Mermaid: Copy URL", callback=self.toggle_mermaid_setting)
-        self.mermaid_copy_url_item.state = self.config_manager.get_config_value('modules', 'mermaid_copy_url', False)
-        mermaid_menu.add(self.mermaid_copy_url_item)
-        return mermaid_menu
+    def _init_preferences_menu(self):
+        """Initialize and populate the Preferences submenu."""
+        self.prefs_menu.add(self._create_general_settings_menu())
+        self.prefs_menu.add(self._create_history_settings_menu())
+        self.prefs_menu.add(self._create_module_settings_menu())
+        self.prefs_menu.add(self._create_advanced_settings_menu())
 
     def toggle_mermaid_setting(self, sender):
         """Toggle Mermaid specific settings."""
         sender.state = not sender.state
         
         setting_map = {
-            "Mermaid: Copy URL": "mermaid_copy_url"
+            "Copy URL": "mermaid_copy_url"
         }
         
         config_key = setting_map.get(sender.title)
