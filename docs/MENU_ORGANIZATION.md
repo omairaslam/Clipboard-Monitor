@@ -46,14 +46,21 @@ The "Preferences" menu is now organized into logical sub-menus:
     -   Set Max Content Length...
     -   Set History Location...
 -   **Module Settings**:
-    -   **Clipboard Modification**:
-        -   Markdown Modify Clipboard
-        -   Code Formatter Modify Clipboard
     -   **Draw.io Settings**:
         -   Copy URL
         -   Open in Browser
+        -   **URL Parameters** (Submenu):
+            -   Lightbox (Toggle)
+            -   Edit Mode (Submenu: e.g., New Tab (_blank))
+            -   Layers Enabled (Toggle)
+            -   Navigation Enabled (Toggle)
+            -   Appearance (Submenu: Auto/Light/Dark)
+            -   Link Behavior (Submenu: Auto/New Tab/Same Tab)
+            -   Set Border Color... (Text Input)
     -   **Mermaid Settings**:
         -   Copy URL
+        -   Open in Browser
+        -   **Editor Theme** (Submenu: Default/Dark/Forest/Neutral)
 -   **Advanced Settings**:
     -   **Performance Settings**:
         -   Lazy Module Loading
@@ -64,6 +71,9 @@ The "Preferences" menu is now organized into logical sub-menus:
     -   **Security Settings**:
         -   Sanitize Clipboard
         -   Set Max Clipboard Size...
+        -   **Clipboard Modification** (Submenu - MOVED HERE):
+            -   Markdown Modify Clipboard
+            -   Code Formatter Modify Clipboard
     -   **Configuration**:
         -   Reset to Defaults
         -   Export Configuration...
