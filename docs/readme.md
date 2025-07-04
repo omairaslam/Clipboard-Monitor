@@ -102,6 +102,7 @@ launchctl load ~/Library/LaunchAgents/com.omairaslam.clipboardmonitor.plist
 | **Mermaid** | 🎨 | Opens Mermaid diagrams in Live Editor | ❌ **Read-only** (opens browser) | ![Status](https://img.shields.io/badge/Status-Active-green) |
 | **History** | 🕒 | Tracks clipboard history with timestamps | ❌ **Read-only** (tracking only) | ![Status](https://img.shields.io/badge/Status-Active-green) |
 | **Code Formatter** | 💻 | Detects and formats code snippets | ⚠️ **Read-only by default** (configurable) | ![Status](https://img.shields.io/badge/Status-Active-green) |
+| **Draw.io** | 📈 | Opens Draw.io diagrams in the browser | ❌ **Read-only** (opens browser) | ![Status](https://img.shields.io/badge/Status-Active-green) |
 
 ### 📝 **Markdown Module**
 - 🎯 **Purpose**: Detects and converts markdown content to rich text format (RTF)
@@ -122,6 +123,11 @@ launchctl load ~/Library/LaunchAgents/com.omairaslam.clipboardmonitor.plist
 - 🎯 **Purpose**: Detects and formats code snippets using language-specific formatters
 - ⚙️ **Behavior**: **Read-only by default** - only detects and notifies
 - 🔧 **Configuration**: Can be enabled to modify clipboard content
+
+### 📈 **Draw.io Module**
+- 🎯 **Purpose**: Detects Draw.io diagram data and opens it in the Draw.io web editor.
+- 🔒 **Behavior**: **Never modifies clipboard content** - only opens the browser.
+- 🔧 **Configuration**: Settings are available in the menu bar under **Preferences** → **Draw.io Settings**.
 
 ## 📚 History Viewers
 
@@ -423,6 +429,7 @@ launchctl load ~/Library/LaunchAgents/com.omairaslam.clipboardmonitor.menubar.pl
 | **History** | 📚 | Max items, content length, file location |
 | **Security** | 🔒 | Clipboard sanitization, size limits |
 | **Clipboard Modification** | ✏️ | Control which modules can modify clipboard content |
+| **Draw.io Settings** | 📈 | URL encoding, theme, and other Draw.io specific settings |
 | **Configuration Management** | 🔧 | Reset, export, import, and view settings |
 
 #### 🎯 **Access Path**
@@ -474,8 +481,13 @@ launchctl load ~/Library/LaunchAgents/com.omairaslam.clipboardmonitor.menubar.pl
     "mermaid_module": true,
     "history_module": true,
     "code_formatter_module": true,
+    "drawio_module": true,
     "markdown_modify_clipboard": true,
     "code_formatter_modify_clipboard": false
+  },
+  "drawio": {
+    "url_encode": true,
+    "url_parameters": "embed=1&ui=atlas&spin=1&modified=unsavedChanges&proto=json"
   },
   "history": {
     "max_items": 100,
@@ -826,6 +838,10 @@ python3 tests/test_clear_history_comprehensive.py
 python3 tests/test_menu_bar_ui_comprehensive.py
 python3 tests/test_performance_comprehensive.py
 python3 tests/test_security_comprehensive.py
+python3 tests/test_end_to_end_workflows.py
+python3 tests/test_error_handling_comprehensive.py
+python3 tests/test_realtime_monitoring_comprehensive.py
+python3 tests/test_configuration_comprehensive.py
 ```
 
 </details>
@@ -916,7 +932,7 @@ truncate -s 0 ~/Library/Logs/ClipboardMonitor.out.log ~/Library/Logs/ClipboardMo
 ### 🎉 **Thank you for using Clipboard Monitor!**
 
 ![Made with Love](https://img.shields.io/badge/Made_with-❤️-red?style=for-the-badge)
-![macOS](https://img.shields.io/badge/Built_for-macOS-blue?style=for-the-badge&logo=apple&logoColor=white)
+![macOS](https://img.shields.io/badge/Built_for-macOS-blue?style=for-the-.badge&logo=apple&logoColor=white)
 ![Python](https://img.shields.io/badge/Powered_by-Python-yellow?style=for-the-badge&logo=python&logoColor=white)
 
 **🚀 Star this repo if you find it useful! ⭐**
