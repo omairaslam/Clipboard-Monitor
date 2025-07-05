@@ -86,6 +86,57 @@ def show_notification(title, subtitle=None, message=None, *args, **kwargs):
     except Exception as e:
         logger.error(f"Notification error: {str(e)}")
 
+def _sanitize_applescript_string(s: str) -> str:
+    """Sanitize a string for safe inclusion in an AppleScript string literal."""
+    if not isinstance(s, str): # Ensure it's a string, convert if not
+        s = str(s)
+    s = s.replace('\\', '\\\\')  # Escape backslashes first
+    s = s.replace('"', '\\"')    # Escape double quotes
+    return s
+
+def show_notification(title, subtitle=None, message=None, *args, **kwargs):
+    """
+    Show a notification using AppleScript (macOS).
+    Args:
+        title (str): The notification title
+        subtitle (str, optional): The notification subtitle (used in message if message is None)
+        message (str, optional): The notification message
+    """
+    try:
+        # Validate inputs first (ensure they are strings, non-empty if possible)
+        title_str = validate_string_input(title, "title", default="Notification")
+
+        # Determine message content
+        if message is None and subtitle is not None:
+            message_str = validate_string_input(subtitle, "subtitle_as_message", default="")
+        elif message is None:
+            message_str = ""
+        else:
+            message_str = validate_string_input(message, "message", default="")
+
+        # Sanitize for AppleScript
+        sanitized_title = _sanitize_applescript_string(title_str)
+        sanitized_message = _sanitize_applescript_string(message_str)
+
+        # Subtitle is not directly used in `display notification` if message is present.
+        # If it were to be added, it would need sanitization too.
+        # For now, we'll just use title and message.
+
+        script = f'display notification "{sanitized_message}" with title "{sanitized_title}"'
+
+        # Show notification using AppleScript
+        subprocess.run([
+            "osascript", "-e",
+            script
+        ], check=True, timeout=3)
+
+        logger.debug(f"Notification shown: Title='{title_str}', Message='{message_str}' (Sanitized: Title='{sanitized_title}', Message='{sanitized_message}')")
+    except subprocess.TimeoutExpired:
+        logger.error("Notification timed out")
+    except Exception as e:
+        logger.error(f"Notification error: {str(e)}")
+
+
 def validate_string_input(value, param_name, default=None):
     """
     Validate that a value is a non-empty string.
