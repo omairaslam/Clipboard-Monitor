@@ -41,6 +41,8 @@ class TestPerformance(unittest.TestCase):
         self.config_patcher.start()
 
         modules.history_module.clear_history()
+        # Assert that history is empty after clearing
+        self.assertEqual(len(modules.history_module.load_history()), 0, "History should be empty after clear_history in setUp")
         gc.collect()
 
     def tearDown(self):

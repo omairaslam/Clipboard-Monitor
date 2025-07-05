@@ -55,7 +55,7 @@ class ClipboardReader:
             current_content = self.get_content()
         if self.content_tracker:
             if not self.content_tracker.has_processed(current_content):
-                self.content_tracker.add__content(current_content)
+                self.content_tracker.add_content(current_content)
                 self.last_content = current_content
                 changed = True
             else:

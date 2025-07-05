@@ -36,7 +36,8 @@ logger = logging.getLogger("history_module")
 
 # Global content tracker to prevent processing loops
 _content_tracker = ContentTracker(max_history=CONTENT_TRACKER_MAX_HISTORY)
-_lock_manager = LockManager()
+_lock_manager = LockManager() # Used by process()
+_add_to_history_lock = threading.Lock() # For add_to_history internal thread safety
 
 def get_history_config():
     """Get history configuration from the main config.json."""
@@ -53,14 +54,16 @@ def _acquire_file_lock(f):
     if fcntl:
         try:
             fcntl.flock(f.fileno(), fcntl.LOCK_EX)
-        except Exception:
-            pass
+        except Exception as e: # Log if lock acquisition fails
+            logger.warning(f"Failed to acquire file lock on {f.name if hasattr(f, 'name') else 'fd:'+str(f.fileno())}: {e}")
+            pass # Continue without lock
 
 def _release_file_lock(f):
     if fcntl:
         try:
             fcntl.flock(f.fileno(), fcntl.LOCK_UN)
-        except Exception:
+        except Exception as e: # Log if lock release fails
+            logger.warning(f"Failed to release file lock on {f.name if hasattr(f, 'name') else 'fd:'+str(f.fileno())}: {e}")
             pass
 
 def load_history():
@@ -68,24 +71,48 @@ def load_history():
     history_path = Path(get_history_path())
     try:
         ensure_directory_exists(str(history_path.parent))
-        if history_path.exists():
+        if not history_path.exists():
+            return []
+
+        # Try to read and parse
+        try:
             with history_path.open('r') as f:
                 _acquire_file_lock(f)
                 try:
                     data = json.load(f)
-                except json.JSONDecodeError:
-                    # Corrupted file: backup and reset
-                    backup_path = history_path.with_suffix('.corrupt.bak')
-                    shutil.copy(str(history_path), str(backup_path))
-                    f.seek(0)
-                    f.truncate()
-                    data = []
+                    return data # Lock released in finally
                 finally:
                     _release_file_lock(f)
-                return data
-    except (OSError, json.JSONDecodeError) as e:
-        logger.error(f"Error loading history: {e}")
-        log_error(f"Error loading history: {e}")
+        except json.JSONDecodeError:
+            logger.warning(f"History file {history_path} is corrupted. Attempting backup and reset.")
+            backup_path = history_path.with_suffix('.corrupt.bak')
+            try:
+                shutil.copy(str(history_path), str(backup_path))
+                logger.info(f"Backed up corrupted history to {backup_path}")
+            except Exception as backup_e:
+                logger.error(f"Failed to create backup of corrupted history {history_path}: {type(backup_e).__name__} - {backup_e}")
+                # Removed re-raise. If shutil.copy fails, this log is the main indicator.
+
+            # Reset the history file by writing an empty list
+            try:
+                with history_path.open('w') as f_write: # Open in write mode to truncate/overwrite
+                    _acquire_file_lock(f_write) # Lock for writing
+                    try:
+                        json.dump([], f_write)
+                    finally:
+                        _release_file_lock(f_write)
+                logger.info(f"Reset corrupted history file {history_path} to empty list.")
+            except Exception as reset_e:
+                logger.error(f"Failed to reset corrupted history file {history_path}: {reset_e}")
+            return [] # Return empty list after corruption detected
+        except OSError as e: # Catch OS errors from initial file open/read attempts
+            logger.error(f"OSError while reading history file {history_path}: {e}")
+            log_error(f"OSError while reading history file {history_path}: {e}")
+            return []
+
+    except Exception as outer_e: # Catch errors from get_history_path or ensure_directory_exists
+        logger.error(f"Unexpected error during history load setup: {outer_e}")
+        log_error(f"Unexpected error during history load setup: {outer_e}")
     return []
 
 def save_history(history):
@@ -109,10 +136,11 @@ def save_history(history):
 
 def add_to_history(content):
     """Add content to clipboard history"""
-    if not content:
-        return
+    with _add_to_history_lock: # Protect the entire read-modify-write operation
+        if not content:
+            return
 
-    config = get_history_config()
+        config = get_history_config()
     max_items = config.get('max_items', DEFAULT_HISTORY_CONFIG['max_items'])
     max_content_length = config.get('max_content_length', DEFAULT_HISTORY_CONFIG['max_content_length'])
     
@@ -149,7 +177,7 @@ def add_to_history(content):
         history = history[:max_items]
     
     # Save updated history
-    save_history(history)
+    save_history(history) # This is now inside the `with _add_to_history_lock` block
 
 def process(clipboard_content, config=None):
     """Process clipboard content by adding it to history"""
@@ -202,7 +230,7 @@ def clear_history():
         temp_path.replace(history_path)
         # Reset in-memory content tracker
         global _content_tracker
-        _content_tracker = ContentTracker(max_history=CONTENT_TRACKER_MAX_HISTORY)
+        _content_tracker.clear() # Call clear method instead of re-assigning
         log_event("Clipboard history cleared.")
         return True
     except Exception as e:
