@@ -48,10 +48,24 @@
 
 ## 🚀 Installation
 
+### 📦 **Installation from DMG (Recommended)**
+
+1.  **Download the DMG**: Download the latest `ClipboardMonitor-X.X.dmg` file from the [releases page](https://github.com/omairaslam/Clipboard-Monitor/releases).
+2.  **Open the DMG**: Double-click the DMG file to open it.
+3.  **Install the Application**: Drag `Clipboard Monitor.app` to your `Applications` folder.
+4.  **Run the Installer**: Double-click the `install.sh` script inside the DMG to automatically configure and start the background services.
+
+For more details on the DMG and the installation process, see the [DMG Details](DMG_DETAILS.md) document.
+
+### 🔧 **Manual Installation (for Developers)**
+
+<details>
+<summary>Click to expand for manual installation instructions</summary>
+
 ### 📥 **Step 1: Clone the Repository**
 ```bash
-git clone https://github.com/yourusername/clipboard-monitor.git
-cd clipboard_monitor
+git clone https://github.com/omairaslam/Clipboard-Monitor.git
+cd Clipboard-Monitor
 ```
 
 ### 📦 **Step 2: Install Dependencies**
@@ -62,7 +76,6 @@ cd clipboard_monitor
 | Library | Purpose | Badge |
 |---------|---------|-------|
 | `pyperclip` | Cross-platform clipboard access | ![PyPI](https://img.shields.io/pypi/v/pyperclip?color=blue) |
-
 | `pyobjc-framework-Cocoa` | macOS integration for enhanced monitoring | ![PyPI](https://img.shields.io/pypi/v/pyobjc-framework-Cocoa?color=orange) |
 | `rumps` | Menu bar application support | ![PyPI](https://img.shields.io/pypi/v/rumps?color=purple) |
 
@@ -70,7 +83,6 @@ cd clipboard_monitor
 
 #### 🎯 **Easy Installation (Recommended)**
 ```bash
-cd clipboard_monitor
 ./install_dependencies.sh
 ```
 
@@ -80,16 +92,19 @@ python3 -m pip install --user -r requirements.txt
 ```
 
 ### ⚙️ **Step 3: Configure the LaunchAgent**
-Update the paths in `com.omairaslam.clipboardmonitor.plist`:
+Update the paths in `com.omairaslam.clipboardmonitor.plist` and `com.omairaslam.clipboardmonitor.menubar.plist`:
 - 🐍 Replace `/path/to/your/venv/bin/python` with your Python interpreter path
-- 📄 Replace `/path/to/your/project/main.py` with the absolute path to the main script
+- 📄 Replace `/path/to/your/project/main.py` and `/path/to/your/project/menu_bar_app.py` with the absolute paths to the scripts.
 - 📁 Replace `/path/to/your/project/` with your project directory
 
 ### 🔄 **Step 4: Install the LaunchAgent**
 ```bash
 cp com.omairaslam.clipboardmonitor.plist ~/Library/LaunchAgents/
+cp com.omairaslam.clipboardmonitor.menubar.plist ~/Library/LaunchAgents/
 launchctl load ~/Library/LaunchAgents/com.omairaslam.clipboardmonitor.plist
+launchctl load ~/Library/LaunchAgents/com.omairaslam.clipboardmonitor.menubar.plist
 ```
+</details>
 
 ## 🧩 Modules
 
