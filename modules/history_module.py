@@ -19,18 +19,10 @@ try:
 except ImportError:
     fcntl = None
 
-try:
-    # Try absolute import first (for normal execution and testing)
-    from utils import validate_string_input, ContentTracker, safe_expanduser, ensure_directory_exists, log_event, log_error
-    from config_manager import ConfigManager
-    from lock_manager import LockManager
-    from constants import DEFAULT_HISTORY_CONFIG, CONTENT_TRACKER_MAX_HISTORY
-except ImportError:
-    # Fallback to relative import (for package/module execution)
-    from ..utils import validate_string_input, ContentTracker, safe_expanduser, ensure_directory_exists, log_event, log_error
-    from ..config_manager import ConfigManager
-    from ..lock_manager import LockManager
-    from ..constants import DEFAULT_HISTORY_CONFIG, CONTENT_TRACKER_MAX_HISTORY
+from utils import validate_string_input, ContentTracker, safe_expanduser, ensure_directory_exists, log_event, log_error
+from config_manager import ConfigManager
+from lock_manager import LockManager
+from constants import DEFAULT_HISTORY_CONFIG, CONTENT_TRACKER_MAX_HISTORY
 
 logger = logging.getLogger("history_module")
 

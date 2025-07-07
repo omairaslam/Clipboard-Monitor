@@ -24,10 +24,53 @@ except Exception:
 
 
 
-class ClipboardMonitorMenuBar(rumps.App):
+    def setup_service(self):
+        home_dir = os.path.expanduser("~")
+        launch_agents_dir = os.path.join(home_dir, "Library", "LaunchAgents")
+        plist_filename = "com.omairaslam.clipboardmonitor.plist"
+        self.plist_path = os.path.join(launch_agents_dir, plist_filename)
+
+        if not os.path.exists(self.plist_path):
+            os.makedirs(launch_agents_dir, exist_ok=True)
+
+            # Get the path to the bundled Python and main.py
+            python_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "MacOS", "python")
+            main_py_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "main.py")
+
+            plist_content = f"""<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.omairaslam.clipboardmonitor</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>{python_path}</string>
+        <string>{main_py_path}</string>
+    </array>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+    <key>StandardOutPath</key>
+    <string>{home_dir}/Library/Logs/ClipboardMonitor.out.log</string>
+    <key>StandardErrorPath</key>
+    <string>{home_dir}/Library/Logs/ClipboardMonitor.err.log</string>
+    <key>WorkingDirectory</key>
+    <string>{os.path.dirname(os.path.abspath(__file__))}</string>
+</dict>
+</plist>"""
+
+            with open(self.plist_path, "w") as f:
+                f.write(plist_content)
+
+            subprocess.run(["launchctl", "load", self.plist_path])
+
     def __init__(self):
         # Use a simple title with an emoji that works in the menu bar
         super().__init__("📋", quit_button=None)
+
+        self.setup_service()
 
         # Configuration
         self.config_manager = ConfigManager()

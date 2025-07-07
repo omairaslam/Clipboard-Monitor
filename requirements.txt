@@ -12,3 +12,4 @@ pyobjc-framework-Cocoa
 
 # Menu bar application
 rumps
+py2app
