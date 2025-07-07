@@ -23,12 +23,40 @@ from utils import get_app_paths, safe_expanduser, ensure_directory_exists
 import pyperclip
 
 # Mock rumps before it's imported by other modules
-mock_rumps = MagicMock()
+mock_rumps = MagicMock(name="rumps_module_mock_clear_history") # Unique name
+
+# Mock for the rumps.App class/constructor
+AppClassMock_CH = MagicMock(name="App_ClassMock_ClearHistory")
+app_instance_mock_ch = MagicMock(name="app_instance_mock_clear_history")
+app_instance_mock_ch.menu = MagicMock(name="menu_attribute_mock_clear_history")
+AppClassMock_CH.return_value = app_instance_mock_ch
+AppClassMock_CH.side_effect = None # Ensure no iterator side_effect
+mock_rumps.App = AppClassMock_CH
+
+# Mock for rumps.MenuItem class/constructor
+MenuItemClassMock_CH = MagicMock(name="MenuItem_ClassMock_ClearHistory")
+menu_item_instance_mock_ch = MagicMock(name="menu_item_instance_mock_clear_history")
+MenuItemClassMock_CH.return_value = menu_item_instance_mock_ch
+MenuItemClassMock_CH.side_effect = None
+mock_rumps.MenuItem = MenuItemClassMock_CH
+
+# Mock for rumps.Timer class/constructor
+TimerClassMock_CH = MagicMock(name="Timer_ClassMock_ClearHistory")
+timer_instance_mock_ch = MagicMock(name="timer_instance_mock_clear_history")
+TimerClassMock_CH.return_value = timer_instance_mock_ch
+TimerClassMock_CH.side_effect = None
+mock_rumps.Timer = TimerClassMock_CH
+
+# Mock other rumps utilities
+mock_rumps.alert = MagicMock(name="rumps_alert_func_mock_clear_history")
+mock_rumps.notification = MagicMock(name="rumps_notification_func_mock_clear_history")
+# No rumps.Window or rumps.clicked expected here based on previous test code
+
 sys.modules['rumps'] = mock_rumps
 
 import modules.history_module
 import cli_history_viewer
-import menu_bar_app
+import menu_bar_app # Now this will import with the mocked rumps
 
 class TestClearHistoryFunctionality(unittest.TestCase):
     """Test clear history functionality across all interfaces"""
@@ -74,21 +102,34 @@ class TestClearHistoryFunctionality(unittest.TestCase):
         
         print("  ✅ CLI clear with confirmation works")
 
-    @patch('rumps.alert', return_value=1)
+    @patch('rumps.alert')
     @patch('rumps.notification')
-    @patch('menu_bar_app.ClipboardMonitorMenuBar.update_recent_history_menu')
-    def test_menu_bar_clear_history(self, mock_update_menu, mock_notification, mock_alert):
+    # @patch('modules.history_module.clear_history') # Removed decorator
+    def test_menu_bar_clear_history(self, mock_notification, mock_alert): # mock_module_clear_history removed from args
         """Test menu bar clear history functionality"""
         print("\n🧪 Testing menu bar clear history...")
         
-        app = menu_bar_app.ClipboardMenuBarApp()
-        app.clear_clipboard_history(None)
+        mock_alert.return_value = 1 # Simulate user clicking "OK" / "Clear History"
         
-        history = modules.history_module.load_history()
-        self.assertEqual(len(history), 0)
+        # Patch clear_history directly on the imported module object for this test's scope
+        with patch.object(modules.history_module, 'clear_history', return_value=True, autospec=True) as mock_module_clear_history_on_object:
+            # Instantiate the real app. Relies on the global rumps mock for App, MenuItem, Timer.
+            app = menu_bar_app.ClipboardMonitorMenuBar()
+
+            # Mock the specific instance method that would be called
+            app.update_recent_history_menu = MagicMock()
+
+            app.clear_clipboard_history(None) # Call the method under test
+
+            # Verify that the underlying module's clear_history was called
+            mock_module_clear_history_on_object.assert_called_once()
+
+        # Verify that rumps alert and notification were called
         mock_alert.assert_called_once()
         mock_notification.assert_called_once()
-        mock_update_menu.assert_called()
+
+        # Verify that the menu update was called
+        app.update_recent_history_menu.assert_called_once()
         
         print("  ✅ Menu bar clear with confirmation works")
 

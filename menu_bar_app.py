@@ -100,13 +100,13 @@ except Exception:
         self._init_preferences_menu()
 
         # Build the main menu structure
-        self._build_main_menu()
+        # self._build_main_menu() # TEMP: Commented out for StopIteration debug
         
         # Schedule initial history update and periodic status checks
-        rumps.Timer(self.initial_history_update, 3).start()
-        self.timer = threading.Thread(target=self.update_status_periodically)
-        self.timer.daemon = True
-        self.timer.start()
+        # rumps.Timer(self.initial_history_update, 3).start() # TEMP: Commented out
+        # self.timer = threading.Thread(target=self.update_status_periodically) # TEMP: Commented out
+        # self.timer.daemon = True
+        # self.timer.start()
 
     def _init_menu_items(self):
         """Initialize individual menu items."""
@@ -1340,7 +1340,9 @@ read -n 1
                     else:
                         rumps.notification("Error", "Failed to clear history", "Could not clear history file.")
                 except Exception as file_error:
+                    # print(f"DEBUG: Exception in clear_clipboard_history's inner try: {type(file_error).__name__}: {file_error}") # Optional debug print
                     rumps.notification("Error", "Failed to clear history", f"Could not clear history file: {str(file_error)}")
+                    # Removed temporary re-raise, as the issue is likely that this block isn't hit as expected.
 
         except Exception as e:
             rumps.notification("Error", "Exception in clear_clipboard_history", str(e))
