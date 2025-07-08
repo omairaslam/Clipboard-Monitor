@@ -21,64 +21,195 @@ try:
 except Exception:
     pass
 
+import pathlib
+import plistlib
+import sys # For sys.executable
+
+# Constants for setup
+APP_NAME = "Clipboard Monitor"
+BUNDLE_ID = "com.omairaslam.clipboardmonitor" # Matches existing plists
+APP_SUPPORT_DIR = Path.home() / "Library" / "Application Support" / APP_NAME
+LOGS_DIR = Path.home() / "Library" / "Logs" / APP_NAME
+LAUNCH_AGENTS_DIR = Path.home() / "Library" / "LaunchAgents"
+SETUP_COMPLETE_MARKER = APP_SUPPORT_DIR / ".setup_complete"
 
 
+class ClipboardMonitorMenuBar(rumps.App):
 
-    def setup_service(self):
-        home_dir = os.path.expanduser("~")
-        launch_agents_dir = os.path.join(home_dir, "Library", "LaunchAgents")
-        plist_filename = "com.omairaslam.clipboardmonitor.plist"
-        self.plist_path = os.path.join(launch_agents_dir, plist_filename)
+    def perform_initial_setup(self):
+        if SETUP_COMPLETE_MARKER.exists() and not self.config_manager.get_config_value('general', 'force_setup_on_next_run', False):
+            logging.info("Initial setup already completed. Skipping.")
+            return
 
-        if not os.path.exists(self.plist_path):
-            os.makedirs(launch_agents_dir, exist_ok=True)
+        if self.config_manager.get_config_value('general', 'force_setup_on_next_run', False):
+            logging.info("Forcing setup on this run as per configuration.")
+            set_config_value('general', 'force_setup_on_next_run', False) # Reset flag
 
-            # Get the path to the bundled Python and main.py
-            python_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "MacOS", "python")
-            main_py_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "main.py")
+        logging.info("Performing initial setup...")
 
-            plist_content = f"""<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-    <key>Label</key>
-    <string>com.omairaslam.clipboardmonitor</string>
-    <key>ProgramArguments</key>
-    <array>
-        <string>{python_path}</string>
-        <string>{main_py_path}</string>
-    </array>
-    <key>RunAtLoad</key>
-    <true/>
-    <key>KeepAlive</key>
-    <true/>
-    <key>StandardOutPath</key>
-    <string>{home_dir}/Library/Logs/ClipboardMonitor.out.log</string>
-    <key>StandardErrorPath</key>
-    <string>{home_dir}/Library/Logs/ClipboardMonitor.err.log</string>
-    <key>WorkingDirectory</key>
-    <string>{os.path.dirname(os.path.abspath(__file__))}</string>
-</dict>
-</plist>"""
+        try:
+            # Determine .app bundle path (this is crucial and assumes running from a bundle)
+            # When bundled by py2app, sys.executable is the path to the app's main executable
+            # e.g., /Applications/Clipboard Monitor.app/Contents/MacOS/Clipboard Monitor
+            if not getattr(sys, 'frozen', False):
+                logging.warning("Not running as a frozen application (py2app bundle). Setup might not work as expected for installed app.")
+                # For development, we might not be in a bundle.
+                # Set a placeholder app_bundle_path or make paths relative to script
+                # However, the goal is for the *bundled* app to do this.
+                # For now, let's assume if not frozen, this setup is for dev and paths might be different
+                # and plists generated might be for local testing only.
+                # A real check should be done here.
+                # For this implementation, we'll show an alert if not in /Applications.
+                # For development, assume current script's grandparent dir is the "bundle"
+                current_script_path = Path(__file__).resolve()
+                app_bundle_path = current_script_path.parent.parent # e.g. project root in dev
+                resources_path = current_script_path.parent # e.g. project root/src in dev
+                executable_path = sys.executable # Path to python interpreter in dev
+                main_script_path = resources_path / "main.py"
+                menubar_script_path = resources_path / "menu_bar_app.py" # This script
+            else:
+                # Running as a bundled app
+                executable_path = Path(sys.executable) # Correct path to the app's executable
+                app_bundle_path = executable_path.parents[1] # Up to Contents, then .app
+                resources_path = app_bundle_path / "Contents" / "Resources"
+                main_script_path = resources_path / "main.py"
+                menubar_script_path = resources_path / os.path.basename(sys.argv[0]) # Or rely on executable_path for menubar
 
-            with open(self.plist_path, "w") as f:
-                f.write(plist_content)
+            target_app_path = Path("/Applications") / f"{APP_NAME}.app"
+            if app_bundle_path != target_app_path and getattr(sys, 'frozen', False):
+                rumps.alert(
+                    title="Installation Location",
+                    message=f"{APP_NAME} works best when run from the /Applications folder. "
+                            f"Please move '{app_bundle_path.name}' to /Applications for optimal performance and updates.",
+                    ok="OK"
+                )
 
-            subprocess.run(["launchctl", "load", self.plist_path])
+            # Create directories
+            APP_SUPPORT_DIR.mkdir(parents=True, exist_ok=True)
+            LOGS_DIR.mkdir(parents=True, exist_ok=True)
+            LAUNCH_AGENTS_DIR.mkdir(parents=True, exist_ok=True)
+            logging.info(f"Created directories: {APP_SUPPORT_DIR}, {LOGS_DIR}, {LAUNCH_AGENTS_DIR}")
+
+            # --- Plist for Background Service (main.py) ---
+            bg_service_label = f"{BUNDLE_ID}"
+            bg_plist_path = LAUNCH_AGENTS_DIR / f"{bg_service_label}.plist"
+            bg_plist_data = {
+                "Label": bg_service_label,
+                "ProgramArguments": [
+                    str(executable_path), # The app's own executable can run other Python scripts
+                    str(main_script_path)
+                ],
+                "RunAtLoad": True,
+                "KeepAlive": True,
+                "StandardOutPath": str(LOGS_DIR / f"{APP_NAME}.out.log"),
+                "StandardErrorPath": str(LOGS_DIR / f"{APP_NAME}.err.log"),
+                "WorkingDirectory": str(resources_path),
+                "EnvironmentVariables": { # Ensure Python can find modules if needed
+                    "PYTHONPATH": str(resources_path)
+                }
+            }
+            logging.info(f"Background service plist data: {bg_plist_data}")
+            try:
+                subprocess.run(["launchctl", "unload", str(bg_plist_path)], capture_output=True, text=True) # Ignore errors if not loaded
+                with open(bg_plist_path, "wb") as fp:
+                    plistlib.dump(bg_plist_data, fp)
+                subprocess.run(["launchctl", "load", str(bg_plist_path)], check=True, capture_output=True, text=True)
+                logging.info(f"Loaded background service plist: {bg_plist_path}")
+            except subprocess.CalledProcessError as e:
+                logging.error(f"Failed to load background service plist: {e.stderr}")
+                rumps.alert("Error", f"Failed to set up background service: {e.stderr}")
+                return # Stop setup if this fails
+            except Exception as e:
+                logging.error(f"An unexpected error occurred with background service plist: {e}")
+                rumps.alert("Error", f"An unexpected error occurred while setting up background service: {e}")
+                return
+
+
+            # --- Plist for MenuBar Service (menu_bar_app.py itself) ---
+            menubar_service_label = f"{BUNDLE_ID}.menubar"
+            menubar_plist_path = LAUNCH_AGENTS_DIR / f"{menubar_service_label}.plist"
+            menubar_plist_data = {
+                "Label": menubar_service_label,
+                "ProgramArguments": [str(executable_path)], # Runs the menu_bar_app itself
+                "RunAtLoad": True,
+                "KeepAlive": True, # Keep the menu bar app running
+                "StandardOutPath": str(LOGS_DIR / f"{APP_NAME}MenuBar.out.log"),
+                "StandardErrorPath": str(LOGS_DIR / f"{APP_NAME}MenuBar.err.log"),
+                "WorkingDirectory": str(resources_path),
+                "LimitLoadToSessionType": "Aqua", # Important for GUI apps
+                "EnvironmentVariables": {
+                    "PYTHONPATH": str(resources_path)
+                }
+            }
+            logging.info(f"Menubar service plist data: {menubar_plist_data}")
+
+            try:
+                # Unload existing menubar service if this setup is re-run
+                # This is tricky because this code IS the menubar service.
+                # We might not want to unload/load the menubar plist from itself if it's already running via launchd.
+                # However, for first setup, or if it wasn't running via launchd, this is needed.
+                # If this script is *already* launched by launchd from the correct plist,
+                # reloading it might be disruptive or unnecessary.
+                # For now, let's assume this setup runs *before* the app fully relies on launchd state,
+                # or it's smart enough to handle it.
+                subprocess.run(["launchctl", "unload", str(menubar_plist_path)], capture_output=True, text=True)
+                with open(menubar_plist_path, "wb") as fp:
+                    plistlib.dump(menubar_plist_data, fp)
+                subprocess.run(["launchctl", "load", str(menubar_plist_path)], check=True, capture_output=True, text=True)
+                logging.info(f"Loaded menubar service plist: {menubar_plist_path}")
+            except subprocess.CalledProcessError as e:
+                logging.error(f"Failed to load menubar service plist: {e.stderr}")
+                # Don't necessarily fail the whole setup for this, as the app is already running.
+                # But inform the user.
+                rumps.alert("Warning", f"Failed to ensure menubar service is managed by launchd: {e.stderr}")
+            except Exception as e:
+                logging.error(f"An unexpected error occurred with menubar service plist: {e}")
+                rumps.alert("Warning", f"An unexpected error occurred while setting up menubar service: {e}")
+
+
+            SETUP_COMPLETE_MARKER.touch()
+            logging.info("Initial setup completed successfully.")
+            rumps.notification(APP_NAME, "Setup Complete", f"{APP_NAME} is now set up and running.")
+
+        except Exception as e:
+            logging.error(f"Error during initial setup: {e}", exc_info=True)
+            rumps.alert("Setup Error", f"An error occurred during initial setup: {e}")
 
     def __init__(self):
-        # Use a simple title with an emoji that works in the menu bar
-        super().__init__("📋", quit_button=None)
+        super().__init__("📋", quit_button=None) # Title can be set later if dynamic
 
-        self.setup_service()
-
-        # Configuration
+        # ConfigManager needs to be initialized early for setup process
         self.config_manager = ConfigManager()
+
+        # Setup logging early
+        paths = get_app_paths() # This utility should also be aware of APP_NAME / BUNDLE_ID
+        self.log_path = paths.get("out_log") # Ensure these paths are consistent with LOGS_DIR
+        self.error_log_path = paths.get("err_log")
+        # Ensure LOGS_DIR exists before setting up logging, perform_initial_setup will do this.
+        # However, setup_logging itself might try to create them.
+        # To be safe, ensure LOGS_DIR here too or make setup_logging robust.
+        LOGS_DIR.mkdir(parents=True, exist_ok=True)
+        setup_logging(self.log_path, self.error_log_path) # Now safe to call
+
+        self.perform_initial_setup() # Perform setup before full app init
+
+        # The rest of the __init__
         self.home_dir = str(Path.home())
-        self.plist_path = f"{self.home_dir}/Library/LaunchAgents/com.omairaslam.clipboardmonitor.plist"
-        # Always use get_app_paths() for log paths
-        paths = get_app_paths()
-        self.log_path = paths["out_log"]
+        self.bg_plist_label = f"{BUNDLE_ID}"
+        self.menubar_plist_label = f"{BUNDLE_ID}.menubar"
+        self.bg_plist_path = LAUNCH_AGENTS_DIR / f"{self.bg_plist_label}.plist"
+        self.menubar_plist_path = LAUNCH_AGENTS_DIR / f"{self.menubar_plist_label}.plist"
+
+        # self.plist_path should now refer to the background service plist for start/stop/restart controls
+        self.plist_path = self.bg_plist_path
+
+        # Configuration (already initialized earlier)
+        # self.home_dir = str(Path.home()) # Already set
+        # self.plist_path = f"{self.home_dir}/Library/LaunchAgents/com.omairaslam.clipboardmonitor.plist" # Now self.bg_plist_path
+
+        # Logging paths are already set up and consistent with LOGS_DIR
+        # paths = get_app_paths() # Already called
+        # self.log_path = paths["out_log"] # Already set
         self.error_log_path = paths["err_log"]
         setup_logging(self.log_path, self.error_log_path)
         self.module_status = {}
