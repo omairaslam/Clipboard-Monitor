@@ -102,13 +102,13 @@ class ClipboardMonitorMenuBar(rumps.App):
         self._init_preferences_menu()
 
         # Build the main menu structure
-        # self._build_main_menu() # TEMP: Commented out for StopIteration debug
+        self._build_main_menu()
         
         # Schedule initial history update and periodic status checks
-        # rumps.Timer(self.initial_history_update, 3).start() # TEMP: Commented out
-        # self.timer = threading.Thread(target=self.update_status_periodically) # TEMP: Commented out
-        # self.timer.daemon = True
-        # self.timer.start()
+        rumps.Timer(self.initial_history_update, 3).start()
+        self.timer = threading.Thread(target=self.update_status_periodically)
+        self.timer.daemon = True
+        self.timer.start()
 
     def _init_menu_items(self):
         """Initialize individual menu items."""

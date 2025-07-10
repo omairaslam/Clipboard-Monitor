@@ -1,0 +1,12 @@
+Fix menu bar app initialization by enabling critical startup components
+
+- Uncomment _build_main_menu() call to construct menu structure
+- Enable history update timer initialization 
+- Activate status monitoring thread
+- Restart app as part of fix verification
+
+This resolves the frozen state and missing menu functionality by restoring:
+1. Menu construction
+2. Background status checks
+3. Clipboard history updates
+that were temporarily disabled during debugging.
