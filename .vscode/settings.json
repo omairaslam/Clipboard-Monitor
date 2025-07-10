@@ -40,10 +40,22 @@
             "color": "error"
         },
         {
+            "label": "Status",
+            "task": "Check Services Status",
+            "tooltip": "Check the status of both services",
+            "color": "statusBar.foreground"
+        },
+        {
             "label": "Restart All",
             "task": "Restart All Services",
             "tooltip": "Restart both main and menubar services",
             "color": "warning"
+        },
+        {
+            "label": "Stop All",
+            "task": "Stop All Services",
+            "tooltip": "Stop both main and menubar services",
+            "color": "error"
         },
         {
             "label": "Clear & Restart All",

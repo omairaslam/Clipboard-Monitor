@@ -1,15 +1,3 @@
-# Clipboard Monitor Dependencies
-
-# Core clipboard functionality
-pyperclip
-
-
-# macOS integration for enhanced clipboard monitoring
-pyobjc-framework-Cocoa
-
-# Optional: Additional pyobjc frameworks if needed
-# pyobjc-framework-Foundation>=11.0  # Usually included with Cocoa
-
-# Menu bar application
-rumps
-py2app
+pyperclip>=1.8.2
+pyobjc-framework-Cocoa>=7.3
+rumps>=0.3.0

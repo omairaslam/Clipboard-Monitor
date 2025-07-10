@@ -4,103 +4,71 @@
         {
             "label": "Tail Main Service Output Log",
             "type": "shell",
-            "command": "tail -f '/Users/omair.aslam/Library/Logs/ClipboardMonitor.out.log'",
-            "group": "none",
-            "presentation": {
-                "reveal": "always",
-                "panel": "new"
-            },
-            "problemMatcher": []
+            "command": "tail -f ~/Library/Logs/ClipboardMonitor.out.log",
+            "problemMatcher": [],
+            "presentation": { "reveal": "always", "panel": "new" }
         },
         {
             "label": "Tail Main Service Error Log",
             "type": "shell",
-            "command": "tail -f '/Users/omair.aslam/Library/Logs/ClipboardMonitor.err.log'",
-            "group": "none",
-            "presentation": {
-                "reveal": "always",
-                "panel": "new"
-            },
-            "problemMatcher": []
+            "command": "tail -f ~/Library/Logs/ClipboardMonitor.err.log",
+            "problemMatcher": [],
+            "presentation": { "reveal": "always", "panel": "new" }
         },
         {
             "label": "Tail Menu Service Output Log",
             "type": "shell",
-            "command": "tail -f '/Users/omair.aslam/Library/Logs/ClipboardMonitorMenuBar.out.log'",
-            "group": "none",
-            "presentation": {
-                "reveal": "always",
-                "panel": "new"
-            },
-            "problemMatcher": []
+            "command": "tail -f ~/Library/Logs/ClipboardMonitorMenuBar.out.log",
+            "problemMatcher": [],
+            "presentation": { "reveal": "always", "panel": "new" }
         },
         {
             "label": "Tail Menu Service Error Log",
             "type": "shell",
-            "command": "tail -f '/Users/omair.aslam/Library/Logs/ClipboardMonitorMenuBar.err.log'",
-            "group": "none",
-            "presentation": {
-                "reveal": "always",
-                "panel": "new"
-            },
-            "problemMatcher": []
+            "command": "tail -f ~/Library/Logs/ClipboardMonitorMenuBar.err.log",
+            "problemMatcher": [],
+            "presentation": { "reveal": "always", "panel": "new" }
         },
         {
             "label": "Restart Main Service",
             "type": "shell",
-            "command": "launchctl unload ~/Library/LaunchAgents/com.omairaslam.clipboardmonitor.plist && sleep 1 && launchctl load ~/Library/LaunchAgents/com.omairaslam.clipboardmonitor.plist",
-            "group": "none",
-            "presentation": {
-                "reveal": "always",
-                "panel": "shared"
-            },
+            "command": "./restart_main.sh",
             "problemMatcher": []
         },
         {
             "label": "Restart Menubar Service",
             "type": "shell",
-            "command": "launchctl unload ~/Library/LaunchAgents/com.omairaslam.clipboardmonitor.menubar.plist && sleep 1 && launchctl load ~/Library/LaunchAgents/com.omairaslam.clipboardmonitor.menubar.plist",
-            "group": "none",
-            "presentation": {
-                "reveal": "always",
-                "panel": "shared"
-            },
-            "problemMatcher": []
-        },
-        {
-            "label": "Clear All Logs",
-            "type": "shell",
-            "command": "truncate -s 0 '/Users/omair.aslam/Library/Logs/ClipboardMonitor.out.log' && truncate -s 0 '/Users/omair.aslam/Library/Logs/ClipboardMonitor.err.log'",
-            "group": "none",
-            "presentation": {
-                "reveal": "always",
-                "panel": "shared",
-                "clear": true
-            },
+            "command": "./restart_menubar.sh",
             "problemMatcher": []
         },
         {
             "label": "Restart All Services",
             "type": "shell",
-            "command": "launchctl unload ~/Library/LaunchAgents/com.omairaslam.clipboardmonitor.plist && sleep 1 && launchctl load ~/Library/LaunchAgents/com.omairaslam.clipboardmonitor.plist && launchctl unload ~/Library/LaunchAgents/com.omairaslam.clipboardmonitor.menubar.plist && sleep 1 && launchctl load ~/Library/LaunchAgents/com.omairaslam.clipboardmonitor.menubar.plist",
-            "group": "none",
-            "presentation": {
-                "reveal": "always",
-                "panel": "shared",
-                "clear": true
-            },
+            "command": "./restart_services.sh",
+            "problemMatcher": []
+        },
+        {
+            "label": "Stop All Services",
+            "type": "shell",
+            "command": "./stop_services.sh",
+            "problemMatcher": []
+        },
+        {
+            "label": "Check Services Status",
+            "type": "shell",
+            "command": "./status_services.sh",
+            "problemMatcher": []
+        },
+        {
+            "label": "Clear All Logs",
+            "type": "shell",
+            "command": "./clear_logs.sh",
             "problemMatcher": []
         },
         {
             "label": "Clear Logs & Restart All Services",
             "type": "shell",
-            "command": "> /Users/omair.aslam/Library/Logs/ClipboardMonitor.out.log && > /Users/omair.aslam/Library/Logs/ClipboardMonitor.err.log && > /Users/omair.aslam/Library/Logs/ClipboardMonitorMenuBar.out.log && > /Users/omair.aslam/Library/Logs/ClipboardMonitorMenuBar.err.log && launchctl unload ~/Library/LaunchAgents/com.omairaslam.clipboardmonitor.plist && sleep 1 && launchctl load ~/Library/LaunchAgents/com.omairaslam.clipboardmonitor.plist && launchctl unload ~/Library/LaunchAgents/com.omairaslam.clipboardmonitor.menubar.plist && sleep 1 && launchctl load ~/Library/LaunchAgents/com.omairaslam.clipboardmonitor.menubar.plist",
-            "group": "none",
-            "presentation": {
-                "reveal": "always",
-                "panel": "shared",
-                "clear": true
-            },
+            "command": "./clear_logs.sh && ./restart_services.sh",
             "problemMatcher": []
         }
     ]
