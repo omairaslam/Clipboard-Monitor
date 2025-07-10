@@ -155,22 +155,26 @@ class ModuleManager:
             if not self.modules and self.module_specs:
                 for module_name, spec in self.module_specs:
                     try:
-                        module = self._load_module_if_needed(module_name, spec)
-                        self.modules.append(module)
+                        loaded_module = self._load_module_if_needed(module_name, spec)
+                        self.modules.append(loaded_module)
                     except (ImportError, AttributeError) as e:
                         logger.error(f"Error loading module {module_name}: {e}")
             
+            final_content = None
             for module in self.modules:
                 try:
+                    # Always process with the original clipboard content
                     new_content = module.process(clipboard_content, self._load_module_config())
+                    # If a module returns new content, we store it but DON'T stop the loop.
+                    # This ensures all modules (especially history_module) get to run.
                     if new_content:
-                        logger.info(f"Processed with module: {getattr(module, '__name__', 'unknown')}")
-                        # Return the new content to break the loop
-                        return new_content
+                        logger.info(f"Module '{getattr(module, '__name__', 'unknown')}' returned new content.")
+                        final_content = new_content
                 except Exception as e:
                     logger.error(f"Error processing with module: {e}")
             
-            return None
+            # After all modules have run, return the final modified content, if any.
+            return final_content
     
     def get_enabled_modules(self):
         """

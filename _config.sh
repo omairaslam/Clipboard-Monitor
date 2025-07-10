@@ -42,6 +42,7 @@ else
 fi
 
 ICON_RESTART="🔄"
+ICON_START="▶️"
 ICON_STOP="🛑"
 ICON_STATUS="📊"
 ICON_TRASH="🗑️"

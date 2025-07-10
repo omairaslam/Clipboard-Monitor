@@ -126,23 +126,26 @@ def process(clipboard_content, config=None):
         # full_url = f"{DRAWIO_BASE_URL}?{param_string}#R{url_fragment}"
         log_event(f"Constructed Draw.io URL: {full_url}", level="DEBUG")
 
-        copy_url_enabled = config.get("drawio_copy_url", True)
-        open_browser_enabled = config.get("drawio_open_in_browser", True) # Renamed to avoid conflict
-        log_event(f"Config settings: copy_url={copy_url_enabled}, open_browser={open_browser_enabled}", level="DEBUG")
+        copy_code = config.get("drawio_copy_code", True)
+        copy_url = config.get("drawio_copy_url", True)
+        open_browser = config.get("drawio_open_in_browser", True)
+        
+        log_event(f"Config settings: copy_code={copy_code}, copy_url={copy_url}, open_browser={open_browser}", level="DEBUG")
         
         notification_message = []
         new_clipboard_content = None
 
-        if copy_url_enabled:
-            if pyperclip:
-                pyperclip.copy(full_url)
-                new_clipboard_content = full_url
-                notification_message.append("URL copied to clipboard")
-                log_event("URL copied to clipboard.", level="DEBUG")
-            else:
-                log_error("pyperclip is not available, cannot copy URL.")
+        if copy_code and copy_url:
+            new_clipboard_content = f"{clipboard_content}\n\n--- Draw.io URL ---\n{full_url}"
+            notification_message.append("XML and URL available in clipboard")
+        elif copy_code:
+            new_clipboard_content = clipboard_content
+            notification_message.append("XML available in clipboard")
+        elif copy_url:
+            new_clipboard_content = full_url
+            notification_message.append("URL available in clipboard")
 
-        if open_browser_enabled:
+        if open_browser:
             webbrowser.open_new(full_url)
             notification_message.append("opened in browser")
             log_event("Opened URL in browser.", level="DEBUG")
@@ -182,4 +185,3 @@ if __name__ == '__main__':
 
     print("\nTesting with non-XML string...")
     process("Just a regular string")
-

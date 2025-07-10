@@ -60,6 +60,13 @@
             "problemMatcher": []
         },
         {
+            "label": "Launch Troubleshooting Dashboard",
+            "type": "shell",
+            "command": "./dashboard.sh",
+            "problemMatcher": [],
+            "presentation": { "reveal": "always", "panel": "new" }
+        },
+        {
             "label": "Clear All Logs",
             "type": "shell",
             "command": "./clear_logs.sh",

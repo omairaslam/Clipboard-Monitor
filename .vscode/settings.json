@@ -34,6 +34,12 @@
             "color": "warning"
         },
         {
+            "label": "Dashboard",
+            "task": "Launch Troubleshooting Dashboard",
+            "tooltip": "Open the interactive troubleshooting dashboard",
+            "color": "#00ADD8"
+        },
+        {
             "label": "Clear Logs",
             "task": "Clear All Logs",
             "tooltip": "Clear all log files",

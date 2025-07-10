@@ -1,12 +1,21 @@
-Fix menu bar app initialization by enabling critical startup components
+Fix clipboard handling for diagrams and add new copy options
 
-- Uncomment _build_main_menu() call to construct menu structure
-- Enable history update timer initialization 
-- Activate status monitoring thread
-- Restart app as part of fix verification
+- Added new configuration options for Mermaid and Draw.io modules:
+  • mermaid_copy_code (default: true) - controls copying original Mermaid code
+  • drawio_copy_code (default: true) - controls copying original Draw.io XML
+- Implemented combined code+URL copying when both options are enabled:
+  • Mermaid: Returns code + URL with separator
+  • Draw.io: Returns XML + URL with separator
+- Fixed variable naming issue in Draw.io browser opening logic
+- Updated notifications to clearly indicate what was copied:
+  • "Diagram code copied"
+  • "URL copied"
+  • "Both code and URL copied"
+- Improved error handling in both modules
+- Maintained backward compatibility with existing configurations
+- Simplified Mermaid module structure for better maintainability
 
-This resolves the frozen state and missing menu functionality by restoring:
-1. Menu construction
-2. Background status checks
-3. Clipboard history updates
-that were temporarily disabled during debugging.
+This update gives users full control over clipboard content:
+- Preserves original diagram code in history when desired
+- Allows capturing both code and URL in separate history entries
+- Maintains seamless integration with clipboard manager

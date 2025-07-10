@@ -164,6 +164,13 @@ if MACOS_ENHANCED:
             Timer callback method that checks for clipboard changes using changeCount.
             This is more efficient than polling the actual clipboard content.
             """
+            # Check for pause flag first
+            pause_flag_path = Path(safe_expanduser("~/Library/Application Support/ClipboardMonitor/pause_flag"))
+            if pause_flag_path.exists():
+                # Log this only in debug mode to avoid spamming logs.
+                logger.debug("Service is paused via pause_flag. Skipping clipboard check.")
+                return
+
             # Skip checks when system is idle
             if self.processing_in_progress:
                 return

@@ -83,16 +83,23 @@ DEFAULT_PERFORMANCE_CONFIG = {
 }
 
 DEFAULT_MODULES_CONFIG = {
+    # Module enable/disable flags
+    "markdown_module": True,
+    "mermaid_module": True,
+    "history_module": True,
+    "code_formatter_module": True,
+    "drawio_module": True,
+
+    # Module-specific settings
     'markdown_modify_clipboard': True,
     'code_formatter_modify_clipboard': False,
-    'mermaid_modify_clipboard': False, # This likely refers to modifying clipboard content, not URL copying or browser opening
-    'mermaid_copy_url': False, # Default for copying URL specifically for Mermaid
-    'mermaid_open_in_browser': True, # Default for opening browser for Mermaid
-    'mermaid_theme': "default", # Options: "default", "dark", "forest", "neutral"
-    'history_enabled': True,
-    # Draw.io specific URL parameters
-    'drawio_copy_url': True, # Existing setting, kept for clarity
-    'drawio_open_in_browser': True, # Existing setting, kept for clarity
+    'mermaid_copy_code': True,  # New: copy original Mermaid code
+    'mermaid_copy_url': False,
+    'mermaid_open_in_browser': True,
+    'mermaid_theme': "default",
+    'drawio_copy_code': True,    # New: copy original Draw.io XML
+    'drawio_copy_url': True,
+    'drawio_open_in_browser': True,
     'drawio_lightbox': True,
     'drawio_edit_mode': "_blank", # e.g., "_blank", "local", "device"
     'drawio_layers': True,

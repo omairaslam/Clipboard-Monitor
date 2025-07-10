@@ -15,7 +15,9 @@ check_service() {
     local pid
 
     # Grep for the service in the launchctl list
-    output=$(launchctl list | grep "$label")
+    # We use grep -E with a '$' anchor to ensure an exact match on the label
+    # and prevent "com.omairaslam.clipboardmonitor" from also matching "com.omairaslam.clipboardmonitor.menubar".
+    output=$(launchctl list | grep -E "${label}$")
     
     if [ -n "$output" ]; then
         # Service is loaded
