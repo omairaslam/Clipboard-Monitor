@@ -1,10 +1,15 @@
+import subprocess
 import webbrowser
 import base64
 import json
 import re
 import logging
 from pathlib import Path
-from ..utils import show_notification, log_event, log_error
+import pyperclip
+import sys
+import os
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from utils import show_notification, log_event, log_error
 
 MERMAID_PLAYGROUND_BASE = "https://mermaid.live/edit#"
 
@@ -17,7 +22,7 @@ def is_mermaid_code(text):
     try:
         mermaid_patterns = [
             r"^\s*graph\s",                 # flowchart
-            r"^\s*flowchart\b",             # flowchart alternative
+            r"^\s*flowchart\b",             # flowchart alternative starter
             r"^\s*sequenceDiagram\b",       # sequence diagram
             r"^\s*classDiagram\b",          # class diagram
             r"^\s*stateDiagram\b",          # state diagram
@@ -39,6 +44,7 @@ def is_mermaid_code(text):
         text = text.strip()
         for pattern in mermaid_patterns:
             if re.match(pattern, text, re.IGNORECASE):
+                log_event(f"Matched Mermaid pattern: {pattern}", level="DEBUG")
                 return True
                 
         return False
@@ -47,13 +53,14 @@ def is_mermaid_code(text):
         return False
 
 def create_mermaid_url(mermaid_code, theme="default"):
-    """Create Mermaid Live Editor URL using JSON and base64url encoding"""
+    """Create Mermaid Live Editor URL using JSON and base64url encoding, including theme."""
     try:
         mermaid_config = {}
         if theme and theme.lower() != "default":
             mermaid_config["theme"] = theme
 
         data = {"code": mermaid_code, "mermaid": mermaid_config}
+        
         json_str = json.dumps(data, separators=(',', ':'))
         b64 = base64.urlsafe_b64encode(json_str.encode('utf-8')).decode('utf-8')
         return f"{MERMAID_PLAYGROUND_BASE}{b64}"
@@ -73,25 +80,41 @@ def launch_mermaid_chart(mermaid_code, config=None):
         copy_code = config.get('mermaid_copy_code', True) if config else True
         copy_url = config.get('mermaid_copy_url', False) if config else False
 
+        # Handle clipboard copying in the requested order: code first, then URL
+        clipboard_content = None
+        if copy_code and copy_url:
+            # First copy the code
+            pyperclip.copy(mermaid_code)
+            log_event("Copied Mermaid code to clipboard", level="INFO")
+            show_notification("Mermaid Code", "Diagram code copied to clipboard", "")
+
+            # Then copy the URL
+            pyperclip.copy(url)
+            log_event("Copied Mermaid URL to clipboard", level="INFO")
+            show_notification("Mermaid URL", "URL copied to clipboard", "")
+            clipboard_content = url  # Return URL as final clipboard content
+        elif copy_code:
+            clipboard_content = mermaid_code
+            show_notification("Mermaid Code", "Diagram code copied to clipboard", "")
+        elif copy_url:
+            clipboard_content = url
+            show_notification("Mermaid URL", "URL copied to clipboard", "")
+
+        # Open browser after clipboard operations
         if open_browser:
             webbrowser.open_new(url)
-            show_notification("Mermaid Chart", "Opening diagram in Mermaid Live Editor...", "")
+            log_event("Opened Mermaid diagram in browser", level="INFO")
 
-        # Prepare content based on configuration
-        if copy_code and copy_url:
-            return f"{mermaid_code}\n\n--- Mermaid URL ---\n{url}"
-        elif copy_code:
-            return mermaid_code
-        elif copy_url:
-            return url
-        return None
+        return clipboard_content
 
     except Exception as e:
         log_error(f"Error launching chart: {str(e)}")
         return None
 
 def process(clipboard_content, config=None):
-    """Process clipboard content for Mermaid diagrams"""
+    """Process clipboard content and handle Mermaid diagrams"""
+    log_event("Processing clipboard content...", level="DEBUG")
+    
     if not clipboard_content:
         return None
         
@@ -113,20 +136,14 @@ def sanitize_mermaid_content(mermaid_code):
         def sanitize_node_text(match):
             text = match.group(0)
             if text.startswith('[') and text.endswith(']'):
-                inner_text = text[1:-1]
-                sanitized_text = inner_text.replace('(', ' - ').replace(')', '')
-                sanitized_text = re.sub(r'\s+', ' ', sanitized_text).strip()
-                return f"[{sanitized_text}]"
+                inner_text = text[1:-1].replace('(', ' - ').replace(')', '')
+                return f"[{inner_text.strip()}]"
             elif text.startswith('{') and text.endswith('}'):
-                inner_text = text[1:-1]
-                sanitized_text = inner_text.replace('(', ' - ').replace(')', '')
-                sanitized_text = re.sub(r'\s+', ' ', sanitized_text).strip()
-                return f"{{{sanitized_text}}}"
+                inner_text = text[1:-1].replace('(', ' - ').replace(')', '')
+                return f"{{{inner_text.strip()}}}"
             elif text.startswith('"') and text.endswith('"'):
-                inner_text = text[1:-1]
-                sanitized_text = inner_text.replace('(', ' - ').replace(')', '')
-                sanitized_text = re.sub(r'\s+', ' ', sanitized_text).strip()
-                return f'"{sanitized_text}"'
+                inner_text = text[1:-1].replace('(', ' - ').replace(')', '')
+                return f'"{inner_text.strip()}"'
             return text
 
         return re.sub(node_text_pattern, sanitize_node_text, mermaid_code)

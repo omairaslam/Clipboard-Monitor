@@ -129,31 +129,37 @@ def process(clipboard_content, config=None):
         copy_code = config.get("drawio_copy_code", True)
         copy_url = config.get("drawio_copy_url", True)
         open_browser = config.get("drawio_open_in_browser", True)
-        
+
         log_event(f"Config settings: copy_code={copy_code}, copy_url={copy_url}, open_browser={open_browser}", level="DEBUG")
-        
-        notification_message = []
+
         new_clipboard_content = None
 
+        # Handle clipboard copying in the requested order: code first, then URL
         if copy_code and copy_url:
-            new_clipboard_content = f"{clipboard_content}\n\n--- Draw.io URL ---\n{full_url}"
-            notification_message.append("XML and URL available in clipboard")
+            # First copy the XML code
+            if pyperclip:
+                pyperclip.copy(clipboard_content)
+                log_event("Copied Draw.io XML to clipboard", level="INFO")
+                show_notification("Draw.io XML", "XML code copied to clipboard", "")
+
+                # Then copy the URL
+                pyperclip.copy(full_url)
+                log_event("Copied Draw.io URL to clipboard", level="INFO")
+                show_notification("Draw.io URL", "URL copied to clipboard", "")
+            new_clipboard_content = full_url  # Return URL as final clipboard content
         elif copy_code:
             new_clipboard_content = clipboard_content
-            notification_message.append("XML available in clipboard")
+            show_notification("Draw.io XML", "XML code copied to clipboard", "")
         elif copy_url:
             new_clipboard_content = full_url
-            notification_message.append("URL available in clipboard")
+            show_notification("Draw.io URL", "URL copied to clipboard", "")
 
+        # Open browser after clipboard operations
         if open_browser:
             webbrowser.open_new(full_url)
-            notification_message.append("opened in browser")
             log_event("Opened URL in browser.", level="DEBUG")
+            show_notification("Draw.io Browser", "Opened in browser", "")
 
-        if notification_message:
-            show_notification("Draw.io Diagram", "Draw.io XML detected! " + " and ".join(notification_message) + ".", "")
-            log_event(f"Draw.io diagram processed: {' and '.join(notification_message)}.", level="INFO")
-        
         return new_clipboard_content
 
     except (zlib.error, base64.binascii.Error, Exception) as e:

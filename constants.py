@@ -98,7 +98,7 @@ DEFAULT_MODULES_CONFIG = {
     'mermaid_open_in_browser': True,
     'mermaid_theme': "default",
     'drawio_copy_code': True,    # New: copy original Draw.io XML
-    'drawio_copy_url': True,
+    'drawio_copy_url': False,
     'drawio_open_in_browser': True,
     'drawio_lightbox': True,
     'drawio_edit_mode': "_blank", # e.g., "_blank", "local", "device"

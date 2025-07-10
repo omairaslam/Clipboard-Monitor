@@ -22,10 +22,6 @@ except Exception:
     pass
 
 class ClipboardMonitorMenuBar(rumps.App):
-
-
-
-
     def setup_service(self):
         home_dir = os.path.expanduser("~")
         launch_agents_dir = os.path.join(home_dir, "Library", "LaunchAgents")
@@ -44,8 +40,12 @@ class ClipboardMonitorMenuBar(rumps.App):
 <plist version="1.0">
 <dict>
     <key>Label</key>
-    <string>com.omairaslam.clipboardmonitor</string>
+    <string>com.omairaslam.cl极boardmonitor</string>
     <key>ProgramArguments</key>
+    <array>
+        <string>{python_path}</string>
+        <string>{main_py_path}</string>
+    </array>
     <array>
         <string>{python_path}</string>
         <string>{main_py_path}</string>
@@ -171,10 +171,11 @@ class ClipboardMonitorMenuBar(rumps.App):
             self.module_status["drawio_module"] = True
         
     def toggle_drawio_url_behavior_setting(self, sender):
-        """Toggle Draw.io URL behavior settings like 'Copy URL' or 'Open in Browser'."""
+        """Toggle Draw.io URL behavior settings like 'Copy Code', 'Copy URL' or 'Open in Browser'."""
         sender.state = not sender.state
-        
+
         setting_map = {
+            "Copy Code": "drawio_copy_code",
             "Copy URL": "drawio_copy_url",
             "Open in Browser": "drawio_open_in_browser",
         }
@@ -341,6 +342,11 @@ class ClipboardMonitorMenuBar(rumps.App):
     def _create_drawio_settings_menu(self):
         """Create the 'Draw.io Settings' submenu."""
         drawio_menu = rumps.MenuItem("Draw.io Settings")
+
+        self.drawio_copy_code_item = rumps.MenuItem("Copy Code", callback=self.toggle_drawio_url_behavior_setting)
+        self.drawio_copy_code_item.state = self.config_manager.get_config_value('modules', 'drawio_copy_code', True)
+        drawio_menu.add(self.drawio_copy_code_item)
+
         self.drawio_copy_url_item = rumps.MenuItem("Copy URL", callback=self.toggle_drawio_url_behavior_setting)
         self.drawio_copy_url_item.state = self.config_manager.get_config_value('modules', 'drawio_copy_url', True)
         drawio_menu.add(self.drawio_copy_url_item)
@@ -405,6 +411,11 @@ class ClipboardMonitorMenuBar(rumps.App):
     def _create_mermaid_settings_menu(self):
         """Create the 'Mermaid Settings' submenu."""
         mermaid_menu = rumps.MenuItem("Mermaid Settings")
+
+        self.mermaid_copy_code_item = rumps.MenuItem("Copy Code", callback=self.toggle_mermaid_setting)
+        self.mermaid_copy_code_item.state = self.config_manager.get_config_value('modules', 'mermaid_copy_code', True)
+        mermaid_menu.add(self.mermaid_copy_code_item)
+
         self.mermaid_copy_url_item = rumps.MenuItem("Copy URL", callback=self.toggle_mermaid_setting)
         self.mermaid_copy_url_item.state = self.config_manager.get_config_value('modules', 'mermaid_copy_url', False)
         mermaid_menu.add(self.mermaid_copy_url_item)
@@ -502,8 +513,9 @@ class ClipboardMonitorMenuBar(rumps.App):
     def toggle_mermaid_setting(self, sender):
         """Toggle Mermaid specific settings."""
         sender.state = not sender.state
-        
+
         setting_map = {
+            "Copy Code": "mermaid_copy_code",
             "Copy URL": "mermaid_copy_url",
             "Open in Browser": "mermaid_open_in_browser"
         }

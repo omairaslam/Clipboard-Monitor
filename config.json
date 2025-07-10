@@ -21,9 +21,13 @@
     "code_formatter_module": false,
     "markdown_modify_clipboard": true,
     "code_formatter_modify_clipboard": false,
+    "mermaid_copy_code": true,
+    "mermaid_copy_url": 1,
+    "mermaid_open_in_browser": true,
+    "mermaid_theme": "default",
+    "drawio_copy_code": true,
     "drawio_copy_url": true,
-    "drawio_open_in_browser": true,
-    "mermaid_copy_url": 1
+    "drawio_open_in_browser": true
   },
   "history": {
     "max_items": 100,
