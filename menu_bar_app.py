@@ -21,6 +21,8 @@ try:
 except Exception:
     pass
 
+class ClipboardMonitorMenuBar(rumps.App):
+
 
 
 
