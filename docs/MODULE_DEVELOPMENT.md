@@ -298,6 +298,90 @@ def process(clipboard_content, config=None):
     pass
 ```
 
+### **Sequential Clipboard Operations Pattern**
+
+For modules that generate both original content and derived content (like URLs), implement sequential clipboard operations to give users control over what gets copied and in what order:
+
+```python
+def process(clipboard_content, config=None):
+    """
+    Example implementation of sequential clipboard operations
+    (based on Mermaid and Draw.io modules)
+    """
+    if not is_target_content(clipboard_content):
+        return None
+
+    # Get configuration options
+    copy_code = config.get('your_module_copy_code', True) if config else True
+    copy_url = config.get('your_module_copy_url', False) if config else False
+    open_browser = config.get('your_module_open_in_browser', True) if config else True
+
+    # Generate derived content (e.g., URL)
+    generated_url = generate_url_from_content(clipboard_content)
+
+    # Sequential clipboard operations when both are enabled
+    if copy_code and copy_url:
+        # First: Copy original content
+        pyperclip.copy(clipboard_content)
+        show_notification("Original Code", "Original content copied to clipboard", "")
+
+        # Second: Copy generated URL
+        pyperclip.copy(generated_url)
+        show_notification("Generated URL", "URL copied to clipboard", "")
+
+        clipboard_result = generated_url  # Return final clipboard content
+    elif copy_code:
+        clipboard_result = clipboard_content
+        show_notification("Original Code", "Original content copied to clipboard", "")
+    elif copy_url:
+        clipboard_result = generated_url
+        show_notification("Generated URL", "URL copied to clipboard", "")
+    else:
+        clipboard_result = None
+
+    # Third: Open browser after clipboard operations
+    if open_browser and generated_url:
+        webbrowser.open_new(generated_url)
+        show_notification("Browser", "Opened in browser", "")
+
+    return clipboard_result
+```
+
+#### **Configuration Options for Sequential Operations**
+```json
+{
+  "modules": {
+    "your_module_copy_code": true,    // Copy original content (default: true)
+    "your_module_copy_url": false,    // Copy generated URL (default: false)
+    "your_module_open_in_browser": true  // Open browser (default: true)
+  }
+}
+```
+
+#### **Menu Bar Integration**
+Add corresponding menu items in `menu_bar_app.py`:
+```python
+def _create_your_module_settings_menu(self):
+    menu = rumps.MenuItem("Your Module Settings")
+
+    # Copy Code option (first)
+    self.your_module_copy_code_item = rumps.MenuItem("Copy Code", callback=self.toggle_your_module_setting)
+    self.your_module_copy_code_item.state = self.config_manager.get_config_value('modules', 'your_module_copy_code', True)
+    menu.add(self.your_module_copy_code_item)
+
+    # Copy URL option (second)
+    self.your_module_copy_url_item = rumps.MenuItem("Copy URL", callback=self.toggle_your_module_setting)
+    self.your_module_copy_url_item.state = self.config_manager.get_config_value('modules', 'your_module_copy_url', False)
+    menu.add(self.your_module_copy_url_item)
+
+    # Open in Browser option (third)
+    self.your_module_open_browser_item = rumps.MenuItem("Open in Browser", callback=self.toggle_your_module_setting)
+    self.your_module_open_browser_item.state = self.config_manager.get_config_value('modules', 'your_module_open_in_browser', True)
+    menu.add(self.your_module_open_browser_item)
+
+    return menu
+```
+
 ### **Safety Principles**
 1. **Never modify clipboard by default** - require explicit user configuration
 2. **Clear notifications** - distinguish between detection and modification

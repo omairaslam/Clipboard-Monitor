@@ -1,3 +1,34 @@
+# Latest Updates - Clipboard Monitor (2025-07-10)
+
+## 🎨 Copy Code Configuration Options for Mermaid and Draw.io Modules
+
+### **New Features**
+- **Copy Code Menu Options**: Added "Copy Code" configuration options to both Mermaid and Draw.io settings menus
+- **Sequential Clipboard Operations**: When both "Copy Code" and "Copy URL" are enabled:
+  1. **First**: Original code/XML is copied to clipboard with notification
+  2. **Second**: Generated URL is copied to clipboard with notification
+  3. **Third**: Browser opens (if "Open in Browser" is enabled)
+- **Independent Control**: Each feature (Copy Code, Copy URL, Open Browser) can be enabled/disabled independently
+- **User-Friendly Notifications**: Clear notifications for each clipboard operation
+
+### **Menu Interface Enhancements**
+- **Mermaid Settings Menu**: Added "Copy Code" option (default: enabled) above existing options
+- **Draw.io Settings Menu**: Added "Copy Code" option (default: enabled) above existing options
+- **Logical Menu Order**: Copy Code → Copy URL → Open in Browser for intuitive workflow
+
+### **Configuration Options**
+- `mermaid_copy_code`: Controls copying of original Mermaid diagram code (default: true)
+- `drawio_copy_code`: Controls copying of original Draw.io XML content (default: true)
+- Both options work independently and in combination with existing URL/browser options
+
+### **Technical Improvements**
+- **Enhanced Module Logic**: Refactored clipboard handling in both modules for sequential operations
+- **Improved Notifications**: Separate notifications for each clipboard operation
+- **Backward Compatibility**: All existing functionality preserved
+- **Configuration Management**: Fixed duplicate entries and improved configuration structure
+
+---
+
 # Latest Updates - Clipboard Monitor (2025-07-04)
 
 ## 🎨 Draw.io Module Enhancements

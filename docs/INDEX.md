@@ -8,7 +8,10 @@ This directory contains comprehensive documentation for the Clipboard Monitor ap
 Complete installation and usage guide covering all features, configuration options, and troubleshooting.
 
 ### **[Latest Updates (LATEST_UPDATES.md)](LATEST_UPDATES.md)**
-Recent changes, improvements, and new features including clear history and RTF functionality.
+Recent changes, improvements, and new features including Copy Code configuration options for Mermaid and Draw.io modules, clear history and RTF functionality.
+
+### **[Copy Code Feature Documentation (COPY_CODE_FEATURE_DOCUMENTATION.md)](COPY_CODE_FEATURE_DOCUMENTATION.md)**
+Comprehensive guide to the new Copy Code configuration options for Mermaid and Draw.io modules, including sequential clipboard operations and menu interface enhancements.
 
 ### **[Clear History & RTF Features (CLEAR_HISTORY_AND_RTF_FEATURES.md)](CLEAR_HISTORY_AND_RTF_FEATURES.md)**
 Detailed documentation of the clear history functionality and RTF content display improvements.

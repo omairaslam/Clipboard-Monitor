@@ -47,8 +47,9 @@ The "Preferences" menu is now organized into logical sub-menus:
     -   Set History Location...
 -   **Module Settings**:
     -   **Draw.io Settings**:
-        -   Copy URL
-        -   Open in Browser
+        -   Copy Code (Toggle - Default: ✅ Enabled)
+        -   Copy URL (Toggle - Default: ✅ Enabled)
+        -   Open in Browser (Toggle - Default: ✅ Enabled)
         -   **URL Parameters** (Submenu):
             -   Lightbox (Toggle)
             -   Edit Mode (Submenu: e.g., New Tab (_blank))
@@ -58,8 +59,9 @@ The "Preferences" menu is now organized into logical sub-menus:
             -   Link Behavior (Submenu: Auto/New Tab/Same Tab)
             -   Set Border Color... (Text Input)
     -   **Mermaid Settings**:
-        -   Copy URL
-        -   Open in Browser
+        -   Copy Code (Toggle - Default: ✅ Enabled)
+        -   Copy URL (Toggle - Default: ❌ Disabled)
+        -   Open in Browser (Toggle - Default: ✅ Enabled)
         -   **Editor Theme** (Submenu: Default/Dark/Forest/Neutral)
 -   **Advanced Settings**:
     -   **Performance Settings**:

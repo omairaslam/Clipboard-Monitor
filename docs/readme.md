@@ -29,9 +29,11 @@
 ### 🛠️ **Content Processing**
 - 📝 **Markdown Processing**: Automatically convert markdown to rich text with comprehensive formatting support
 - 🎨 **Mermaid Diagram Detection**: Opens Mermaid diagrams in the Mermaid Live Editor.
-    - **Configurable**: Editor theme ("default", "dark", "forest", "neutral"), copy URL, open in browser.
+    - **Configurable**: Copy original code, copy URL, open in browser, editor theme ("default", "dark", "forest", "neutral").
+    - **Sequential Operations**: When both code and URL copying are enabled, copies code first, then URL, then opens browser.
 - 📈 **Draw.io Diagram Detection**: Opens Draw.io diagrams in the diagrams.net web editor.
-    - **Configurable**: Copy URL, open in browser, and various URL parameters (Lightbox, Edit Mode, Layers, Navigation, Appearance, Link Behavior, Border Color).
+    - **Configurable**: Copy original XML, copy URL, open in browser, and various URL parameters (Lightbox, Edit Mode, Layers, Navigation, Appearance, Link Behavior, Border Color).
+    - **Sequential Operations**: When both code and URL copying are enabled, copies XML first, then URL, then opens browser.
 - 💻 **Code Formatting**: Automatically format code snippets with language detection (read-only by default)
 
 ### 🔒 **Security & Performance**
@@ -130,11 +132,16 @@ launchctl load ~/Library/LaunchAgents/com.omairaslam.clipboardmonitor.menubar.pl
 ### 🎨 **Mermaid Module**
 - 🎯 **Purpose**: Detects Mermaid diagram syntax and opens in Live Editor
 - ⚙️ **Behavior**:
-    - **Read-only by default** for clipboard modification.
-    - **Opens in browser by default.**
-    - Both behaviors (copy URL to clipboard, open in browser) are configurable via the menu bar:
-        - **Copy URL**: `Preferences` → `Module Settings` → `Mermaid Settings` → `Copy URL`
-        - **Open in Browser**: `Preferences` → `Module Settings` → `Mermaid Settings` → `Open in Browser`
+    - **Copy original code by default** - preserves Mermaid diagram code in clipboard
+    - **Opens in browser by default** - launches Mermaid Live Editor
+    - **Sequential clipboard operations** when both code and URL copying are enabled:
+        1. First: Original Mermaid code is copied to clipboard
+        2. Second: Generated URL is copied to clipboard
+        3. Third: Browser opens (if enabled)
+- 🔧 **Configuration**: All behaviors are configurable via the menu bar:
+    - **Copy Code**: `Preferences` → `Module Settings` → `Mermaid Settings` → `Copy Code` (Default: ✅ Enabled)
+    - **Copy URL**: `Preferences` → `Module Settings` → `Mermaid Settings` → `Copy URL` (Default: ❌ Disabled)
+    - **Open in Browser**: `Preferences` → `Module Settings` → `Mermaid Settings` → `Open in Browser` (Default: ✅ Enabled)
     - **Editor Theme**: `Preferences` → `Module Settings` → `Mermaid Settings` → `Editor Theme` (Submenu: Default/Dark/Forest/Neutral)
 - 🛡️ **Security**: Sanitizes content for safe processing
 
@@ -149,13 +156,19 @@ launchctl load ~/Library/LaunchAgents/com.omairaslam.clipboardmonitor.menubar.pl
 - 🔧 **Configuration**: Can be enabled to modify clipboard content
 
 ### 📈 **Draw.io Module**
-- 🎯 **Purpose**: Detects Draw.io diagram data and opens it in the diagrams.net web editor.
+- 🎯 **Purpose**: Detects Draw.io diagram data and opens it in the diagrams.net web editor
 - ⚙️ **Behavior**:
-    - **Copy URL to clipboard**: Configurable (Default: True)
-    - **Open in browser**: Configurable (Default: True)
+    - **Copy original XML by default** - preserves Draw.io diagram XML in clipboard
+    - **Copy URL to clipboard by default** - generates diagrams.net URL
+    - **Opens in browser by default** - launches diagrams.net editor
+    - **Sequential clipboard operations** when both code and URL copying are enabled:
+        1. First: Original Draw.io XML is copied to clipboard
+        2. Second: Generated URL is copied to clipboard
+        3. Third: Browser opens (if enabled)
 - 🔧 **Configuration**: Settings for URL generation and behavior are available in the menu bar under **Preferences** → **Module Settings** → **Draw.io Settings**. This includes:
-    - Copy URL (Toggle)
-    - Open in Browser (Toggle)
+    - **Copy Code** (Toggle) - Copy original XML (Default: ✅ Enabled)
+    - **Copy URL** (Toggle) - Copy generated URL (Default: ✅ Enabled)
+    - **Open in Browser** (Toggle) - Launch browser (Default: ✅ Enabled)
     - **URL Parameters** (Submenu):
         - Lightbox (Toggle)
         - Edit Mode (Submenu: e.g., New Tab (_blank))
@@ -462,7 +475,7 @@ launchctl load ~/Library/LaunchAgents/com.omairaslam.clipboardmonitor.menubar.pl
 |----------|------|----------|
 | **General** | ⚙️ | Debug mode, notification title, polling intervals |
 | **History Settings** | 📚 | Max items, content length, file location |
-| **Module Settings** | 🧩 | Module-specific settings including: <br> - **Draw.io Settings**: Copy URL, Open in Browser, URL Parameters (Lightbox, Edit Mode, Layers, Nav, Appearance, Links, Border Color) <br> - **Mermaid Settings**: Copy URL, Open in Browser, Editor Theme |
+| **Module Settings** | 🧩 | Module-specific settings including: <br> - **Draw.io Settings**: Copy Code, Copy URL, Open in Browser, URL Parameters (Lightbox, Edit Mode, Layers, Nav, Appearance, Links, Border Color) <br> - **Mermaid Settings**: Copy Code, Copy URL, Open in Browser, Editor Theme |
 | **Advanced Settings** | 🚀 | Includes: <br> - **Performance Settings**: Lazy loading, adaptive checking, etc. <br> - **Security Settings**: Sanitize Clipboard, Max Clipboard Size, **Clipboard Modification** (Markdown & Code Formatter toggles) <br> - **Configuration Management**: Reset, export, import, view |
 
 
@@ -518,9 +531,11 @@ launchctl load ~/Library/LaunchAgents/com.omairaslam.clipboardmonitor.menubar.pl
     "drawio_module": true,
     "markdown_modify_clipboard": true,
     "code_formatter_modify_clipboard": false,
+    "mermaid_copy_code": true,
     "mermaid_copy_url": false,
     "mermaid_open_in_browser": true,
     "mermaid_theme": "default",
+    "drawio_copy_code": true,
     "drawio_copy_url": true,
     "drawio_open_in_browser": true,
     "drawio_lightbox": true,
