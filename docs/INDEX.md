@@ -10,6 +10,9 @@ Complete installation and usage guide covering all features, configuration optio
 ### **[Latest Updates (LATEST_UPDATES.md)](LATEST_UPDATES.md)**
 Recent changes, improvements, and new features including Copy Code configuration options for Mermaid and Draw.io modules, clear history and RTF functionality.
 
+### **[Memory Visualizer (MEMORY_VISUALIZER.md)](MEMORY_VISUALIZER.md)**
+Comprehensive memory monitoring and leak detection tool with real-time charts, historical analysis, and performance optimization guidance.
+
 ### **[Copy Code Feature Documentation (COPY_CODE_FEATURE_DOCUMENTATION.md)](COPY_CODE_FEATURE_DOCUMENTATION.md)**
 Comprehensive guide to the new Copy Code configuration options for Mermaid and Draw.io modules, including sequential clipboard operations and menu interface enhancements.
 

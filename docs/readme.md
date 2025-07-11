@@ -25,6 +25,7 @@
 ### 📚 **History & Viewers**
 - 🕒 **Multiple History Viewers**: Access clipboard history through GUI, web browser, or command-line interfaces
 - 💾 **Clipboard History**: Track and browse your clipboard history with deduplication and configurable limits
+- 📊 **Memory Visualizer**: Real-time and historical memory monitoring with leak detection and performance analysis
 
 ### 🛠️ **Content Processing**
 - 📝 **Markdown Processing**: Automatically convert markdown to rich text with comprehensive formatting support
@@ -226,6 +227,42 @@ launchctl load ~/Library/LaunchAgents/com.omairaslam.clipboardmonitor.menubar.pl
 - 🧹 **Clear History**: Clear all clipboard history with instructions
 - 🔗 **Shareable**: Access from any device on the same network
 - 🔄 **Auto-refresh**: Automatically updates when clipboard changes
+
+</details>
+
+---
+
+### 📊 **Memory Visualizer** (`memory_visualizer.py`)
+
+<details>
+<summary><b>📈 Real-time memory monitoring and leak detection for performance analysis</b></summary>
+
+**🎯 Purpose**: Monitor memory usage of both the main service and menu bar app to detect potential memory leaks and performance issues.
+
+**✨ Key Features**:
+- **Real-time Monitoring**: Live tracking of memory usage with configurable intervals
+- **Historical Charts**: Beautiful interactive graphs showing memory trends over time
+- **Leak Detection**: Automated analysis to identify potential memory leaks
+- **Performance Metrics**: Detailed memory statistics and growth rate analysis
+- **Web Interface**: Modern, responsive design accessible from any browser
+
+**🚀 Access Methods**:
+- **Menu Bar**: Preferences → Advanced Settings → 📊 Memory Visualizer
+- **Direct Launch**: `python3 memory_visualizer.py`
+- **Browser**: Opens automatically at `http://localhost:8001`
+
+**📊 Monitoring Capabilities**:
+- Physical memory (RSS) and virtual memory (VMS) tracking
+- Memory percentage usage relative to system total
+- System-wide memory statistics
+- Configurable monitoring intervals (10 seconds to 5 minutes)
+- Data retention for up to 1000 data points per process
+
+**🔍 Leak Detection**:
+- **Normal**: < 2 MB/hour growth
+- **Monitoring Needed**: 2-5 MB/hour growth
+- **Potential Leak**: > 5 MB/hour growth
+- Detailed analysis with growth rates and recommendations
 
 </details>
 

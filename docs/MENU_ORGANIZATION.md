@@ -81,6 +81,8 @@ The "Preferences" menu is now organized into logical sub-menus:
         -   Export Configuration...
         -   Import Configuration...
         -   View Current Configuration
+    -   ---
+    -   📊 **Memory Visualizer** (Opens web-based memory monitoring tool)
 
 ### 4. Application
 

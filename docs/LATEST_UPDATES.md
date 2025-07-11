@@ -1,5 +1,38 @@
 # Latest Updates - Clipboard Monitor (2025-07-10)
 
+## 📊 Memory Visualizer - Real-time Memory Monitoring and Leak Detection
+
+### **New Memory Monitoring Tool**
+- **📈 Real-time Memory Visualizer**: Comprehensive monitoring tool for both main service and menu bar app
+- **🔍 Memory Leak Detection**: Automated analysis to identify potential memory leaks and performance issues
+- **📊 Beautiful Charts**: Interactive graphs showing memory usage trends over time
+- **⚡ Performance Analysis**: Detailed metrics including growth rates, averages, and system impact
+
+### **Key Features**
+- **Live Monitoring**: Real-time tracking with configurable intervals (10 seconds to 5 minutes)
+- **Historical Data**: Persistent storage of up to 1000 data points per process
+- **Web Interface**: Modern, responsive design accessible at `http://localhost:8001`
+- **Menu Integration**: Easy access via Preferences → Advanced Settings → 📊 Memory Visualizer
+- **Leak Detection**: Intelligent algorithms categorizing memory growth patterns:
+  - 🟢 **Normal**: < 2 MB/hour growth
+  - 🟡 **Monitoring Needed**: 2-5 MB/hour growth
+  - 🔴 **Potential Leak**: > 5 MB/hour growth
+
+### **Technical Implementation**
+- **Process Monitoring**: Uses `psutil` for accurate memory tracking
+- **Data Persistence**: JSON storage in `~/Library/Application Support/ClipboardMonitor/`
+- **Web Server**: Built-in HTTP server with REST API endpoints
+- **Chart Visualization**: Chart.js for beautiful, interactive graphs
+- **Thread Safety**: Background monitoring with thread-safe data collection
+
+### **Use Cases**
+- **Debugging Menu Bar Sluggishness**: Identify if memory leaks cause performance issues
+- **Performance Optimization**: Monitor memory usage patterns and optimize accordingly
+- **Development Monitoring**: Track memory impact of new features and changes
+- **System Health**: Ensure Clipboard Monitor maintains optimal performance
+
+---
+
 ## 🎨 Copy Code Configuration Options for Mermaid and Draw.io Modules
 
 ### **New Features**

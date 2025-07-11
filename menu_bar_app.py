@@ -3,6 +3,7 @@ import rumps
 import subprocess
 import threading
 import os
+import sys
 import webbrowser
 import threading
 import time
@@ -13,6 +14,11 @@ from utils import safe_expanduser, ensure_directory_exists, set_config_value, lo
 from config_manager import ConfigManager
 from constants import POLLING_INTERVALS, ENHANCED_CHECK_INTERVALS
 import pyperclip
+import psutil
+import time
+import tempfile
+import webbrowser
+import os
 
 # Hide Dock icon for menu bar app
 try:
@@ -85,6 +91,12 @@ class ClipboardMonitorMenuBar(rumps.App):
         setup_logging(self.log_path, self.error_log_path)
         self.module_status = {}
         self.load_module_config()
+        
+        # Memory tracking data structures
+        self.memory_data = {"menubar": [], "service": []}
+        self.memory_timestamps = []
+        self.memory_tracking_active = False
+        
         # Map of module filenames to friendly display names
         self.module_display_names = {
             "markdown_module": "Markdown Processor",
@@ -100,6 +112,7 @@ class ClipboardMonitorMenuBar(rumps.App):
         self._init_menu_items()
         self._init_submenus()
         self._init_preferences_menu()
+        self._init_memory_menu()  # Initialize memory menu
 
         # Build the main menu structure
         self._build_main_menu()
@@ -109,6 +122,10 @@ class ClipboardMonitorMenuBar(rumps.App):
         self.timer = threading.Thread(target=self.update_status_periodically)
         self.timer.daemon = True
         self.timer.start()
+        
+        # Start memory monitoring
+        self.memory_timer = rumps.Timer(self.update_memory_status, 5)
+        self.memory_timer.start()
 
     def _init_menu_items(self):
         """Initialize individual menu items."""
@@ -125,6 +142,15 @@ class ClipboardMonitorMenuBar(rumps.App):
         self.recent_history_menu = rumps.MenuItem("Recent Clipboard Items")
         self.prefs_menu = rumps.MenuItem("Preferences")
         self.module_menu = rumps.MenuItem("Modules")
+
+    def _init_memory_menu(self):
+        """Initialize the memory monitoring menu."""
+        self.memory_menu = rumps.MenuItem("Memory Usage")
+        self.memory_status = rumps.MenuItem("Current Usage: Calculating...")
+        self.memory_menu.add(self.memory_status)
+        self.memory_menu.add(rumps.MenuItem("View Memory Trends", callback=self.show_memory_trends))
+        self.toggle_tracking_item = rumps.MenuItem("Start Memory Tracking", callback=self.toggle_memory_tracking)
+        self.memory_menu.add(self.toggle_tracking_item)
 
     def _init_submenus(self):
         """Initialize and populate submenus."""
@@ -472,6 +498,9 @@ class ClipboardMonitorMenuBar(rumps.App):
         self.process_large_content = rumps.MenuItem("Process Large Content", callback=self.toggle_performance_setting)
         self.process_large_content.state = self.config_manager.get_config_value('performance', 'process_large_content', True)
         perf_menu.add(self.process_large_content)
+        self.memory_logging = rumps.MenuItem("Memory Logging", callback=self.toggle_performance_setting)
+        self.memory_logging.state = self.config_manager.get_config_value('performance', 'memory_logging', True)
+        perf_menu.add(self.memory_logging)
         perf_menu.add(rumps.MenuItem("Set Max Execution Time...", callback=self.set_max_execution_time))
         return perf_menu
 
@@ -501,6 +530,8 @@ class ClipboardMonitorMenuBar(rumps.App):
         advanced_menu.add(self._create_performance_settings_menu())  # Corrected method name
         advanced_menu.add(self._create_security_settings_menu())
         advanced_menu.add(self._create_configuration_management_menu())
+        advanced_menu.add(rumps.separator)
+        advanced_menu.add(rumps.MenuItem("📊 Memory Visualizer", callback=self.open_memory_visualizer))
         return advanced_menu
 
     def _init_preferences_menu(self):
@@ -563,8 +594,12 @@ class ClipboardMonitorMenuBar(rumps.App):
         # Section 3: Preferences
         self.menu.add(self.prefs_menu)
         self.menu.add(rumps.separator)
+        
+        # Section 4: Memory Monitoring (NEW)
+        self.menu.add(self.memory_menu)
+        self.menu.add(rumps.separator)
 
-        # Section 4: Application (Logs then Quit)
+        # Section 5: Application (Logs then Quit)
         self.menu.add(self.logs_menu)
         self.menu.add(self.quit_item)
     
@@ -788,7 +823,8 @@ class ClipboardMonitorMenuBar(rumps.App):
             "Lazy Module Loading": "lazy_module_loading",
             "Adaptive Checking": "adaptive_checking",
             "Memory Optimization": "memory_optimization",
-            "Process Large Content": "process_large_content"
+            "Process Large Content": "process_large_content",
+            "Memory Logging": "memory_logging"
         }
 
         config_key = setting_map.get(sender.title)
@@ -1470,6 +1506,176 @@ read -n 1
         if not os.path.exists(log_path) or os.path.getsize(log_path) == 0:
             with open(log_path, 'a') as f:
                 f.write(header)
+
+    LOG_HEADER = (
+        "=== Clipboard Monitor Output Log ===\n"
+    )
+
+    def open_memory_visualizer(self, sender):
+        """Open the Memory Visualizer in a web browser"""
+        try:
+            import subprocess
+            import webbrowser
+
+            # Start the memory visualizer as a separate process
+            script_path = os.path.join(os.path.dirname(__file__), 'memory_visualizer.py')
+
+            if os.path.exists(script_path):
+                # Start the memory visualizer server
+                subprocess.Popen([sys.executable, script_path],
+                               cwd=os.path.dirname(__file__))
+
+                # Give it a moment to start
+                import time
+                time.sleep(2)
+
+                # Open the browser
+                webbrowser.open('http://localhost:8001')
+
+                rumps.notification("Memory Visualizer",
+                                 "Memory Visualizer started",
+                                 "Opening in your browser...")
+            else:
+                rumps.alert("Memory Visualizer not found",
+                          "The memory_visualizer.py file was not found.")
+
+        except Exception as e:
+            rumps.alert("Error", f"Failed to start Memory Visualizer: {e}")
+
+    def update_memory_status(self, _):
+        """Update the memory status in the menu."""
+        try:
+            # Get memory for menu bar app (current process)
+            menubar_process = psutil.Process(os.getpid())
+            menubar_memory = menubar_process.memory_info().rss / 1024 / 1024  # MB
+            
+            # Get memory for clipboard monitor service
+            service_memory = 0
+            for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
+                try:
+                    cmdline = proc.info.get('cmdline', [])
+                    if cmdline and any('main.py' in cmd for cmd in cmdline if cmd):
+                        if proc.pid != os.getpid():  # Not the menu bar app
+                            service_memory = proc.memory_info().rss / 1024 / 1024  # MB
+                            break
+                except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess, AttributeError):
+                    pass
+            
+            # Update menu item
+            self.memory_status.title = f"Current Usage: Menu Bar: {menubar_memory:.1f} MB | Service: {service_memory:.1f} MB"
+            
+            # Record data if tracking is active
+            if self.memory_tracking_active:
+                self.memory_data["menubar"].append(menubar_memory)
+                self.memory_data["service"].append(service_memory)
+                self.memory_timestamps.append(time.time())
+                
+                # Limit data points to prevent excessive memory usage
+                max_points = 1000
+                if len(self.memory_timestamps) > max_points:
+                    self.memory_timestamps = self.memory_timestamps[-max_points:]
+                    self.memory_data["menubar"] = self.memory_data["menubar"][-max_points:]
+                    self.memory_data["service"] = self.memory_data["service"][-max_points:]
+                    
+        except Exception as e:
+            self.memory_status.title = f"Memory: Error ({str(e)[:20]}...)"
+
+    def toggle_memory_tracking(self, sender):
+        """Toggle detailed memory tracking for trends."""
+        self.memory_tracking_active = not self.memory_tracking_active
+        
+        if self.memory_tracking_active:
+            sender.title = "Stop Memory Tracking"
+            # Clear previous data
+            self.memory_data = {"menubar": [], "service": []}
+            self.memory_timestamps = []
+            rumps.notification("Memory Tracking", "Started", 
+                              "Memory usage is now being recorded for trend analysis.")
+        else:
+            sender.title = "Start Memory Tracking"
+            rumps.notification("Memory Tracking", "Stopped", 
+                              "Memory usage recording has been stopped.")
+
+    def show_memory_trends(self, _):
+        """Generate and display memory usage trends."""
+        if not self.memory_data["menubar"] or not self.memory_timestamps:
+            rumps.notification("Memory Trends", "No Data", 
+                              "Start memory tracking first to collect data.")
+            return
+            
+        try:
+            # Create a temporary HTML file with the chart
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.html') as f:
+                html_path = f.name
+                
+                # Generate timestamps for x-axis
+                timestamps = [time.strftime('%H:%M:%S', time.localtime(ts)) for ts in self.memory_timestamps]
+                
+                # Create HTML with embedded chart using Chart.js
+                html_content = f'''
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Clipboard Monitor Memory Usage</title>
+                    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+                    <style>
+                        body {{ font-family: -apple-system, BlinkMacSystemFont, sans-serif; padding: 20px; }}
+                        .container {{ max-width: 800px; margin: 0 auto; }}
+                        h1 {{ color: #333; }}
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        <h1>Clipboard Monitor Memory Usage</h1>
+                        <canvas id="memoryChart"></canvas>
+                    </div>
+                    
+                    <script>
+                        const ctx = document.getElementById('memoryChart');
+                        new Chart(ctx, {{
+                            type: 'line',
+                            data: {{
+                                labels: {timestamps},
+                                datasets: [
+                                    {{
+                                        label: 'Menu Bar App (MB)',
+                                        data: {self.memory_data["menubar"]},
+                                        borderColor: 'rgb(75, 192, 192)',
+                                        tension: 0.1
+                                    }},
+                                    {{
+                                        label: 'Clipboard Service (MB)',
+                                        data: {self.memory_data["service"]},
+                                        borderColor: 'rgb(255, 99, 132)',
+                                        tension: 0.1
+                                    }}
+                                ]
+                            }},
+                            options: {{
+                                responsive: true,
+                                scales: {{
+                                    y: {{
+                                        beginAtZero: true,
+                                        title: {{
+                                            display: true,
+                                            text: 'Memory Usage (MB)'
+                                        }}
+                                    }}
+                                }}
+                            }}
+                        }});
+                    </script>
+                </body>
+                </html>
+                '''
+                
+                f.write(html_content.encode('utf-8'))
+            
+            # Open the HTML file in the default browser
+            webbrowser.open('file://' + html_path)
+            
+        except Exception as e:
+            rumps.notification("Error", "Failed to generate memory trends", str(e))
 
     LOG_HEADER = (
         "=== Clipboard Monitor Output Log ===\n"
