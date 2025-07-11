@@ -79,7 +79,16 @@ DEFAULT_PERFORMANCE_CONFIG = {
     'adaptive_checking': True,
     'memory_optimization': True,
     'process_large_content': True,
+    'memory_logging': True,
     'max_module_execution_time': 500
+}
+
+DEFAULT_MEMORY_CONFIG = {
+    'auto_cleanup': False,
+    'leak_detection': True,
+    'cleanup_interval': 3600,  # 1 hour in seconds
+    'max_memory_threshold': 100,  # MB
+    'monitoring_enabled': True
 }
 
 DEFAULT_MODULES_CONFIG = {
@@ -96,16 +105,16 @@ DEFAULT_MODULES_CONFIG = {
     'mermaid_copy_code': True,  # New: copy original Mermaid code
     'mermaid_copy_url': False,
     'mermaid_open_in_browser': True,
-    'mermaid_theme': "default",
+    'mermaid_editor_theme': "default",
     'drawio_copy_code': True,    # New: copy original Draw.io XML
-    'drawio_copy_url': False,
+    'drawio_copy_url': True,
     'drawio_open_in_browser': True,
     'drawio_lightbox': True,
     'drawio_edit_mode': "_blank", # e.g., "_blank", "local", "device"
     'drawio_layers': True,
     'drawio_nav': True,
     'drawio_appearance': "auto",  # "auto", "light", "dark"
-    'drawio_border_color': "none", # "none" or hex color e.g., "FF0000"
+    'drawio_border_color': "#000000", # hex color e.g., "#FF0000"
     'drawio_links': "auto",       # "auto", "blank" (for new tab), "self" (for same tab)
 }
 

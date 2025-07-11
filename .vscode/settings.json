@@ -37,7 +37,7 @@
             "label": "Dashboard",
             "task": "Launch Troubleshooting Dashboard",
             "tooltip": "Open the interactive troubleshooting dashboard",
-            "color": "#00ADD8"
+            "color": "default"
         },
         {
             "label": "Clear Logs",
@@ -49,7 +49,7 @@
             "label": "Status",
             "task": "Check Services Status",
             "tooltip": "Check the status of both services",
-            "color": "statusBar.foreground"
+            "color": "default"
         },
         {
             "label": "Restart All",

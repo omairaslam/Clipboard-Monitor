@@ -26,9 +26,8 @@ except ImportError:
     from utils import show_notification, log_event, log_error
     from config_manager import ConfigManager
 
-# Default base URL, can be overridden by config in the future if needed.
-# For now, we are not making base_url configurable based on user feedback.
-DRAWIO_BASE_URL = "https://app.diagrams.net/"
+
+DRAWIO_URL_TEMPLATE = "https://app.diagrams.net/?lightbox=1&edit=_blank&layers=1&nav=1#R{encoded}"
 
 def is_drawio_xml(xml_str):
     """
@@ -78,88 +77,33 @@ def process(clipboard_content, config=None):
     try:
         log_event("Encoding Draw.io URL.", level="DEBUG")
         url_fragment = encode_drawio_url(clipboard_content)
+        full_url = DRAWIO_URL_TEMPLATE.format(encoded=url_fragment)
 
-        # Retrieve URL parameters from config
-        lightbox = config.get("drawio_lightbox", True)
-        edit_mode = config.get("drawio_edit_mode", "_blank")
-        layers = config.get("drawio_layers", True)
-        nav = config.get("drawio_nav", True)
-        appearance = config.get("drawio_appearance", "auto") # New
-        border_color = config.get("drawio_border_color", "none") # New
-        links_config = config.get("drawio_links", "auto") # New
-
-        # Construct query parameters string
-        params = []
-        if lightbox: # Parameter is 'lightbox=1' or not present
-            params.append("lightbox=1")
-        # edit_mode: value directly used, e.g. 'edit=_blank'
-        if edit_mode:
-            params.append(f"edit={edit_mode}")
-        if layers: # Parameter is 'layers=1' or not present
-            params.append("layers=1")
-        if nav: # Parameter is 'nav=1' or not present
-            params.append("nav=1")
-
-        # Appearance: 'ui=auto|light|dark'
-        if appearance and appearance != "auto": # "auto" is often default, no need to send
-            params.append(f"ui={appearance}")
-
-        # Border Color: 'border=HEXCOLOR' (without #) or 'border=none'
-        if border_color: # Could be "none" or a hex string
-            # diagrams.net expects hex colors without '#' for the 'border' URL param.
-            actual_border_color = border_color.lstrip('#')
-            if actual_border_color: # Ensure it's not empty after stripping
-                 params.append(f"border={actual_border_color}")
-
-        # Links: 'links=auto|blank|self'
-        if links_config and links_config != "auto": # "auto" is often default
-            params.append(f"links={links_config}")
-
-        param_string = "&".join(params)
-        if not param_string: # Ensure param_string is not empty if all options are default/off
-            full_url = f"{DRAWIO_BASE_URL}#R{url_fragment}"
-        else:
-            full_url = f"{DRAWIO_BASE_URL}?{param_string}#R{url_fragment}"
-
-        # The line above correctly assigns full_url based on param_string.
-        # The duplicated line below is removed:
-        # full_url = f"{DRAWIO_BASE_URL}?{param_string}#R{url_fragment}"
-        log_event(f"Constructed Draw.io URL: {full_url}", level="DEBUG")
-
-        copy_code = config.get("drawio_copy_code", True)
         copy_url = config.get("drawio_copy_url", True)
         open_browser = config.get("drawio_open_in_browser", True)
-
-        log_event(f"Config settings: copy_code={copy_code}, copy_url={copy_url}, open_browser={open_browser}", level="DEBUG")
-
+        log_event(f"Config settings: copy_url={copy_url}, open_browser={open_browser}", level="DEBUG")
+        
+        notification_message = []
         new_clipboard_content = None
 
-        # Handle clipboard copying in the requested order: code first, then URL
-        if copy_code and copy_url:
-            # First copy the XML code
+        if copy_url:
             if pyperclip:
-                pyperclip.copy(clipboard_content)
-                log_event("Copied Draw.io XML to clipboard", level="INFO")
-                show_notification("Draw.io XML", "XML code copied to clipboard", "")
-
-                # Then copy the URL
                 pyperclip.copy(full_url)
-                log_event("Copied Draw.io URL to clipboard", level="INFO")
-                show_notification("Draw.io URL", "URL copied to clipboard", "")
-            new_clipboard_content = full_url  # Return URL as final clipboard content
-        elif copy_code:
-            new_clipboard_content = clipboard_content
-            show_notification("Draw.io XML", "XML code copied to clipboard", "")
-        elif copy_url:
-            new_clipboard_content = full_url
-            show_notification("Draw.io URL", "URL copied to clipboard", "")
+                new_clipboard_content = full_url
+                notification_message.append("URL copied to clipboard")
+                log_event("URL copied to clipboard.", level="DEBUG")
+            else:
+                log_error("pyperclip is not available, cannot copy URL.")
 
-        # Open browser after clipboard operations
         if open_browser:
             webbrowser.open_new(full_url)
+            notification_message.append("opened in browser")
             log_event("Opened URL in browser.", level="DEBUG")
-            show_notification("Draw.io Browser", "Opened in browser", "")
 
+        if notification_message:
+            show_notification("Draw.io Diagram", "Draw.io XML detected! " + " and ".join(notification_message) + ".", "")
+            log_event(f"Draw.io diagram processed: {' and '.join(notification_message)}.", level="INFO")
+        
         return new_clipboard_content
 
     except (zlib.error, base64.binascii.Error, Exception) as e:
@@ -191,3 +135,4 @@ if __name__ == '__main__':
 
     print("\nTesting with non-XML string...")
     process("Just a regular string")
+

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Memory Visualizer for Clipboard Monitor
-Provides real-time and historical memory usage visualization for both main service and menu bar app.
+Enhanced Memory Visualizer for Clipboard Monitor
+Provides real-time and historical memory usage visualization with advanced leak detection.
 """
 
 import os
@@ -11,34 +11,231 @@ import time
 import psutil
 import threading
 import webbrowser
+import gc
+import tracemalloc
+import weakref
+import resource
 from datetime import datetime, timedelta
 from pathlib import Path
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
+from collections import defaultdict, deque
+import subprocess
+import fcntl
+import tempfile
+import atexit
 
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent))
 from utils import safe_expanduser, get_app_paths, log_event, log_error
 
+
+class MemoryLeakDetector:
+    """Advanced memory leak detection and analysis"""
+
+    def __init__(self):
+        self.baseline_memory = {}
+        self.memory_snapshots = deque(maxlen=100)  # Keep last 100 snapshots
+        self.object_counts = defaultdict(int)
+        self.leak_alerts = []
+        self.growth_threshold = 10.0  # MB growth threshold for leak alert
+        self.consecutive_growth_limit = 5  # Consecutive growth periods before alert
+        self.tracemalloc_enabled = False
+
+        # Initialize tracemalloc for detailed memory tracking
+        try:
+            tracemalloc.start(10)  # Keep 10 frames in traceback
+            self.tracemalloc_enabled = True
+            log_event("Tracemalloc enabled for detailed memory tracking", level="INFO")
+        except Exception as e:
+            log_error(f"Failed to enable tracemalloc: {e}")
+
+    def take_memory_snapshot(self, process_info):
+        """Take a detailed memory snapshot"""
+        timestamp = time.time()
+        snapshot = {
+            "timestamp": timestamp,
+            "datetime": datetime.fromtimestamp(timestamp).isoformat(),
+            "process_info": process_info,
+            "gc_stats": self._get_gc_stats(),
+            "object_counts": self._get_object_counts(),
+            "resource_usage": self._get_resource_usage(),
+        }
+
+        # Add tracemalloc data if available
+        if self.tracemalloc_enabled:
+            try:
+                snapshot["tracemalloc"] = self._get_tracemalloc_stats()
+            except Exception as e:
+                log_error(f"Failed to get tracemalloc stats: {e}")
+
+        self.memory_snapshots.append(snapshot)
+        return snapshot
+
+    def _get_gc_stats(self):
+        """Get garbage collection statistics"""
+        try:
+            return {
+                "collections": gc.get_stats(),
+                "count": gc.get_count(),
+                "threshold": gc.get_threshold(),
+                "objects": len(gc.get_objects())
+            }
+        except Exception as e:
+            log_error(f"Failed to get GC stats: {e}")
+            return {}
+
+    def _get_object_counts(self):
+        """Get count of objects by type"""
+        try:
+            objects = gc.get_objects()
+            counts = defaultdict(int)
+            for obj in objects:
+                counts[type(obj).__name__] += 1
+            return dict(counts)
+        except Exception as e:
+            log_error(f"Failed to get object counts: {e}")
+            return {}
+
+    def _get_resource_usage(self):
+        """Get system resource usage"""
+        try:
+            usage = resource.getrusage(resource.RUSAGE_SELF)
+            return {
+                "max_rss": usage.ru_maxrss,  # Maximum resident set size
+                "user_time": usage.ru_utime,
+                "system_time": usage.ru_stime,
+                "page_faults": usage.ru_majflt,
+                "voluntary_context_switches": usage.ru_nvcsw,
+                "involuntary_context_switches": usage.ru_nivcsw
+            }
+        except Exception as e:
+            log_error(f"Failed to get resource usage: {e}")
+            return {}
+
+    def _get_tracemalloc_stats(self):
+        """Get tracemalloc memory statistics"""
+        if not self.tracemalloc_enabled:
+            return {}
+
+        try:
+            snapshot = tracemalloc.take_snapshot()
+            top_stats = snapshot.statistics('lineno')
+
+            # Get top 10 memory allocations
+            top_allocations = []
+            for stat in top_stats[:10]:
+                top_allocations.append({
+                    "filename": stat.traceback.format()[0] if stat.traceback.format() else "unknown",
+                    "size_mb": stat.size / 1024 / 1024,
+                    "count": stat.count
+                })
+
+            return {
+                "current_size_mb": tracemalloc.get_traced_memory()[0] / 1024 / 1024,
+                "peak_size_mb": tracemalloc.get_traced_memory()[1] / 1024 / 1024,
+                "top_allocations": top_allocations
+            }
+        except Exception as e:
+            log_error(f"Failed to get tracemalloc stats: {e}")
+            return {}
+
+    def analyze_memory_trends(self):
+        """Analyze memory trends and detect potential leaks"""
+        if len(self.memory_snapshots) < 3:
+            return {"status": "insufficient_data", "message": "Need at least 3 snapshots for analysis"}
+
+        recent_snapshots = list(self.memory_snapshots)[-10:]  # Analyze last 10 snapshots
+        analysis = {
+            "leak_detected": False,
+            "growth_rate_mb_per_hour": 0,
+            "consecutive_growth_periods": 0,
+            "memory_trend": "stable",
+            "alerts": [],
+            "recommendations": []
+        }
+
+        # Calculate memory growth rate
+        memory_values = []
+        timestamps = []
+
+        for snapshot in recent_snapshots:
+            if "process_info" in snapshot:
+                for process_type, info in snapshot["process_info"].items():
+                    if info and "memory_mb" in info:
+                        memory_values.append(info["memory_mb"])
+                        timestamps.append(snapshot["timestamp"])
+                        break
+
+        if len(memory_values) >= 2:
+            # Calculate growth rate
+            time_diff_hours = (timestamps[-1] - timestamps[0]) / 3600
+            memory_diff = memory_values[-1] - memory_values[0]
+
+            if time_diff_hours > 0:
+                analysis["growth_rate_mb_per_hour"] = memory_diff / time_diff_hours
+
+            # Check for consistent growth
+            consecutive_growth = 0
+            for i in range(1, len(memory_values)):
+                if memory_values[i] > memory_values[i-1]:
+                    consecutive_growth += 1
+                else:
+                    consecutive_growth = 0
+
+            analysis["consecutive_growth_periods"] = consecutive_growth
+
+            # Determine trend
+            if analysis["growth_rate_mb_per_hour"] > self.growth_threshold:
+                analysis["memory_trend"] = "growing_rapidly"
+                analysis["leak_detected"] = True
+                analysis["alerts"].append(f"Rapid memory growth detected: {analysis['growth_rate_mb_per_hour']:.2f} MB/hour")
+            elif consecutive_growth >= self.consecutive_growth_limit:
+                analysis["memory_trend"] = "growing_consistently"
+                analysis["leak_detected"] = True
+                analysis["alerts"].append(f"Consistent memory growth over {consecutive_growth} periods")
+            elif analysis["growth_rate_mb_per_hour"] > 1:
+                analysis["memory_trend"] = "growing_slowly"
+                analysis["alerts"].append("Slow memory growth detected")
+
+        # Add recommendations based on analysis
+        if analysis["leak_detected"]:
+            analysis["recommendations"].extend([
+                "Enable detailed object tracking",
+                "Check for unbounded data structures",
+                "Review timer and event handler cleanup",
+                "Monitor garbage collection effectiveness"
+            ])
+
+        return analysis
+
+
 class MemoryMonitor:
-    """Monitor memory usage for Clipboard Monitor processes"""
+    """Enhanced memory monitor with leak detection for Clipboard Monitor processes"""
 
     def __init__(self):
         self.data_file = safe_expanduser("~/Library/Application Support/ClipboardMonitor/memory_data.json")
+        self.leak_data_file = safe_expanduser("~/Library/Application Support/ClipboardMonitor/leak_analysis.json")
         self.monitoring = False
         self.monitor_thread = None
         self.data_lock = threading.Lock()
         self.max_data_points = 1000  # Keep last 1000 data points
 
+        # Initialize leak detector
+        self.leak_detector = MemoryLeakDetector()
+
         # Ensure data directory exists
         os.makedirs(os.path.dirname(self.data_file), exist_ok=True)
 
-        # Initialize data structure
+        # Enhanced data structure with leak detection
         self.memory_data = {
             "main_service": [],
             "menu_bar": [],
             "system": [],
-            "last_updated": None
+            "leak_analysis": [],
+            "object_tracking": [],
+            "last_updated": None,
+            "leak_alerts": []
         }
 
         # Load existing data
@@ -49,19 +246,16 @@ class MemoryMonitor:
         try:
             if os.path.exists(self.data_file):
                 with open(self.data_file, 'r') as f:
-                    self.memory_data = json.load(f)
+                    loaded_data = json.load(f)
+                    # Ensure all required keys exist
+                    self.memory_data.update(loaded_data)
                 log_event("Memory data loaded successfully", level="INFO")
             else:
                 log_event("No existing memory data found, starting fresh", level="INFO")
         except Exception as e:
             log_error(f"Failed to load memory data: {e}")
-            # Reset to default structure on error
-            self.memory_data = {
-                "main_service": [],
-                "menu_bar": [],
-                "system": [],
-                "last_updated": None
-            }
+            # Keep default structure on error
+            pass
 
     def save_data(self):
         """Save memory data to file"""
@@ -116,7 +310,8 @@ class MemoryMonitor:
                 "vms": memory_info.vms,  # Virtual Memory Size
                 "percent": memory_percent,
                 "rss_mb": round(memory_info.rss / 1024 / 1024, 2),
-                "vms_mb": round(memory_info.vms / 1024 / 1024, 2)
+                "vms_mb": round(memory_info.vms / 1024 / 1024, 2),
+                "memory_mb": round(memory_info.rss / 1024 / 1024, 2)  # Alias for compatibility
             }
         except (psutil.NoSuchProcess, psutil.AccessDenied):
             return None
@@ -139,7 +334,7 @@ class MemoryMonitor:
             return None
 
     def collect_data_point(self):
-        """Collect a single data point for all processes"""
+        """Collect a single data point for all processes with enhanced leak detection"""
         timestamp = datetime.now().isoformat()
         processes = self.find_processes()
 
@@ -147,6 +342,16 @@ class MemoryMonitor:
         main_memory = self.get_memory_info(processes["main_service"])
         menu_memory = self.get_memory_info(processes["menu_bar"])
         system_memory = self.get_system_memory()
+
+        # Enhanced process information for leak detection
+        process_info = {}
+        if main_memory:
+            process_info["main_service"] = main_memory
+        if menu_memory:
+            process_info["menu_bar"] = menu_memory
+
+        # Take detailed memory snapshot for leak analysis
+        leak_snapshot = self.leak_detector.take_memory_snapshot(process_info)
 
         with self.data_lock:
             # Add data points
@@ -168,10 +373,32 @@ class MemoryMonitor:
                     **system_memory
                 })
 
+            # Add leak analysis data
+            self.memory_data["leak_analysis"].append({
+                "timestamp": timestamp,
+                "snapshot": leak_snapshot
+            })
+
+            # Perform leak analysis every 10 data points
+            if len(self.memory_data["leak_analysis"]) % 10 == 0:
+                analysis = self.leak_detector.analyze_memory_trends()
+                if analysis["leak_detected"]:
+                    alert = {
+                        "timestamp": timestamp,
+                        "severity": "high" if analysis["memory_trend"] == "growing_rapidly" else "medium",
+                        "analysis": analysis
+                    }
+                    self.memory_data["leak_alerts"].append(alert)
+                    log_event(f"Memory leak detected: {analysis['alerts']}", level="WARNING")
+
             # Trim data to max points
-            for key in ["main_service", "menu_bar", "system"]:
+            for key in ["main_service", "menu_bar", "system", "leak_analysis"]:
                 if len(self.memory_data[key]) > self.max_data_points:
                     self.memory_data[key] = self.memory_data[key][-self.max_data_points:]
+
+            # Keep only recent leak alerts (last 100)
+            if len(self.memory_data["leak_alerts"]) > 100:
+                self.memory_data["leak_alerts"] = self.memory_data["leak_alerts"][-100:]
 
             self.memory_data["last_updated"] = timestamp
 
@@ -182,6 +409,7 @@ class MemoryMonitor:
             "main_service": main_memory,
             "menu_bar": menu_memory,
             "system": system_memory,
+            "leak_analysis": analysis if 'analysis' in locals() else None,
             "timestamp": timestamp
         }
 
@@ -216,6 +444,80 @@ class MemoryMonitor:
     def get_current_status(self):
         """Get current memory status for all processes"""
         return self.collect_data_point()
+
+    def get_leak_analysis(self):
+        """Get current leak analysis and recommendations"""
+        analysis = self.leak_detector.analyze_memory_trends()
+
+        # Add recent alerts
+        with self.data_lock:
+            recent_alerts = self.memory_data.get("leak_alerts", [])[-10:] if self.memory_data.get("leak_alerts") else []
+
+        return {
+            "current_analysis": analysis,
+            "recent_alerts": recent_alerts,
+            "total_snapshots": len(self.leak_detector.memory_snapshots),
+            "tracemalloc_enabled": self.leak_detector.tracemalloc_enabled
+        }
+
+    def get_object_tracking_data(self):
+        """Get detailed object tracking information"""
+        if not self.leak_detector.memory_snapshots:
+            return {"error": "No snapshots available"}
+
+        latest_snapshot = self.leak_detector.memory_snapshots[-1]
+
+        # Compare with baseline if available
+        comparison = {}
+        if len(self.leak_detector.memory_snapshots) > 1:
+            baseline = self.leak_detector.memory_snapshots[0]
+            if "object_counts" in latest_snapshot and "object_counts" in baseline:
+                for obj_type, current_count in latest_snapshot["object_counts"].items():
+                    baseline_count = baseline["object_counts"].get(obj_type, 0)
+                    if current_count > baseline_count:
+                        comparison[obj_type] = {
+                            "current": current_count,
+                            "baseline": baseline_count,
+                            "growth": current_count - baseline_count
+                        }
+
+        return {
+            "latest_snapshot": latest_snapshot,
+            "object_growth": comparison,
+            "gc_stats": latest_snapshot.get("gc_stats", {}),
+            "tracemalloc": latest_snapshot.get("tracemalloc", {})
+        }
+
+    def force_garbage_collection(self):
+        """Force garbage collection and return statistics"""
+        try:
+            # Get stats before GC
+            before_objects = len(gc.get_objects())
+            before_count = gc.get_count()
+
+            # Force collection
+            collected = gc.collect()
+
+            # Get stats after GC
+            after_objects = len(gc.get_objects())
+            after_count = gc.get_count()
+
+            result = {
+                "objects_before": before_objects,
+                "objects_after": after_objects,
+                "objects_freed": before_objects - after_objects,
+                "collected_objects": collected,
+                "count_before": before_count,
+                "count_after": after_count,
+                "timestamp": datetime.now().isoformat()
+            }
+
+            log_event(f"Forced GC: freed {result['objects_freed']} objects, collected {collected}", level="INFO")
+            return result
+
+        except Exception as e:
+            log_error(f"Error during forced garbage collection: {e}")
+            return {"error": str(e)}
 
     def get_historical_data(self, hours=24):
         """Get historical data for the specified number of hours"""
@@ -1047,8 +1349,49 @@ def create_handler_with_monitor(memory_monitor):
     return Handler
 
 
+def ensure_single_instance():
+    """Ensure only one instance of memory visualizer runs"""
+    try:
+        # Create lock file in temp directory
+        lock_file_path = os.path.join(tempfile.gettempdir(), 'clipboard_monitor_visualizer.lock')
+        lock_file = open(lock_file_path, 'w')
+
+        # Try to acquire exclusive lock
+        fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+
+        # Write PID to lock file
+        lock_file.write(str(os.getpid()))
+        lock_file.flush()
+
+        # Register cleanup function
+        def cleanup_lock():
+            try:
+                lock_file.close()
+                if os.path.exists(lock_file_path):
+                    os.unlink(lock_file_path)
+            except Exception:
+                pass
+
+        atexit.register(cleanup_lock)
+        print(f"✅ Memory Visualizer singleton lock acquired (PID: {os.getpid()})")
+        return True
+
+    except (IOError, OSError):
+        print("❌ Another instance of Memory Visualizer is already running!")
+        print("   Opening existing dashboard at http://localhost:8001")
+        try:
+            webbrowser.open('http://localhost:8001')
+        except Exception:
+            pass
+        return False
+
+
 def main():
     """Main function to start the memory visualizer server"""
+    # Ensure only one instance runs
+    if not ensure_single_instance():
+        sys.exit(0)
+
     print("🚀 Starting Clipboard Monitor Memory Visualizer...")
 
     # Create memory monitor

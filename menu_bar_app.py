@@ -14,11 +14,6 @@ from utils import safe_expanduser, ensure_directory_exists, set_config_value, lo
 from config_manager import ConfigManager
 from constants import POLLING_INTERVALS, ENHANCED_CHECK_INTERVALS
 import pyperclip
-import psutil
-import time
-import tempfile
-import webbrowser
-import os
 
 # Hide Dock icon for menu bar app
 try:
@@ -27,58 +22,13 @@ try:
 except Exception:
     pass
 
+
+
+
 class ClipboardMonitorMenuBar(rumps.App):
-    def setup_service(self):
-        home_dir = os.path.expanduser("~")
-        launch_agents_dir = os.path.join(home_dir, "Library", "LaunchAgents")
-        plist_filename = "com.omairaslam.clipboardmonitor.plist"
-        self.plist_path = os.path.join(launch_agents_dir, plist_filename)
-
-        if not os.path.exists(self.plist_path):
-            os.makedirs(launch_agents_dir, exist_ok=True)
-
-            # Get the path to the bundled Python and main.py
-            python_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "MacOS", "python")
-            main_py_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "main.py")
-
-            plist_content = f"""<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-    <key>Label</key>
-    <string>com.omairaslam.cl极boardmonitor</string>
-    <key>ProgramArguments</key>
-    <array>
-        <string>{python_path}</string>
-        <string>{main_py_path}</string>
-    </array>
-    <array>
-        <string>{python_path}</string>
-        <string>{main_py_path}</string>
-    </array>
-    <key>RunAtLoad</key>
-    <true/>
-    <key>KeepAlive</key>
-    <true/>
-    <key>StandardOutPath</key>
-    <string>{home_dir}/Library/Logs/ClipboardMonitor.out.log</string>
-    <key>StandardErrorPath</key>
-    <string>{home_dir}/Library/Logs/ClipboardMonitor.err.log</string>
-    <key>WorkingDirectory</key>
-    <string>{os.path.dirname(os.path.abspath(__file__))}</string>
-</dict>
-</plist>"""
-
-            with open(self.plist_path, "w") as f:
-                f.write(plist_content)
-
-            subprocess.run(["launchctl", "load", self.plist_path])
-
     def __init__(self):
         # Use a simple title with an emoji that works in the menu bar
         super().__init__("📋", quit_button=None)
-
-        self.setup_service()
 
         # Configuration
         self.config_manager = ConfigManager()
@@ -91,12 +41,6 @@ class ClipboardMonitorMenuBar(rumps.App):
         setup_logging(self.log_path, self.error_log_path)
         self.module_status = {}
         self.load_module_config()
-        
-        # Memory tracking data structures
-        self.memory_data = {"menubar": [], "service": []}
-        self.memory_timestamps = []
-        self.memory_tracking_active = False
-        
         # Map of module filenames to friendly display names
         self.module_display_names = {
             "markdown_module": "Markdown Processor",
@@ -112,7 +56,7 @@ class ClipboardMonitorMenuBar(rumps.App):
         self._init_menu_items()
         self._init_submenus()
         self._init_preferences_menu()
-        self._init_memory_menu()  # Initialize memory menu
+        self._init_memory_usage_menu()  # Initialize memory usage menu
 
         # Build the main menu structure
         self._build_main_menu()
@@ -122,7 +66,7 @@ class ClipboardMonitorMenuBar(rumps.App):
         self.timer = threading.Thread(target=self.update_status_periodically)
         self.timer.daemon = True
         self.timer.start()
-        
+
         # Start memory monitoring
         self.memory_timer = rumps.Timer(self.update_memory_status, 5)
         self.memory_timer.start()
@@ -143,14 +87,44 @@ class ClipboardMonitorMenuBar(rumps.App):
         self.prefs_menu = rumps.MenuItem("Preferences")
         self.module_menu = rumps.MenuItem("Modules")
 
-    def _init_memory_menu(self):
-        """Initialize the memory monitoring menu."""
-        self.memory_menu = rumps.MenuItem("Memory Usage")
+        # Memory visualization display items for main menu (two lines)
+        self.memory_menubar_item = rumps.MenuItem("Menu Bar: Initializing...")
+        self.memory_service_item = rumps.MenuItem("Service: Initializing...")
+
+        # Memory monitoring submenu
+        self.memory_monitor_menu = rumps.MenuItem("Memory Monitor")
+        self.memory_unified_dashboard_item = rumps.MenuItem("📊 Unified Dashboard", callback=self.start_unified_dashboard)
+        self.memory_stats_item = rumps.MenuItem("📋 Memory Statistics", callback=self.show_memory_stats)
+        self.memory_cleanup_item = rumps.MenuItem("🧹 Force Memory Cleanup", callback=self.force_memory_cleanup)
+
+        # Build memory monitor submenu
+        self.memory_monitor_menu.add(self.memory_unified_dashboard_item)
+        self.memory_monitor_menu.add(rumps.separator)
+        self.memory_monitor_menu.add(self.memory_stats_item)
+        self.memory_monitor_menu.add(self.memory_cleanup_item)
+
+    def _init_memory_usage_menu(self):
+        """Initialize the memory usage monitoring menu."""
+        self.memory_usage_menu = rumps.MenuItem("Memory Usage")
         self.memory_status = rumps.MenuItem("Current Usage: Calculating...")
-        self.memory_menu.add(self.memory_status)
-        self.memory_menu.add(rumps.MenuItem("View Memory Trends", callback=self.show_memory_trends))
+        self.memory_usage_menu.add(self.memory_status)
+        self.memory_usage_menu.add(rumps.MenuItem("View Memory Trends", callback=self.show_memory_trends))
         self.toggle_tracking_item = rumps.MenuItem("Start Memory Tracking", callback=self.toggle_memory_tracking)
-        self.memory_menu.add(self.toggle_tracking_item)
+        self.memory_usage_menu.add(self.toggle_tracking_item)
+
+        # Initialize monitoring processes tracking
+        self._monitoring_processes = {}
+
+        # Memory tracking data structures
+        self.memory_data = {"menubar": [], "service": []}
+        self.memory_timestamps = []
+        self.memory_tracking_active = False
+
+        # Mini histogram data for menu display
+        self.menubar_history = []
+        self.service_history = []
+        self.menubar_peak = 0
+        self.service_peak = 0
 
     def _init_submenus(self):
         """Initialize and populate submenus."""
@@ -196,117 +170,119 @@ class ClipboardMonitorMenuBar(rumps.App):
         if "drawio_module" not in self.module_status:
             self.module_status["drawio_module"] = True
         
-    def toggle_drawio_url_behavior_setting(self, sender):
-        """Toggle Draw.io URL behavior settings like 'Copy Code', 'Copy URL' or 'Open in Browser'."""
+    def toggle_drawio_setting(self, sender):
+        """Toggle Draw.io specific settings."""
         sender.state = not sender.state
 
         setting_map = {
             "Copy Code": "drawio_copy_code",
             "Copy URL": "drawio_copy_url",
-            "Open in Browser": "drawio_open_in_browser",
+            "Open in Browser": "drawio_open_in_browser"
         }
-        config_key = setting_map.get(sender.title)
 
+        config_key = setting_map.get(sender.title)
         if config_key:
             if set_config_value('modules', config_key, sender.state):
                 rumps.notification("Clipboard Monitor", "Draw.io Setting",
-                                  f"{sender.title} behavior is now {'enabled' if sender.state else 'disabled'}.")
-                self.restart_service(None) # Restart to apply changes if needed by module logic
+                                  f"{sender.title} is now {'enabled' if sender.state else 'disabled'}")
+                self.restart_service(None)
             else:
-                rumps.notification("Error", "Failed to update Draw.io setting", "Could not save configuration.")
-        else:
-            rumps.notification("Error", "Unknown Draw.io Setting", f"No configuration key found for '{sender.title}'.")
+                rumps.notification("Error", "Failed to update Draw.io setting", "Could not save configuration")
 
-    def toggle_drawio_url_param_setting(self, sender):
-        """Toggle Draw.io URL parameter settings like 'Lightbox', 'Layers', 'Navigation'."""
+    def toggle_drawio_url_parameter(self, sender):
+        """Toggle Draw.io URL parameter settings."""
         sender.state = not sender.state
 
         setting_map = {
             "Lightbox": "drawio_lightbox",
-            "Layers Enabled": "drawio_layers", # Updated title
-            "Navigation Enabled": "drawio_nav", # Updated title
+            "Layers Enabled": "drawio_layers",
+            "Navigation Enabled": "drawio_nav"
         }
-        config_key = setting_map.get(sender.title)
 
+        config_key = setting_map.get(sender.title)
         if config_key:
             if set_config_value('modules', config_key, sender.state):
                 rumps.notification("Clipboard Monitor", "Draw.io URL Parameter",
-                                  f"{sender.title} is now {'enabled' if sender.state else 'disabled'}.")
-                self.restart_service(None) # Restart as URL construction changes
+                                  f"{sender.title} is now {'enabled' if sender.state else 'disabled'}")
+                self.restart_service(None)
             else:
-                rumps.notification("Error", "Failed to update Draw.io URL parameter", "Could not save configuration.")
-        else:
-            rumps.notification("Error", "Unknown Draw.io Parameter", f"No configuration key found for '{sender.title}'.")
+                rumps.notification("Error", "Failed to update Draw.io URL parameter", "Could not save configuration")
 
     def set_drawio_edit_mode(self, sender):
-        """Set the Draw.io edit mode."""
-        new_mode_value = sender._edit_mode_value # Get value stored during menu creation
+        """Set Draw.io edit mode."""
+        # Update all menu items
+        for item in sender.parent.itervalues():
+            if isinstance(item, rumps.MenuItem):
+                item.state = (item.title == sender.title)
 
-        # Update state for all items in the submenu
-        for item_title, item_obj in sender.parent.items():
-            if isinstance(item_obj, rumps.MenuItem): # Ensure it's a menu item
-                 item_obj.state = (item_obj.title == sender.title)
+        mode_map = {"New Tab": "_blank", "Same Tab": "_self"}
+        new_mode = mode_map[sender.title]
 
-        if set_config_value('modules', 'drawio_edit_mode', new_mode_value):
+        if set_config_value('modules', 'drawio_edit_mode', new_mode):
             rumps.notification("Clipboard Monitor", "Draw.io Edit Mode",
-                              f"Edit mode set to: {sender.title}")
-            self.restart_service(None) # Restart as URL construction changes
+                              f"Edit mode set to {sender.title}")
+            self.restart_service(None)
         else:
-            rumps.notification("Error", "Failed to update Draw.io edit mode", "Could not save configuration.")
+            rumps.notification("Error", "Failed to update Draw.io edit mode", "Could not save configuration")
 
     def set_drawio_appearance(self, sender):
-        """Set the Draw.io appearance mode."""
-        new_appearance_value = sender._appearance_value
-        for item_title, item_obj in sender.parent.items():
-            if isinstance(item_obj, rumps.MenuItem):
-                item_obj.state = (item_obj.title == sender.title)
+        """Set Draw.io appearance."""
+        # Update all menu items
+        for item in sender.parent.itervalues():
+            if isinstance(item, rumps.MenuItem):
+                item.state = (item.title == sender.title)
 
-        if set_config_value('modules', 'drawio_appearance', new_appearance_value):
-            rumps.notification("Clipboard Monitor", "Draw.io Appearance", f"Appearance set to: {sender.title}")
+        appearance_map = {"Auto": "auto", "Light": "light", "Dark": "dark"}
+        new_appearance = appearance_map[sender.title]
+
+        if set_config_value('modules', 'drawio_appearance', new_appearance):
+            rumps.notification("Clipboard Monitor", "Draw.io Appearance",
+                              f"Appearance set to {sender.title}")
             self.restart_service(None)
         else:
-            rumps.notification("Error", "Failed to update Draw.io appearance", "Could not save configuration.")
+            rumps.notification("Error", "Failed to update Draw.io appearance", "Could not save configuration")
 
-    def set_drawio_links_mode(self, sender):
-        """Set the Draw.io links mode."""
-        new_links_value = sender._links_value
-        for item_title, item_obj in sender.parent.items():
-            if isinstance(item_obj, rumps.MenuItem):
-                item_obj.state = (item_obj.title == sender.title)
+    def set_drawio_link_behavior(self, sender):
+        """Set Draw.io link behavior."""
+        # Update all menu items
+        for item in sender.parent.itervalues():
+            if isinstance(item, rumps.MenuItem):
+                item.state = (item.title == sender.title)
 
-        if set_config_value('modules', 'drawio_links', new_links_value):
-            rumps.notification("Clipboard Monitor", "Draw.io Link Behavior", f"Link behavior set to: {sender.title}")
+        behavior_map = {"Auto": "auto", "New Tab": "blank", "Same Tab": "self"}
+        new_behavior = behavior_map[sender.title]
+
+        if set_config_value('modules', 'drawio_links', new_behavior):
+            rumps.notification("Clipboard Monitor", "Draw.io Link Behavior",
+                              f"Link behavior set to {sender.title}")
             self.restart_service(None)
         else:
-            rumps.notification("Error", "Failed to update Draw.io link behavior", "Could not save configuration.")
+            rumps.notification("Error", "Failed to update Draw.io link behavior", "Could not save configuration")
 
     def set_drawio_border_color(self, _):
-        """Set Draw.io border color via text input."""
-        current_color = self.config_manager.get_config_value('modules', 'drawio_border_color', 'none')
+        """Set Draw.io border color."""
+        current_color = self.config_manager.get_config_value('modules', 'drawio_border_color', '#000000')
         response = rumps.Window(
-            message="Enter border color (e.g., FF0000 or 'none'):",
+            message="Enter border color (hex format, e.g., #FF0000):",
             title="Set Draw.io Border Color",
             default_text=current_color,
             ok="Set",
             cancel="Cancel",
-            dimensions=(320, 20) # Adjusted width for longer message
+            dimensions=(300, 20)
         ).run()
 
-        if response.clicked:
-            new_color = response.text.strip()
-            if not new_color: # User cleared the input, treat as "none" or default
-                new_color = "none"
-
-            # Basic validation: 'none' or hex (3, 6, 8 digits for RRGGBBAA)
-            import re
-            if new_color.lower() == "none" or re.fullmatch(r"^[0-9a-fA-F]{3}([0-9a-fA-F]{3})?([0-9a-fA-F]{2})?$", new_color):
-                if set_config_value('modules', 'drawio_border_color', new_color):
-                    rumps.notification("Clipboard Monitor", "Draw.io Border Color", f"Border color set to: {new_color}")
+        if response.clicked and response.text.strip():
+            color = response.text.strip()
+            # Basic validation for hex color
+            if color.startswith('#') and len(color) == 7:
+                if set_config_value('modules', 'drawio_border_color', color):
+                    rumps.notification("Clipboard Monitor", "Draw.io Border Color",
+                                      f"Border color set to {color}")
                     self.restart_service(None)
                 else:
-                    rumps.notification("Error", "Failed to update Draw.io border color", "Could not save configuration.")
+                    rumps.notification("Error", "Failed to update Draw.io border color", "Could not save configuration")
             else:
-                rumps.notification("Error", "Invalid Color", "Please enter 'none' or a valid hex color code (e.g., FF0000).")
+                rumps.notification("Error", "Invalid Color Format", "Please use hex format like #FF0000")
 
     def _populate_history_viewer_menu(self):
         """Populate the 'View Clipboard History' submenu."""
@@ -369,118 +345,143 @@ class ClipboardMonitorMenuBar(rumps.App):
         """Create the 'Draw.io Settings' submenu."""
         drawio_menu = rumps.MenuItem("Draw.io Settings")
 
-        self.drawio_copy_code_item = rumps.MenuItem("Copy Code", callback=self.toggle_drawio_url_behavior_setting)
+        # Copy Code option (restored)
+        self.drawio_copy_code_item = rumps.MenuItem("Copy Code", callback=self.toggle_drawio_setting)
         self.drawio_copy_code_item.state = self.config_manager.get_config_value('modules', 'drawio_copy_code', True)
         drawio_menu.add(self.drawio_copy_code_item)
 
-        self.drawio_copy_url_item = rumps.MenuItem("Copy URL", callback=self.toggle_drawio_url_behavior_setting)
+        # Copy URL option
+        self.drawio_copy_url_item = rumps.MenuItem("Copy URL", callback=self.toggle_drawio_setting)
         self.drawio_copy_url_item.state = self.config_manager.get_config_value('modules', 'drawio_copy_url', True)
         drawio_menu.add(self.drawio_copy_url_item)
 
-        self.drawio_open_browser_item = rumps.MenuItem("Open in Browser", callback=self.toggle_drawio_url_behavior_setting)
+        # Open in Browser option
+        self.drawio_open_browser_item = rumps.MenuItem("Open in Browser", callback=self.toggle_drawio_setting)
         self.drawio_open_browser_item.state = self.config_manager.get_config_value('modules', 'drawio_open_in_browser', True)
         drawio_menu.add(self.drawio_open_browser_item)
 
+        # URL Parameters submenu (restored)
         drawio_menu.add(rumps.separator)
+        drawio_menu.add(self._create_drawio_url_parameters_menu())
 
-        # URL Parameters
+        return drawio_menu
+
+    def _create_drawio_url_parameters_menu(self):
+        """Create the 'URL Parameters' submenu for Draw.io."""
         url_params_menu = rumps.MenuItem("URL Parameters")
 
-        self.drawio_lightbox_item = rumps.MenuItem("Lightbox", callback=self.toggle_drawio_url_param_setting)
+        # Lightbox toggle
+        self.drawio_lightbox_item = rumps.MenuItem("Lightbox", callback=self.toggle_drawio_url_parameter)
         self.drawio_lightbox_item.state = self.config_manager.get_config_value('modules', 'drawio_lightbox', True)
         url_params_menu.add(self.drawio_lightbox_item)
 
         # Edit Mode submenu
-        edit_mode_submenu = rumps.MenuItem("Edit Mode")
-        current_edit_mode = self.config_manager.get_config_value('modules', 'drawio_edit_mode', '_blank')
-        from constants import DRAWIO_EDIT_MODES, DRAWIO_APPEARANCE_MODES, DRAWIO_LINKS_MODES # Import for menu creation
-        for mode_name, mode_value in DRAWIO_EDIT_MODES.items():
-            item = rumps.MenuItem(mode_name, callback=self.set_drawio_edit_mode)
-            item.state = (mode_value == current_edit_mode)
-            item._edit_mode_value = mode_value # Store actual value
-            edit_mode_submenu.add(item)
-        url_params_menu.add(edit_mode_submenu)
+        url_params_menu.add(self._create_drawio_edit_mode_menu())
 
-        self.drawio_layers_item = rumps.MenuItem("Layers Enabled", callback=self.toggle_drawio_url_param_setting)
+        # Layers Enabled toggle
+        self.drawio_layers_item = rumps.MenuItem("Layers Enabled", callback=self.toggle_drawio_url_parameter)
         self.drawio_layers_item.state = self.config_manager.get_config_value('modules', 'drawio_layers', True)
         url_params_menu.add(self.drawio_layers_item)
 
-        self.drawio_nav_item = rumps.MenuItem("Navigation Enabled", callback=self.toggle_drawio_url_param_setting)
+        # Navigation Enabled toggle
+        self.drawio_nav_item = rumps.MenuItem("Navigation Enabled", callback=self.toggle_drawio_url_parameter)
         self.drawio_nav_item.state = self.config_manager.get_config_value('modules', 'drawio_nav', True)
         url_params_menu.add(self.drawio_nav_item)
 
         # Appearance submenu
-        appearance_submenu = rumps.MenuItem("Appearance")
-        current_appearance = self.config_manager.get_config_value('modules', 'drawio_appearance', 'auto')
-        for appearance_name, appearance_value in DRAWIO_APPEARANCE_MODES.items():
-            item = rumps.MenuItem(appearance_name, callback=self.set_drawio_appearance)
-            item.state = (appearance_value == current_appearance)
-            item._appearance_value = appearance_value
-            appearance_submenu.add(item)
-        url_params_menu.add(appearance_submenu)
+        url_params_menu.add(self._create_drawio_appearance_menu())
 
         # Link Behavior submenu
-        links_submenu = rumps.MenuItem("Link Behavior")
-        current_links_mode = self.config_manager.get_config_value('modules', 'drawio_links', 'auto')
-        for links_name, links_value in DRAWIO_LINKS_MODES.items():
-            item = rumps.MenuItem(links_name, callback=self.set_drawio_links_mode)
-            item.state = (links_value == current_links_mode)
-            item._links_value = links_value
-            links_submenu.add(item)
-        url_params_menu.add(links_submenu)
+        url_params_menu.add(self._create_drawio_link_behavior_menu())
 
+        # Border Color setting
         url_params_menu.add(rumps.MenuItem("Set Border Color...", callback=self.set_drawio_border_color))
 
-        drawio_menu.add(url_params_menu)
-        return drawio_menu
+        return url_params_menu
+
+    def _create_drawio_edit_mode_menu(self):
+        """Create the 'Edit Mode' submenu for Draw.io."""
+        edit_mode_menu = rumps.MenuItem("Edit Mode")
+        current_mode = self.config_manager.get_config_value('modules', 'drawio_edit_mode', '_blank')
+
+        modes = [("New Tab", "_blank"), ("Same Tab", "_self")]
+        for name, value in modes:
+            item = rumps.MenuItem(name, callback=self.set_drawio_edit_mode)
+            item.state = (value == current_mode)
+            edit_mode_menu.add(item)
+
+        return edit_mode_menu
+
+    def _create_drawio_appearance_menu(self):
+        """Create the 'Appearance' submenu for Draw.io."""
+        appearance_menu = rumps.MenuItem("Appearance")
+        current_appearance = self.config_manager.get_config_value('modules', 'drawio_appearance', 'auto')
+
+        appearances = [("Auto", "auto"), ("Light", "light"), ("Dark", "dark")]
+        for name, value in appearances:
+            item = rumps.MenuItem(name, callback=self.set_drawio_appearance)
+            item.state = (value == current_appearance)
+            appearance_menu.add(item)
+
+        return appearance_menu
+
+    def _create_drawio_link_behavior_menu(self):
+        """Create the 'Link Behavior' submenu for Draw.io."""
+        link_menu = rumps.MenuItem("Link Behavior")
+        current_behavior = self.config_manager.get_config_value('modules', 'drawio_links', 'auto')
+
+        behaviors = [("Auto", "auto"), ("New Tab", "blank"), ("Same Tab", "self")]
+        for name, value in behaviors:
+            item = rumps.MenuItem(name, callback=self.set_drawio_link_behavior)
+            item.state = (value == current_behavior)
+            link_menu.add(item)
+
+        return link_menu
 
     def _create_mermaid_settings_menu(self):
         """Create the 'Mermaid Settings' submenu."""
         mermaid_menu = rumps.MenuItem("Mermaid Settings")
 
+        # Copy Code option (restored)
         self.mermaid_copy_code_item = rumps.MenuItem("Copy Code", callback=self.toggle_mermaid_setting)
         self.mermaid_copy_code_item.state = self.config_manager.get_config_value('modules', 'mermaid_copy_code', True)
         mermaid_menu.add(self.mermaid_copy_code_item)
 
+        # Copy URL option
         self.mermaid_copy_url_item = rumps.MenuItem("Copy URL", callback=self.toggle_mermaid_setting)
         self.mermaid_copy_url_item.state = self.config_manager.get_config_value('modules', 'mermaid_copy_url', False)
         mermaid_menu.add(self.mermaid_copy_url_item)
 
+        # Open in Browser option (restored)
         self.mermaid_open_browser_item = rumps.MenuItem("Open in Browser", callback=self.toggle_mermaid_setting)
-        self.mermaid_open_browser_item.state = self.config_manager.get_config_value('modules', 'mermaid_open_in_browser', True) # Default True
+        self.mermaid_open_browser_item.state = self.config_manager.get_config_value('modules', 'mermaid_open_in_browser', True)
         mermaid_menu.add(self.mermaid_open_browser_item)
 
+        # Editor Theme submenu (restored)
         mermaid_menu.add(rumps.separator)
-
-        # Mermaid Theme submenu
-        theme_submenu = rumps.MenuItem("Editor Theme")
-        current_theme = self.config_manager.get_config_value('modules', 'mermaid_theme', 'default')
-        from constants import MERMAID_THEMES # Import for menu creation
-        for theme_name, theme_value in MERMAID_THEMES.items():
-            item = rumps.MenuItem(theme_name, callback=self.set_mermaid_theme)
-            item.state = (theme_value == current_theme)
-            item._theme_value = theme_value # Store actual value
-            theme_submenu.add(item)
-        mermaid_menu.add(theme_submenu)
+        mermaid_menu.add(self._create_mermaid_editor_theme_menu())
 
         return mermaid_menu
+
+    def _create_mermaid_editor_theme_menu(self):
+        """Create the 'Editor Theme' submenu for Mermaid."""
+        theme_menu = rumps.MenuItem("Editor Theme")
+        current_theme = self.config_manager.get_config_value('modules', 'mermaid_editor_theme', 'default')
+
+        themes = [("Default", "default"), ("Dark", "dark"), ("Forest", "forest"), ("Neutral", "neutral")]
+        for name, value in themes:
+            item = rumps.MenuItem(name, callback=self.set_mermaid_editor_theme)
+            item.state = (value == current_theme)
+            theme_menu.add(item)
+
+        return theme_menu
 
     def _create_module_settings_menu(self):
         """Create the 'Module Settings' submenu."""
         module_menu = rumps.MenuItem("Module Settings")
-        # Clipboard modification menu is now under Security Settings
+        # Clipboard Modification moved to Security Settings
         module_menu.add(self._create_drawio_settings_menu())
         module_menu.add(self._create_mermaid_settings_menu())
-
-        # If no other module-specific settings are present, indicate this
-        if not module_menu.values(): # Check if any items were added
-            module_menu.add(rumps.MenuItem("(No specific module settings)", callback=None))
-            # Disable the main "Module Settings" menu item if it's empty or just has the placeholder
-            # This requires a way to access the parent menu item from _init_preferences_menu,
-            # or restructuring how it's added. For now, we'll leave it clickable.
-            # A simpler approach is to not add it to prefs_menu if it would be empty.
-            # However, for now, let's keep it and it will show the placeholder.
-
         return module_menu
 
     def _create_performance_settings_menu(self):
@@ -492,15 +493,10 @@ class ClipboardMonitorMenuBar(rumps.App):
         self.adaptive_checking = rumps.MenuItem("Adaptive Checking", callback=self.toggle_performance_setting)
         self.adaptive_checking.state = self.config_manager.get_config_value('performance', 'adaptive_checking', True)
         perf_menu.add(self.adaptive_checking)
-        self.memory_optimization = rumps.MenuItem("Memory Optimization", callback=self.toggle_performance_setting)
-        self.memory_optimization.state = self.config_manager.get_config_value('performance', 'memory_optimization', True)
-        perf_menu.add(self.memory_optimization)
         self.process_large_content = rumps.MenuItem("Process Large Content", callback=self.toggle_performance_setting)
         self.process_large_content.state = self.config_manager.get_config_value('performance', 'process_large_content', True)
         perf_menu.add(self.process_large_content)
-        self.memory_logging = rumps.MenuItem("Memory Logging", callback=self.toggle_performance_setting)
-        self.memory_logging.state = self.config_manager.get_config_value('performance', 'memory_logging', True)
-        perf_menu.add(self.memory_logging)
+        # Memory-related settings moved to dedicated Memory Settings menu
         perf_menu.add(rumps.MenuItem("Set Max Execution Time...", callback=self.set_max_execution_time))
         return perf_menu
 
@@ -511,8 +507,11 @@ class ClipboardMonitorMenuBar(rumps.App):
         self.sanitize_clipboard.state = self.config_manager.get_config_value('security', 'sanitize_clipboard', True)
         security_menu.add(self.sanitize_clipboard)
         security_menu.add(rumps.MenuItem("Set Max Clipboard Size...", callback=self.set_max_clipboard_size))
+
+        # Clipboard Modification submenu (relocated from Module Settings)
         security_menu.add(rumps.separator)
-        security_menu.add(self._create_clipboard_modification_menu())  # Moved here
+        security_menu.add(self._create_clipboard_modification_menu())
+
         return security_menu
 
     def _create_configuration_management_menu(self):
@@ -531,8 +530,45 @@ class ClipboardMonitorMenuBar(rumps.App):
         advanced_menu.add(self._create_security_settings_menu())
         advanced_menu.add(self._create_configuration_management_menu())
         advanced_menu.add(rumps.separator)
-        advanced_menu.add(rumps.MenuItem("📊 Memory Visualizer", callback=self.open_memory_visualizer))
+        advanced_menu.add(self._create_memory_settings_menu())
         return advanced_menu
+
+    def _create_memory_settings_menu(self):
+        """Create the 'Memory Settings' submenu."""
+        memory_menu = rumps.MenuItem("Memory Settings")
+
+        # Unified Memory Dashboard (replaces separate visualizer and monitoring dashboard)
+        memory_menu.add(rumps.MenuItem("📊 Unified Memory Dashboard", callback=self.start_unified_dashboard))
+
+        memory_menu.add(rumps.separator)
+
+        # Memory Optimization (moved from Performance Settings)
+        self.memory_optimization_adv = rumps.MenuItem("Memory Optimization", callback=self.toggle_memory_setting)
+        self.memory_optimization_adv.state = self.config_manager.get_config_value('performance', 'memory_optimization', True)
+        memory_menu.add(self.memory_optimization_adv)
+
+        # Memory Logging (moved from Performance Settings)
+        self.memory_logging_adv = rumps.MenuItem("Memory Logging", callback=self.toggle_memory_setting)
+        self.memory_logging_adv.state = self.config_manager.get_config_value('performance', 'memory_logging', True)
+        memory_menu.add(self.memory_logging_adv)
+
+        # Auto Memory Cleanup (new option)
+        self.auto_memory_cleanup = rumps.MenuItem("Auto Memory Cleanup", callback=self.toggle_memory_setting)
+        self.auto_memory_cleanup.state = self.config_manager.get_config_value('memory', 'auto_cleanup', False)
+        memory_menu.add(self.auto_memory_cleanup)
+
+        # Memory Leak Detection (new option)
+        self.memory_leak_detection = rumps.MenuItem("Memory Leak Detection", callback=self.toggle_memory_setting)
+        self.memory_leak_detection.state = self.config_manager.get_config_value('memory', 'leak_detection', True)
+        memory_menu.add(self.memory_leak_detection)
+
+        memory_menu.add(rumps.separator)
+
+        # Memory Statistics and Cleanup
+        memory_menu.add(rumps.MenuItem("📋 Memory Statistics", callback=self.show_memory_stats))
+        memory_menu.add(rumps.MenuItem("🧹 Force Memory Cleanup", callback=self.force_memory_cleanup))
+
+        return memory_menu
 
     def _init_preferences_menu(self):
         """Initialize and populate the Preferences submenu."""
@@ -550,36 +586,39 @@ class ClipboardMonitorMenuBar(rumps.App):
             "Copy URL": "mermaid_copy_url",
             "Open in Browser": "mermaid_open_in_browser"
         }
-        
+
         config_key = setting_map.get(sender.title)
         if config_key:
             if set_config_value('modules', config_key, sender.state):
                 rumps.notification("Clipboard Monitor", "Mermaid Setting",
                                   f"{sender.title} is now {'enabled' if sender.state else 'disabled'}")
-                self.restart_service(None) # Restart service to apply changes
+                self.restart_service(None)
             else:
                 rumps.notification("Error", "Failed to update Mermaid setting", "Could not save configuration")
 
-    def set_mermaid_theme(self, sender):
-        """Set the Mermaid Live editor theme."""
-        new_theme_value = sender._theme_value # Get value stored during menu creation
+    def set_mermaid_editor_theme(self, sender):
+        """Set Mermaid editor theme."""
+        # Update all menu items
+        for item in sender.parent.itervalues():
+            if isinstance(item, rumps.MenuItem):
+                item.state = (item.title == sender.title)
 
-        # Update state for all items in the submenu
-        for item_title, item_obj in sender.parent.items():
-            if isinstance(item_obj, rumps.MenuItem): # Ensure it's a menu item
-                item_obj.state = (item_obj.title == sender.title)
+        theme_map = {"Default": "default", "Dark": "dark", "Forest": "forest", "Neutral": "neutral"}
+        new_theme = theme_map[sender.title]
 
-        if set_config_value('modules', 'mermaid_theme', new_theme_value):
-            rumps.notification("Clipboard Monitor", "Mermaid Theme",
-                              f"Editor theme set to: {sender.title}")
-            self.restart_service(None) # Restart as URL construction changes
+        if set_config_value('modules', 'mermaid_editor_theme', new_theme):
+            rumps.notification("Clipboard Monitor", "Mermaid Editor Theme",
+                              f"Editor theme set to {sender.title}")
+            self.restart_service(None)
         else:
-            rumps.notification("Error", "Failed to update Mermaid theme", "Could not save configuration.")
- 
+            rumps.notification("Error", "Failed to update Mermaid editor theme", "Could not save configuration")
+
     def _build_main_menu(self):
         """Build the main menu structure to match docs/MENU_ORGANIZATION.md."""
         # Section 1: Status & Service Control
         self.menu.add(self.status_item)
+        self.menu.add(self.memory_menubar_item)  # Memory visualization line 1
+        self.menu.add(self.memory_service_item)  # Memory visualization line 2
         self.menu.add(rumps.separator)
         self.menu.add(self.pause_toggle)
         self.menu.add(self.service_control_menu)
@@ -591,15 +630,16 @@ class ClipboardMonitorMenuBar(rumps.App):
         self.menu.add(self.module_menu)
         self.menu.add(rumps.separator)
 
+        # Memory monitoring tools (enhanced section)
+        self.menu.add(self.memory_monitor_menu)
+        self.menu.add(self.memory_usage_menu)
+        self.menu.add(rumps.separator)
+
         # Section 3: Preferences
         self.menu.add(self.prefs_menu)
         self.menu.add(rumps.separator)
-        
-        # Section 4: Memory Monitoring (NEW)
-        self.menu.add(self.memory_menu)
-        self.menu.add(rumps.separator)
 
-        # Section 5: Application (Logs then Quit)
+        # Section 4: Application (Logs then Quit)
         self.menu.add(self.logs_menu)
         self.menu.add(self.quit_item)
     
@@ -822,9 +862,8 @@ class ClipboardMonitorMenuBar(rumps.App):
         setting_map = {
             "Lazy Module Loading": "lazy_module_loading",
             "Adaptive Checking": "adaptive_checking",
-            "Memory Optimization": "memory_optimization",
-            "Process Large Content": "process_large_content",
-            "Memory Logging": "memory_logging"
+            "Process Large Content": "process_large_content"
+            # Memory-related settings moved to toggle_memory_setting
         }
 
         config_key = setting_map.get(sender.title)
@@ -834,6 +873,26 @@ class ClipboardMonitorMenuBar(rumps.App):
             self.restart_service(None)
         else:
             rumps.notification("Error", "Failed to update performance setting", "Could not save configuration")
+
+    def toggle_memory_setting(self, sender):
+        """Toggle memory-specific settings."""
+        sender.state = not sender.state
+
+        setting_map = {
+            "Memory Optimization": ("performance", "memory_optimization"),
+            "Memory Logging": ("performance", "memory_logging"),
+            "Auto Memory Cleanup": ("memory", "auto_cleanup"),
+            "Memory Leak Detection": ("memory", "leak_detection")
+        }
+
+        config_section, config_key = setting_map.get(sender.title, (None, None))
+        if config_section and config_key:
+            if set_config_value(config_section, config_key, sender.state):
+                rumps.notification("Clipboard Monitor", "Memory Setting",
+                                  f"{sender.title} is now {'enabled' if sender.state else 'disabled'}")
+                self.restart_service(None)
+            else:
+                rumps.notification("Error", "Failed to update memory setting", "Could not save configuration")
 
     def set_max_execution_time(self, _):
         """Set maximum module execution time"""
@@ -1390,9 +1449,7 @@ read -n 1
                     else:
                         rumps.notification("Error", "Failed to clear history", "Could not clear history file.")
                 except Exception as file_error:
-                    # print(f"DEBUG: Exception in clear_clipboard_history's inner try: {type(file_error).__name__}: {file_error}") # Optional debug print
                     rumps.notification("Error", "Failed to clear history", f"Could not clear history file: {str(file_error)}")
-                    # Removed temporary re-raise, as the issue is likely that this block isn't hit as expected.
 
         except Exception as e:
             rumps.notification("Error", "Exception in clear_clipboard_history", str(e))
@@ -1466,6 +1523,541 @@ read -n 1
                 f.write(f"Toggle monitoring error: {str(e)}\n")
                 f.write(traceback.format_exc())
 
+    def start_memory_visualizer(self, sender):
+        """Start the Memory Visualizer dashboard"""
+        try:
+            import subprocess
+            import webbrowser
+
+            # Check if already running using system-wide process detection
+            if self._is_process_running('visualizer'):
+                webbrowser.open('http://localhost:8001')
+                rumps.notification("Memory Visualizer", "Already Running", "Opening existing dashboard...")
+                return
+
+            # Start the memory visualizer as a separate process
+            script_path = os.path.join(os.path.dirname(__file__), 'memory_visualizer.py')
+
+            if os.path.exists(script_path):
+                proc = subprocess.Popen([sys.executable, script_path],
+                                      cwd=os.path.dirname(__file__))
+                self._monitoring_processes['visualizer'] = proc
+
+                # Give it a moment to start
+                import time
+                time.sleep(2)
+
+                # Open the browser
+                webbrowser.open('http://localhost:8001')
+
+                rumps.notification("Memory Visualizer",
+                                 "Started Successfully",
+                                 "Dashboard available at localhost:8001")
+            else:
+                rumps.alert("Memory Visualizer not found",
+                          "The memory_visualizer.py file was not found.")
+
+        except Exception as e:
+            rumps.alert("Error", f"Failed to start Memory Visualizer: {e}")
+
+    def start_monitoring_dashboard(self, sender):
+        """Start the Comprehensive Monitoring Dashboard"""
+        try:
+            import subprocess
+            import webbrowser
+
+            # Check if already running using system-wide process detection
+            if self._is_process_running('dashboard'):
+                webbrowser.open('http://localhost:8002')
+                rumps.notification("Monitoring Dashboard", "Already Running", "Opening existing dashboard...")
+                return
+
+            # Start the monitoring dashboard as a separate process
+            script_path = os.path.join(os.path.dirname(__file__), 'memory_monitoring_dashboard.py')
+
+            if os.path.exists(script_path):
+                proc = subprocess.Popen([sys.executable, script_path],
+                                      cwd=os.path.dirname(__file__))
+                self._monitoring_processes['dashboard'] = proc
+
+                # Give it a moment to start
+                import time
+                time.sleep(2)
+
+                # Open the browser
+                webbrowser.open('http://localhost:8002')
+
+                rumps.notification("Monitoring Dashboard",
+                                 "Started Successfully",
+                                 "Dashboard available at localhost:8002")
+            else:
+                rumps.alert("Monitoring Dashboard not found",
+                          "The memory_monitoring_dashboard.py file was not found.")
+
+        except Exception as e:
+            rumps.alert("Error", f"Failed to start Monitoring Dashboard: {e}")
+
+    def start_unified_dashboard(self, sender):
+        """Start the Unified Memory Dashboard (combines visualizer and monitoring)."""
+        try:
+            import subprocess
+            import webbrowser
+            import time
+
+            # Kill any existing dashboard processes first
+            dashboard_processes = ['unified_dashboard', 'visualizer', 'monitoring_dashboard']
+            for process_name in dashboard_processes:
+                if self._is_process_running(process_name):
+                    self._kill_monitoring_process(process_name)
+
+            # Start unified dashboard
+            script_path = os.path.join(os.path.dirname(__file__), 'unified_memory_dashboard.py')
+            if os.path.exists(script_path):
+                proc = subprocess.Popen([sys.executable, script_path])
+                self._monitoring_processes['unified_dashboard'] = proc
+
+                # Wait for server to start
+                time.sleep(3)
+
+                # Open browser
+                webbrowser.open('http://localhost:8001')
+
+                rumps.notification("Unified Memory Dashboard", "Started Successfully",
+                                 "Comprehensive monitoring available at localhost:8001")
+            else:
+                rumps.alert("Unified Dashboard not found",
+                           "The unified_memory_dashboard.py file was not found.")
+
+        except Exception as e:
+            rumps.alert("Error", f"Failed to start Unified Memory Dashboard: {e}")
+
+    def show_memory_stats(self, sender):
+        """Show current memory statistics"""
+        try:
+            import psutil
+            import gc
+
+            # Get current process memory info
+            process = psutil.Process()
+            memory_info = process.memory_info()
+            memory_percent = process.memory_percent()
+
+            # Get system memory info
+            system_memory = psutil.virtual_memory()
+
+            # Force garbage collection and get counts
+            gc.collect()
+            gc_stats = gc.get_stats()
+
+            # Format memory sizes
+            def format_bytes(bytes_val):
+                for unit in ['B', 'KB', 'MB', 'GB']:
+                    if bytes_val < 1024.0:
+                        return f"{bytes_val:.1f} {unit}"
+                    bytes_val /= 1024.0
+                return f"{bytes_val:.1f} TB"
+
+            stats_message = f"""Memory Statistics:
+
+Process Memory:
+• RSS: {format_bytes(memory_info.rss)}
+• VMS: {format_bytes(memory_info.vms)}
+• Percent: {memory_percent:.1f}%
+
+System Memory:
+• Total: {format_bytes(system_memory.total)}
+• Available: {format_bytes(system_memory.available)}
+• Used: {system_memory.percent:.1f}%
+
+Garbage Collection:
+• Generation 0: {gc_stats[0]['collections']} collections
+• Generation 1: {gc_stats[1]['collections']} collections
+• Generation 2: {gc_stats[2]['collections']} collections"""
+
+            rumps.alert("Memory Statistics", stats_message)
+
+        except Exception as e:
+            rumps.alert("Error", f"Failed to get memory statistics: {e}")
+
+    def force_memory_cleanup(self, sender):
+        """Force garbage collection and memory cleanup"""
+        try:
+            import gc
+            import psutil
+
+            # Get memory before cleanup
+            process = psutil.Process()
+            memory_before = process.memory_info().rss
+
+            # Force garbage collection
+            collected = gc.collect()
+
+            # Get memory after cleanup
+            memory_after = process.memory_info().rss
+            memory_freed = memory_before - memory_after
+
+            def format_bytes(bytes_val):
+                for unit in ['B', 'KB', 'MB', 'GB']:
+                    if bytes_val < 1024.0:
+                        return f"{bytes_val:.1f} {unit}"
+                    bytes_val /= 1024.0
+                return f"{bytes_val:.1f} TB"
+
+            if memory_freed > 0:
+                message = f"Memory cleanup completed!\n\nObjects collected: {collected}\nMemory freed: {format_bytes(memory_freed)}"
+            else:
+                message = f"Memory cleanup completed!\n\nObjects collected: {collected}\nNo significant memory freed"
+
+            rumps.notification("Memory Cleanup", "Completed", message)
+
+        except Exception as e:
+            rumps.alert("Error", f"Failed to perform memory cleanup: {e}")
+
+    def open_memory_visualizer(self, sender):
+        """Open the Memory Visualizer in a web browser"""
+        try:
+            import subprocess
+            import webbrowser
+
+            # Start the memory visualizer as a separate process
+            script_path = os.path.join(os.path.dirname(__file__), 'memory_visualizer.py')
+
+            if os.path.exists(script_path):
+                # Start the memory visualizer server
+                subprocess.Popen([sys.executable, script_path],
+                               cwd=os.path.dirname(__file__))
+
+                # Give it a moment to start
+                import time
+                time.sleep(2)
+
+                # Open the browser
+                webbrowser.open('http://localhost:8001')
+
+                rumps.notification("Memory Visualizer",
+                                 "Memory Visualizer started",
+                                 "Opening in your browser...")
+            else:
+                rumps.alert("Memory Visualizer not found",
+                          "The memory_visualizer.py file was not found.")
+
+        except Exception as e:
+            rumps.alert("Error", f"Failed to start Memory Visualizer: {e}")
+
+    def update_memory_status(self, _):
+        """Update the memory status in the menu."""
+        try:
+            import psutil
+
+            # Get memory for menu bar app (current process)
+            menubar_process = psutil.Process(os.getpid())
+            menubar_memory = menubar_process.memory_info().rss / 1024 / 1024  # MB
+
+            # Get memory for clipboard monitor service
+            service_memory = 0
+            for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
+                try:
+                    cmdline = proc.info.get('cmdline', [])
+                    if cmdline and any('main.py' in cmd for cmd in cmdline if cmd):
+                        if proc.pid != os.getpid():  # Not the menu bar app
+                            service_memory = proc.memory_info().rss / 1024 / 1024  # MB
+                            break
+                except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess, AttributeError):
+                    pass
+
+            # Update history for mini histograms
+            self.menubar_history.append(menubar_memory)
+            self.service_history.append(service_memory)
+
+            # Keep only last 10 values
+            if len(self.menubar_history) > 10:
+                self.menubar_history = self.menubar_history[-10:]
+            if len(self.service_history) > 10:
+                self.service_history = self.service_history[-10:]
+
+            # Update peak values
+            if menubar_memory > self.menubar_peak:
+                self.menubar_peak = menubar_memory
+            if service_memory > self.service_peak:
+                self.service_peak = service_memory
+
+            # Generate mini histograms
+            menubar_histogram = self._generate_mini_histogram(self.menubar_history, self.menubar_peak)
+            service_histogram = self._generate_mini_histogram(self.service_history, self.service_peak)
+
+            # Get color indicators
+            menubar_color = self._get_memory_color_indicator(menubar_memory, self.menubar_peak)
+            service_color = self._get_memory_color_indicator(service_memory, self.service_peak)
+
+            # Update memory usage submenu item with detailed info
+            self.memory_status.title = (f"Menu Bar: {menubar_memory:.1f}MB {menubar_histogram} {menubar_color} Peak: {self.menubar_peak:.0f}MB\n"
+                                      f"Service: {service_memory:.1f}MB  {service_histogram} {service_color} Avg: {sum(self.service_history)/len(self.service_history) if self.service_history else 0:.0f}MB")
+
+            # Update main menu display items (two separate lines)
+            self.memory_menubar_item.title = f"Menu Bar: {menubar_memory:.1f}MB {menubar_histogram} Peak: {self.menubar_peak:.0f}MB"
+            self.memory_service_item.title = f"Service: {service_memory:.1f}MB  {service_histogram} Avg: {sum(self.service_history)/len(self.service_history) if self.service_history else 0:.0f}MB"
+
+            # Record data if tracking is active
+            if self.memory_tracking_active:
+                self.memory_data["menubar"].append(menubar_memory)
+                self.memory_data["service"].append(service_memory)
+                self.memory_timestamps.append(time.time())
+
+                # Limit data points to prevent excessive memory usage
+                max_points = 1000
+                if len(self.memory_timestamps) > max_points:
+                    self.memory_timestamps = self.memory_timestamps[-max_points:]
+                    self.memory_data["menubar"] = self.memory_data["menubar"][-max_points:]
+                    self.memory_data["service"] = self.memory_data["service"][-max_points:]
+
+        except Exception as e:
+            self.memory_status.title = f"Memory: Error ({str(e)[:20]}...)"
+
+    def _generate_mini_histogram(self, values, peak_value):
+        """Generate mini histogram bars for memory visualization"""
+        if not values:
+            return "▁▁▁▁▁▁▁▁▁▁"
+
+        # Ensure we have exactly 10 values
+        if len(values) < 10:
+            values = [0] * (10 - len(values)) + values
+        else:
+            values = values[-10:]
+
+        # Normalize values to 0-7 range for Unicode block characters
+        if peak_value > 0:
+            normalized = [min(7, int((v / peak_value) * 7)) for v in values]
+        else:
+            normalized = [0] * 10
+
+        # Unicode block characters for different heights
+        bars = ['▁', '▂', '▃', '▄', '▅', '▆', '▇', '█']
+
+        # Generate histogram with color coding
+        histogram = ''.join([bars[level] for level in normalized])
+
+        return histogram
+
+    def _get_memory_color_indicator(self, current_mb, peak_mb):
+        """Get color indicator based on memory usage"""
+        if peak_mb == 0:
+            return "🟢"
+
+        usage_ratio = current_mb / peak_mb
+        if usage_ratio < 0.5:
+            return "🟢"  # Green - low usage
+        elif usage_ratio < 0.8:
+            return "🟡"  # Yellow - moderate usage
+        else:
+            return "🔴"  # Red - high usage
+
+    def toggle_memory_tracking(self, sender):
+        """Toggle detailed memory tracking for trends."""
+        self.memory_tracking_active = not self.memory_tracking_active
+
+        if self.memory_tracking_active:
+            sender.title = "Stop Memory Tracking"
+            # Clear previous data
+            self.memory_data = {"menubar": [], "service": []}
+            self.memory_timestamps = []
+            rumps.notification("Memory Tracking", "Started",
+                              "Memory usage is now being recorded for trend analysis.")
+        else:
+            sender.title = "Start Memory Tracking"
+            rumps.notification("Memory Tracking", "Stopped",
+                              "Memory tracking has been stopped.")
+
+    def show_memory_trends(self, _):
+        """Generate and display memory usage trends."""
+        if not self.memory_data["menubar"] or not self.memory_timestamps:
+            rumps.notification("Memory Trends", "No Data",
+                              "Start memory tracking first to collect data.")
+            return
+
+        try:
+            import tempfile
+
+            # Create a temporary HTML file with the chart
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.html') as f:
+                html_path = f.name
+
+                # Generate timestamps for x-axis
+                timestamps = [time.strftime('%H:%M:%S', time.localtime(ts)) for ts in self.memory_timestamps]
+
+                # Create HTML with embedded chart using Chart.js
+                html_content = f'''
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Clipboard Monitor Memory Usage</title>
+                    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+                    <style>
+                        body {{ font-family: Arial, sans-serif; margin: 20px; }}
+                        .container {{ max-width: 1200px; margin: 0 auto; }}
+                        .chart-container {{ position: relative; height: 400px; margin: 20px 0; }}
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        <h1>Clipboard Monitor Memory Usage Trends</h1>
+                        <div class="chart-container">
+                            <canvas id="memoryChart"></canvas>
+                        </div>
+                    </div>
+                    <script>
+                        const ctx = document.getElementById('memoryChart').getContext('2d');
+                        const chart = new Chart(ctx, {{
+                            type: 'line',
+                            data: {{
+                                labels: {timestamps},
+                                datasets: [{{
+                                    label: 'Menu Bar App (MB)',
+                                    data: {self.memory_data["menubar"]},
+                                    borderColor: 'rgb(75, 192, 192)',
+                                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                                    tension: 0.1
+                                }}, {{
+                                    label: 'Main Service (MB)',
+                                    data: {self.memory_data["service"]},
+                                    borderColor: 'rgb(255, 99, 132)',
+                                    backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                                    tension: 0.1
+                                }}]
+                            }},
+                            options: {{
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                scales: {{
+                                    y: {{
+                                        beginAtZero: true,
+                                        title: {{
+                                            display: true,
+                                            text: 'Memory Usage (MB)'
+                                        }}
+                                    }},
+                                    x: {{
+                                        title: {{
+                                            display: true,
+                                            text: 'Time'
+                                        }}
+                                    }}
+                                }}
+                            }}
+                        }});
+                    </script>
+                </body>
+                </html>
+                '''
+
+                f.write(html_content.encode())
+
+            # Open the HTML file in the default browser
+            webbrowser.open(f'file://{html_path}')
+
+            rumps.notification("Memory Trends", "Chart Generated",
+                              "Memory usage chart opened in your browser.")
+
+        except Exception as e:
+            rumps.alert("Error", f"Failed to generate memory trends: {e}")
+
+    def _is_process_running(self, process_name):
+        """Check if a monitored process is running (system-wide check)"""
+        # First check our tracked processes
+        process = self._monitoring_processes.get(process_name)
+        if process:
+            try:
+                if isinstance(process, int):
+                    import os
+                    os.kill(process, 0)  # Check if PID exists
+                    return True
+                else:
+                    if process.poll() is None:
+                        return True
+            except:
+                # Process died, remove from tracking
+                del self._monitoring_processes[process_name]
+
+        # System-wide check for dashboard processes
+        script_names = {
+            'visualizer': 'memory_visualizer.py',
+            'dashboard': 'memory_monitoring_dashboard.py'
+        }
+
+        script_name = script_names.get(process_name)
+        if not script_name:
+            return False
+
+        try:
+            import psutil
+            for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
+                try:
+                    cmdline = proc.info.get('cmdline', [])
+                    if cmdline and script_name in ' '.join(cmdline):
+                        # Found existing process, track it
+                        self._monitoring_processes[process_name] = proc.info['pid']
+                        return True
+                except (psutil.NoSuchProcess, psutil.AccessDenied):
+                    continue
+        except Exception:
+            pass
+
+        return False
+
+    def _kill_monitoring_process(self, process_name):
+        """Kill a monitored process"""
+        try:
+            process = self._monitoring_processes.get(process_name)
+            if process:
+                try:
+                    if isinstance(process, int):
+                        # It's a PID
+                        import os
+                        import signal
+                        os.kill(process, signal.SIGTERM)
+                    else:
+                        # It's a Popen object
+                        process.terminate()
+                        try:
+                            process.wait(timeout=5)
+                        except:
+                            process.kill()
+
+                    # Remove from tracking
+                    del self._monitoring_processes[process_name]
+                    print(f"Killed monitoring process: {process_name}")
+
+                except Exception as e:
+                    print(f"Error killing process {process_name}: {e}")
+                    # Remove from tracking anyway
+                    if process_name in self._monitoring_processes:
+                        del self._monitoring_processes[process_name]
+
+            # Also try to kill by script name system-wide
+            script_names = {
+                'visualizer': 'memory_visualizer.py',
+                'monitoring_dashboard': 'memory_monitoring_dashboard.py',
+                'unified_dashboard': 'unified_memory_dashboard.py'
+            }
+
+            script_name = script_names.get(process_name)
+            if script_name:
+                try:
+                    import psutil
+                    for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
+                        try:
+                            cmdline = proc.info.get('cmdline', [])
+                            if cmdline and script_name in ' '.join(cmdline):
+                                proc_obj = psutil.Process(proc.info['pid'])
+                                proc_obj.terminate()
+                                print(f"Terminated system process for {script_name}")
+                        except (psutil.NoSuchProcess, psutil.AccessDenied):
+                            continue
+                except Exception as e:
+                    print(f"Error during system-wide kill for {process_name}: {e}")
+
+        except Exception as e:
+            print(f"Error in _kill_monitoring_process for {process_name}: {e}")
+
     def show_mac_notification(self, title, subtitle, message):
         """Show a macOS notification using AppleScript for more reliability"""
         try:
@@ -1506,176 +2098,6 @@ read -n 1
         if not os.path.exists(log_path) or os.path.getsize(log_path) == 0:
             with open(log_path, 'a') as f:
                 f.write(header)
-
-    LOG_HEADER = (
-        "=== Clipboard Monitor Output Log ===\n"
-    )
-
-    def open_memory_visualizer(self, sender):
-        """Open the Memory Visualizer in a web browser"""
-        try:
-            import subprocess
-            import webbrowser
-
-            # Start the memory visualizer as a separate process
-            script_path = os.path.join(os.path.dirname(__file__), 'memory_visualizer.py')
-
-            if os.path.exists(script_path):
-                # Start the memory visualizer server
-                subprocess.Popen([sys.executable, script_path],
-                               cwd=os.path.dirname(__file__))
-
-                # Give it a moment to start
-                import time
-                time.sleep(2)
-
-                # Open the browser
-                webbrowser.open('http://localhost:8001')
-
-                rumps.notification("Memory Visualizer",
-                                 "Memory Visualizer started",
-                                 "Opening in your browser...")
-            else:
-                rumps.alert("Memory Visualizer not found",
-                          "The memory_visualizer.py file was not found.")
-
-        except Exception as e:
-            rumps.alert("Error", f"Failed to start Memory Visualizer: {e}")
-
-    def update_memory_status(self, _):
-        """Update the memory status in the menu."""
-        try:
-            # Get memory for menu bar app (current process)
-            menubar_process = psutil.Process(os.getpid())
-            menubar_memory = menubar_process.memory_info().rss / 1024 / 1024  # MB
-            
-            # Get memory for clipboard monitor service
-            service_memory = 0
-            for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
-                try:
-                    cmdline = proc.info.get('cmdline', [])
-                    if cmdline and any('main.py' in cmd for cmd in cmdline if cmd):
-                        if proc.pid != os.getpid():  # Not the menu bar app
-                            service_memory = proc.memory_info().rss / 1024 / 1024  # MB
-                            break
-                except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess, AttributeError):
-                    pass
-            
-            # Update menu item
-            self.memory_status.title = f"Current Usage: Menu Bar: {menubar_memory:.1f} MB | Service: {service_memory:.1f} MB"
-            
-            # Record data if tracking is active
-            if self.memory_tracking_active:
-                self.memory_data["menubar"].append(menubar_memory)
-                self.memory_data["service"].append(service_memory)
-                self.memory_timestamps.append(time.time())
-                
-                # Limit data points to prevent excessive memory usage
-                max_points = 1000
-                if len(self.memory_timestamps) > max_points:
-                    self.memory_timestamps = self.memory_timestamps[-max_points:]
-                    self.memory_data["menubar"] = self.memory_data["menubar"][-max_points:]
-                    self.memory_data["service"] = self.memory_data["service"][-max_points:]
-                    
-        except Exception as e:
-            self.memory_status.title = f"Memory: Error ({str(e)[:20]}...)"
-
-    def toggle_memory_tracking(self, sender):
-        """Toggle detailed memory tracking for trends."""
-        self.memory_tracking_active = not self.memory_tracking_active
-        
-        if self.memory_tracking_active:
-            sender.title = "Stop Memory Tracking"
-            # Clear previous data
-            self.memory_data = {"menubar": [], "service": []}
-            self.memory_timestamps = []
-            rumps.notification("Memory Tracking", "Started", 
-                              "Memory usage is now being recorded for trend analysis.")
-        else:
-            sender.title = "Start Memory Tracking"
-            rumps.notification("Memory Tracking", "Stopped", 
-                              "Memory usage recording has been stopped.")
-
-    def show_memory_trends(self, _):
-        """Generate and display memory usage trends."""
-        if not self.memory_data["menubar"] or not self.memory_timestamps:
-            rumps.notification("Memory Trends", "No Data", 
-                              "Start memory tracking first to collect data.")
-            return
-            
-        try:
-            # Create a temporary HTML file with the chart
-            with tempfile.NamedTemporaryFile(delete=False, suffix='.html') as f:
-                html_path = f.name
-                
-                # Generate timestamps for x-axis
-                timestamps = [time.strftime('%H:%M:%S', time.localtime(ts)) for ts in self.memory_timestamps]
-                
-                # Create HTML with embedded chart using Chart.js
-                html_content = f'''
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <title>Clipboard Monitor Memory Usage</title>
-                    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-                    <style>
-                        body {{ font-family: -apple-system, BlinkMacSystemFont, sans-serif; padding: 20px; }}
-                        .container {{ max-width: 800px; margin: 0 auto; }}
-                        h1 {{ color: #333; }}
-                    </style>
-                </head>
-                <body>
-                    <div class="container">
-                        <h1>Clipboard Monitor Memory Usage</h1>
-                        <canvas id="memoryChart"></canvas>
-                    </div>
-                    
-                    <script>
-                        const ctx = document.getElementById('memoryChart');
-                        new Chart(ctx, {{
-                            type: 'line',
-                            data: {{
-                                labels: {timestamps},
-                                datasets: [
-                                    {{
-                                        label: 'Menu Bar App (MB)',
-                                        data: {self.memory_data["menubar"]},
-                                        borderColor: 'rgb(75, 192, 192)',
-                                        tension: 0.1
-                                    }},
-                                    {{
-                                        label: 'Clipboard Service (MB)',
-                                        data: {self.memory_data["service"]},
-                                        borderColor: 'rgb(255, 99, 132)',
-                                        tension: 0.1
-                                    }}
-                                ]
-                            }},
-                            options: {{
-                                responsive: true,
-                                scales: {{
-                                    y: {{
-                                        beginAtZero: true,
-                                        title: {{
-                                            display: true,
-                                            text: 'Memory Usage (MB)'
-                                        }}
-                                    }}
-                                }}
-                            }}
-                        }});
-                    </script>
-                </body>
-                </html>
-                '''
-                
-                f.write(html_content.encode('utf-8'))
-            
-            # Open the HTML file in the default browser
-            webbrowser.open('file://' + html_path)
-            
-        except Exception as e:
-            rumps.notification("Error", "Failed to generate memory trends", str(e))
 
     LOG_HEADER = (
         "=== Clipboard Monitor Output Log ===\n"
