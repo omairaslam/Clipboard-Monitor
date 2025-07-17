@@ -645,11 +645,11 @@ cd clipboard_monitor
 ./install_dependencies.sh
 
 # Configure the LaunchAgent
-# (Update paths in com.omairaslam.clipboardmonitor.plist)
+# (Update paths in com.clipboardmonitor.plist)
 
 # Install the LaunchAgent
-cp com.omairaslam.clipboardmonitor.plist ~/Library/LaunchAgents/
-launchctl load ~/Library/LaunchAgents/com.omairaslam.clipboardmonitor.plist
+cp com.clipboardmonitor.plist ~/Library/LaunchAgents/
+launchctl load ~/Library/LaunchAgents/com.clipboardmonitor.plist
 ```
 
 ## Known Issues

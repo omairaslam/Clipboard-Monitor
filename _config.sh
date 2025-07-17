@@ -6,12 +6,12 @@
 
 # --- Service Configuration ---
 LAUNCH_AGENTS_DIR="$HOME/Library/LaunchAgents"
-PLIST_BACKGROUND="com.omairaslam.clipboardmonitor.plist"
-PLIST_MENUBAR="com.omairaslam.clipboardmonitor.menubar.plist"
+PLIST_BACKGROUND="com.clipboardmonitor.plist"
+PLIST_MENUBAR="com.clipboardmonitor.menubar.plist"
 
 # --- Service Labels (for launchctl list) ---
-PLIST_BACKGROUND_LABEL="com.omairaslam.clipboardmonitor"
-PLIST_MENUBAR_LABEL="com.omairaslam.clipboardmonitor.menubar"
+PLIST_BACKGROUND_LABEL="com.clipboardmonitor"
+PLIST_MENUBAR_LABEL="com.clipboardmonitor.menubar"
 
 # --- Log Configuration ---
 LOG_DIR="$HOME/Library/Logs"

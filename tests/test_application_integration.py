@@ -216,8 +216,8 @@ def test_plist_environment():
     print("\n🧪 Testing plist environment configuration...")
     
     plist_files = [
-        "com.omairaslam.clipboardmonitor.plist",
-        "com.omairaslam.clipboardmonitor.menubar.plist"
+        "com.clipboardmonitor.plist",
+        "com.clipboardmonitor.menubar.plist"
     ]
     
     all_passed = True

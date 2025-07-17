@@ -95,17 +95,17 @@ python3 -m pip install --user -r requirements.txt
 ```
 
 ### ⚙️ **Step 3: Configure the LaunchAgent**
-Update the paths in `com.omairaslam.clipboardmonitor.plist` and `com.omairaslam.clipboardmonitor.menubar.plist`:
+Update the paths in `com.clipboardmonitor.plist` and `com.clipboardmonitor.menubar.plist`:
 - 🐍 Replace `/path/to/your/venv/bin/python` with your Python interpreter path
 - 📄 Replace `/path/to/your/project/main.py` and `/path/to/your/project/menu_bar_app.py` with the absolute paths to the scripts.
 - 📁 Replace `/path/to/your/project/` with your project directory
 
 ### 🔄 **Step 4: Install the LaunchAgent**
 ```bash
-cp com.omairaslam.clipboardmonitor.plist ~/Library/LaunchAgents/
-cp com.omairaslam.clipboardmonitor.menubar.plist ~/Library/LaunchAgents/
-launchctl load ~/Library/LaunchAgents/com.omairaslam.clipboardmonitor.plist
-launchctl load ~/Library/LaunchAgents/com.omairaslam.clipboardmonitor.menubar.plist
+cp com.clipboardmonitor.plist ~/Library/LaunchAgents/
+cp com.clipboardmonitor.menubar.plist ~/Library/LaunchAgents/
+launchctl load ~/Library/LaunchAgents/com.clipboardmonitor.plist
+launchctl load ~/Library/LaunchAgents/com.clipboardmonitor.menubar.plist
 ```
 </details>
 
@@ -460,19 +460,19 @@ If the Clipboard Monitor runs in polling mode instead of enhanced mode (even tho
 ```
 
 #### **Step 2: Configure Paths** ⚙️
-Update the paths in `com.omairaslam.clipboardmonitor.menubar.plist`:
+Update the paths in `com.clipboardmonitor.menubar.plist`:
 - 🐍 Replace `/path/to/your/venv/bin/python` with your Python interpreter path
 - 📄 Replace `/path/to/your/project/menu_bar_app.py` with the absolute path to the menu bar script
 - 📁 Replace `/path/to/your/project/` with your project directory
 
 #### **Step 3: Install LaunchAgent** 📋
 ```bash
-cp com.omairaslam.clipboardmonitor.menubar.plist ~/Library/LaunchAgents/
+cp com.clipboardmonitor.menubar.plist ~/Library/LaunchAgents/
 ```
 
 #### **Step 4: Load LaunchAgent** ▶️
 ```bash
-launchctl load ~/Library/LaunchAgents/com.omairaslam.clipboardmonitor.menubar.plist
+launchctl load ~/Library/LaunchAgents/com.clipboardmonitor.menubar.plist
 ```
 
 <div align="center">
@@ -813,14 +813,14 @@ launchctl load ~/Library/LaunchAgents/com.omairaslam.clipboardmonitor.menubar.pl
 
 ```bash
 # ▶️ Start the service
-launchctl load ~/Library/LaunchAgents/com.omairaslam.clipboardmonitor.plist
+launchctl load ~/Library/LaunchAgents/com.clipboardmonitor.plist
 
 # ⏹️ Stop the service
-launchctl unload ~/Library/LaunchAgents/com.omairaslam.clipboardmonitor.plist
+launchctl unload ~/Library/LaunchAgents/com.clipboardmonitor.plist
 
 # 🔄 Restart the service
-launchctl unload ~/Library/LaunchAgents/com.omairaslam.clipboardmonitor.plist
-launchctl load ~/Library/LaunchAgents/com.omairaslam.clipboardmonitor.plist
+launchctl unload ~/Library/LaunchAgents/com.clipboardmonitor.plist
+launchctl load ~/Library/LaunchAgents/com.clipboardmonitor.plist
 
 # 📝 View logs
 tail -f ~/Library/Logs/ClipboardMonitor.out.log

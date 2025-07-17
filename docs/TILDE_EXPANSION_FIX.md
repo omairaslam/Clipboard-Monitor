@@ -98,8 +98,8 @@ Updated both plist files to explicitly set the `HOME` environment variable:
 - `web_history_viewer.py`: Updated expanduser calls
 
 ### Configuration Files
-- `com.omairaslam.clipboardmonitor.plist`: Added HOME environment variable
-- `com.omairaslam.clipboardmonitor.menubar.plist`: Added HOME environment variable
+- `com.clipboardmonitor.plist`: Added HOME environment variable
+- `com.clipboardmonitor.menubar.plist`: Added HOME environment variable
 
 ### Test Files
 - `test_path_fix.py`: Comprehensive unit tests for path utilities

@@ -151,7 +151,7 @@ def _create_drawio_settings_menu(self):
 ```bash
 # This commit added Copy Code functionality:
 commit 7d447be449e6a61c53707e7ce4e56a6fdbc65964
-Author: Omair Aslam <omairaslam@gmail.com>
+Author: Developer <developer@example.com>
 Date:   Fri Jul 11 01:41:12 2025 +0500
 
 feat: Add Copy Code configuration options for Mermaid and Draw.io modules

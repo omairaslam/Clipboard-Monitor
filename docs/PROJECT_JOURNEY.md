@@ -70,7 +70,7 @@ Our collaboration on this clipboard monitor project began with foundational deve
    - `main.py`: Core monitoring and orchestration logic for clipboard events
    - `utils.py`: Shared utility functions (notifications, subprocess handling, etc.)
    - `modules/`: Pluggable content processors with standardized interfaces
-   - `com.omairaslam.clipboardmonitor.plist`: Service configuration for automatic startup
+   - `com.clipboardmonitor.plist`: Service configuration for automatic startup
    - `config.json`: External configuration for user-configurable settings
 
 2. **Error Resilience**:
@@ -260,14 +260,14 @@ Timer-based enhanced monitoring → Polling fallback
 - **Documentation**: Added quick reference commands for common operations:
   ```bash
   # Start the service
-  launchctl load ~/Library/LaunchAgents/com.omairaslam.clipboardmonitor.plist
-  
+  launchctl load ~/Library/LaunchAgents/com.clipboardmonitor.plist
+
   # Stop the service
-  launchctl unload ~/Library/LaunchAgents/com.omairaslam.clipboardmonitor.plist
-  
+  launchctl unload ~/Library/LaunchAgents/com.clipboardmonitor.plist
+
   # Restart the service
-  launchctl unload ~/Library/LaunchAgents/com.omairaslam.clipboardmonitor.plist
-  launchctl load ~/Library/LaunchAgents/com.omairaslam.clipboardmonitor.plist
+  launchctl unload ~/Library/LaunchAgents/com.clipboardmonitor.plist
+  launchctl load ~/Library/LaunchAgents/com.clipboardmonitor.plist
   
   # View logs
   tail -f ~/Library/Logs/ClipboardMonitor.out.log
@@ -330,8 +330,8 @@ Timer-based enhanced monitoring → Polling fallback
 - **Process**: Proper service lifecycle management testing
 - **Commands Used**:
   ```bash
-  launchctl unload ~/Library/LaunchAgents/com.omairaslam.clipboardmonitor.plist
-  launchctl load ~/Library/LaunchAgents/com.omairaslam.clipboardmonitor.plist
+  launchctl unload ~/Library/LaunchAgents/com.clipboardmonitor.plist
+  launchctl load ~/Library/LaunchAgents/com.clipboardmonitor.plist
   ```
 - **Verification**: Confirmed enhanced monitoring in logs after restart
 - **Success Criteria**:
