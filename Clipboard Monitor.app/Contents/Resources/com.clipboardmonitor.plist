@@ -11,7 +11,7 @@
     <key>RunAtLoad</key>
     <true/>
     <key>KeepAlive</key>
-    <false/>
+    <true/>
     <key>StandardOutPath</key>
     <string>/Users/omair.aslam/Library/Logs/ClipboardMonitor.out.log</string>
     <key>StandardErrorPath</key>

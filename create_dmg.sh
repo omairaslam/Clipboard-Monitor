@@ -81,6 +81,10 @@ create_dmg() {
     # Create Applications symlink for easy installation
     print_status "Creating Applications symlink..."
     ln -s /Applications "/Volumes/${VOLUME_NAME}/Applications"
+
+    # Create LaunchAgents symlink for easy plist installation
+    print_status "Creating LaunchAgents symlink..."
+    ln -s "$HOME/Library/LaunchAgents" "/Volumes/${VOLUME_NAME}/LaunchAgents"
     
     # Copy additional files
     copy_additional_files
@@ -149,9 +153,11 @@ INSTALLATION:
 3. MANUAL STEP: Copy the plist files to ~/Library/LaunchAgents/ when prompted
    - com.clipboardmonitor.plist
    - com.clipboardmonitor.menubar.plist
+   - TIP: Use the LaunchAgents symlink for easy drag-and-drop installation
 4. The app will appear in your menu bar
 
 NOTE: Manual plist installation is required due to SentinelOne security software.
+The LaunchAgents symlink provides direct access to your LaunchAgents folder.
 
 FEATURES:
 - Real-time clipboard monitoring

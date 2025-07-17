@@ -55,18 +55,18 @@ create_dmg() {
         exit 1
     fi
     
-    # Verify KeepAlive is set to false
-    if grep -A 1 "KeepAlive" "$APP_BUNDLE/Contents/Resources/com.clipboardmonitor.plist" | grep -q "<true/>"; then
-        print_error "KeepAlive is still set to true in main plist file!"
+    # Verify KeepAlive is set to true (fixed dashboard prevents multiple spawning)
+    if grep -A 1 "KeepAlive" "$APP_BUNDLE/Contents/Resources/com.clipboardmonitor.plist" | grep -q "<false/>"; then
+        print_error "KeepAlive is still set to false in main plist file!"
         exit 1
     fi
 
-    if grep -A 1 "KeepAlive" "$APP_BUNDLE/Contents/Resources/com.clipboardmonitor.menubar.plist" | grep -q "<true/>"; then
-        print_error "KeepAlive is still set to true in menubar plist file!"
+    if grep -A 1 "KeepAlive" "$APP_BUNDLE/Contents/Resources/com.clipboardmonitor.menubar.plist" | grep -q "<false/>"; then
+        print_error "KeepAlive is still set to false in menubar plist file!"
         exit 1
     fi
 
-    print_success "Verified: KeepAlive=false in plist files"
+    print_success "Verified: KeepAlive=true in plist files"
     
     # Create temporary directory for DMG contents
     TEMP_DIR=$(mktemp -d)
@@ -128,7 +128,7 @@ If you experience multiple spawning, immediately run:
 UNINSTALLATION:
 Run the uninstall.sh script to completely remove the application.
 
-Key Fix: KeepAlive=false (was true, causing infinite respawning)
+Key Fix: KeepAlive=true (dashboard fixes prevent multiple spawning)
 
 For support: https://github.com/omairaslam/Clipboard-Monitor
 EOF
@@ -151,8 +151,8 @@ verify_dmg() {
     hdiutil attach "$DMG_NAME.dmg"
     
     # Check KeepAlive setting in mounted DMG
-    if grep -q "<false/>" "/Volumes/${VOLUME_NAME}/Clipboard Monitor.app/Contents/Resources/com.clipboardmonitor.plist"; then
-        print_success "✅ Verified: KeepAlive=false in DMG"
+    if grep -q "<true/>" "/Volumes/${VOLUME_NAME}/Clipboard Monitor.app/Contents/Resources/com.clipboardmonitor.plist"; then
+        print_success "✅ Verified: KeepAlive=true in DMG"
     else
         print_error "❌ KeepAlive setting incorrect in DMG"
         hdiutil detach "/Volumes/${VOLUME_NAME}"
@@ -186,7 +186,7 @@ main() {
     echo "📱 DMG file: $DMG_NAME.dmg"
     echo "📁 Size: $(du -sh "$DMG_NAME.dmg" | cut -f1)"
     echo ""
-    echo "🔧 Key Fix: KeepAlive=false (prevents multiple spawning)"
+    echo "🔧 Key Fix: KeepAlive=true (dashboard fixes prevent multiple spawning)"
     echo "🚀 Ready for distribution and testing!"
 }
 

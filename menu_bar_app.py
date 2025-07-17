@@ -117,8 +117,10 @@ class ClipboardMonitorMenuBar(rumps.App):
         self.memory_timestamps = []
         self.memory_tracking_active = False
 
-        # Auto-start unified dashboard on app launch - DISABLED to prevent multiple spawning
-        # self._auto_start_dashboard()
+        # Auto-start unified dashboard on app launch
+        with open('/tmp/clipboard_debug.log', 'a') as f:
+            f.write(f"DEBUG: About to call _auto_start_dashboard from __init__ at {time.time()}\n")
+        self._auto_start_dashboard()
 
         # Mini histogram data for menu display
         self.menubar_history = []
@@ -757,8 +759,8 @@ class ClipboardMonitorMenuBar(rumps.App):
             self.log_event("Service restarted via menu.", "INFO")
             self.update_status()
 
-            # Auto-start dashboard after service restart - DISABLED to prevent multiple spawning
-            # self._auto_start_dashboard()
+            # Auto-start dashboard after service restart
+            self._auto_start_dashboard()
         except Exception as e:
             self.log_error(f"Failed to restart service: {str(e)}")
             show_notification("Error", "Failed to restart service", str(e), self.log_path, self.error_log_path)
@@ -1619,12 +1621,12 @@ read -n 1
 
             # For bundled app, try alternative paths
             if not os.path.exists(script_path):
-                # Try in the same directory as the executable
-                script_path = os.path.join(os.path.dirname(sys.executable), 'unified_memory_dashboard.py')
-
-            if not os.path.exists(script_path):
                 # Try in the Resources directory for bundled app
                 script_path = os.path.join(os.path.dirname(__file__), '..', 'Resources', 'unified_memory_dashboard.py')
+
+            if not os.path.exists(script_path):
+                # Try in the Frameworks directory for bundled app
+                script_path = os.path.join(os.path.dirname(__file__), '..', 'Frameworks', 'unified_memory_dashboard.py')
 
             if os.path.exists(script_path):
                 print(f"Starting unified dashboard from: {script_path}")
@@ -1632,7 +1634,18 @@ read -n 1
                 # Test if the script can be imported (basic syntax check)
                 try:
                     import subprocess
-                    test_proc = subprocess.run([sys.executable, '-c', f'import sys; sys.path.insert(0, "{os.path.dirname(script_path)}"); import unified_memory_dashboard'],
+
+                    # Use the same Python executable logic as the main launch
+                    test_python = sys.executable
+                    if getattr(sys, 'frozen', False):
+                        test_python = '/usr/bin/python3'
+                        if not os.path.exists(test_python):
+                            for alt_python in ['/usr/local/bin/python3', '/opt/homebrew/bin/python3']:
+                                if os.path.exists(alt_python):
+                                    test_python = alt_python
+                                    break
+
+                    test_proc = subprocess.run([test_python, '-c', f'import sys; sys.path.insert(0, "{os.path.dirname(script_path)}"); import unified_memory_dashboard'],
                                              capture_output=True, timeout=10)
                     if test_proc.returncode != 0:
                         rumps.alert("Dashboard Import Error",
@@ -1658,8 +1671,25 @@ read -n 1
                 except:
                     pass
 
+                # Determine the correct Python executable for PyInstaller
+                python_executable = sys.executable
+
+                # For PyInstaller bundles, we need to use the system Python since the dashboard
+                # script is a separate Python file, not a bundled executable
+                if getattr(sys, 'frozen', False):
+                    # We're in a PyInstaller bundle, use system Python
+                    python_executable = '/usr/bin/python3'
+                    # Also try common Python locations if /usr/bin/python3 doesn't exist
+                    if not os.path.exists(python_executable):
+                        for alt_python in ['/usr/local/bin/python3', '/opt/homebrew/bin/python3']:
+                            if os.path.exists(alt_python):
+                                python_executable = alt_python
+                                break
+
+                print(f"Using Python executable: {python_executable}")
+
                 # Start new dashboard instance
-                proc = subprocess.Popen([sys.executable, script_path],
+                proc = subprocess.Popen([python_executable, script_path],
                                       stdout=subprocess.PIPE,
                                       stderr=subprocess.PIPE,
                                       cwd=os.path.dirname(script_path))
@@ -1714,6 +1744,11 @@ read -n 1
             import time
             import os
 
+            # Write debug to file since print doesn't work in PyInstaller
+            with open('/tmp/clipboard_debug.log', 'a') as f:
+                f.write(f"DEBUG: _auto_start_dashboard called at {time.time()}\n")
+            print("DEBUG: _auto_start_dashboard called")
+
             # PROTECTION: Check if we're already being launched by a dashboard process
             # This prevents recursive spawning
             current_cmdline = ' '.join(sys.argv)
@@ -1746,6 +1781,10 @@ read -n 1
                 print("Unified dashboard already running, skipping auto-start")
                 return
 
+            with open('/tmp/clipboard_debug.log', 'a') as f:
+                f.write(f"DEBUG: No existing dashboard found, proceeding with auto-start at {time.time()}\n")
+            print("DEBUG: No existing dashboard found, proceeding with auto-start")
+
             # Kill any existing dashboard processes first
             dashboard_processes = ['unified_dashboard', 'visualizer', 'monitoring_dashboard']
             for process_name in dashboard_processes:
@@ -1754,12 +1793,34 @@ read -n 1
 
             # Start unified dashboard (silent mode)
             script_path = os.path.join(os.path.dirname(__file__), 'unified_memory_dashboard.py')
+
+            # For bundled app, try alternative paths
+            if not os.path.exists(script_path):
+                script_path = os.path.join(os.path.dirname(__file__), '..', 'Resources', 'unified_memory_dashboard.py')
+            if not os.path.exists(script_path):
+                script_path = os.path.join(os.path.dirname(__file__), '..', 'Frameworks', 'unified_memory_dashboard.py')
+
             if os.path.exists(script_path):
+                print(f"DEBUG: Found dashboard script at: {script_path}")
+
                 # PROTECTION: Add environment variable to prevent recursive launches
                 env = os.environ.copy()
                 env['CLIPBOARD_MONITOR_DASHBOARD_PARENT'] = str(os.getpid())
 
-                proc = subprocess.Popen([sys.executable, script_path, '--auto-start'], env=env)
+                # Use correct Python executable for PyInstaller
+                python_executable = sys.executable
+                if getattr(sys, 'frozen', False):
+                    python_executable = '/usr/bin/python3'
+                    if not os.path.exists(python_executable):
+                        for alt_python in ['/usr/local/bin/python3', '/opt/homebrew/bin/python3']:
+                            if os.path.exists(alt_python):
+                                python_executable = alt_python
+                                break
+
+                print(f"DEBUG: Using Python executable: {python_executable}")
+                print(f"DEBUG: Starting dashboard with command: {python_executable} {script_path} --auto-start")
+
+                proc = subprocess.Popen([python_executable, script_path, '--auto-start'], env=env)
                 self._monitoring_processes['unified_dashboard'] = proc
 
                 print("Auto-started unified dashboard (5-minute timeout)")
@@ -1768,6 +1829,7 @@ read -n 1
                 rumps.notification("Clipboard Monitor", "Dashboard Auto-Started",
                                  "Memory monitoring available at localhost:8001 (5min timeout)")
             else:
+                print(f"DEBUG: Unified dashboard script not found at: {script_path}")
                 print("Unified dashboard script not found, skipping auto-start")
 
         except Exception as e:
@@ -2011,10 +2073,16 @@ read -n 1
             for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
                 try:
                     cmdline = proc.info.get('cmdline', [])
-                    if cmdline and any('main.py' in cmd for cmd in cmdline if cmd):
-                        if proc.pid != os.getpid():  # Not the menu bar app
-                            service_memory = proc.memory_info().rss / 1024 / 1024  # MB
-                            break
+                    if cmdline:
+                        # Check for PyInstaller-built main service executable
+                        cmdline_str = ' '.join(cmdline) if cmdline else ''
+                        # More specific matching for the main service
+                        if (('ClipboardMonitor.app/Contents/MacOS/ClipboardMonitor' in cmdline_str and
+                             'MenuBar' not in cmdline_str) or
+                            ('main.py' in cmdline_str and 'menu_bar_app.py' not in cmdline_str)):
+                            if proc.pid != os.getpid():  # Not the menu bar app
+                                service_memory = proc.memory_info().rss / 1024 / 1024  # MB
+                                break
                 except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess, AttributeError):
                     pass
 

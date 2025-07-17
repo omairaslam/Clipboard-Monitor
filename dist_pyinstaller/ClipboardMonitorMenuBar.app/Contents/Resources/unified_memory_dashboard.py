@@ -2119,11 +2119,14 @@ class UnifiedMemoryDashboard:
 
                             # Determine process type for better identification (consistent with collect_memory_data)
                             process_type = "unknown"
-                            if 'menu_bar_app.py' in cmdline_str:
+                            if ('clipboardmonitormenubar' in cmdline_str.lower() or
+                                'menu_bar_app.py' in cmdline_str):
                                 process_type = "menu_bar"
-                            elif 'main.py' in cmdline_str and any(path_part in cmdline_str for path_part in [
-                                'clipboard', 'clipboardmonitor', 'clipboard-monitor', 'clipboard_monitor'
-                            ]):
+                            elif (('clipboardmonitor.app/contents/macos/clipboardmonitor' in cmdline_str.lower() and
+                                   'menubar' not in cmdline_str.lower()) or
+                                  ('main.py' in cmdline_str and any(path_part in cmdline_str for path_part in [
+                                      'clipboard', 'clipboardmonitor', 'clipboard-monitor', 'clipboard_monitor'
+                                  ]))):
                                 process_type = "main_service"
                             elif 'unified_memory_dashboard.py' in cmdline_str:
                                 process_type = "dashboard"
@@ -2216,12 +2219,15 @@ class UnifiedMemoryDashboard:
                                 'memory_mb': memory_mb
                             })
 
-                            # Improved detection logic - prioritize exact matches
-                            if 'menu_bar_app.py' in cmdline_str:
+                            # Improved detection logic - support both PyInstaller and Python execution
+                            if ('clipboardmonitormenubar' in cmdline_str.lower() or
+                                'menu_bar_app.py' in cmdline_str):
                                 menubar_memory = memory_mb
-                            elif 'main.py' in cmdline_str and any(path_part in cmdline_str for path_part in [
-                                'clipboard', 'clipboardmonitor', 'clipboard-monitor', 'clipboard_monitor'
-                            ]):
+                            elif (('clipboardmonitor.app/contents/macos/clipboardmonitor' in cmdline_str.lower() and
+                                   'menubar' not in cmdline_str.lower()) or
+                                  ('main.py' in cmdline_str and any(path_part in cmdline_str for path_part in [
+                                      'clipboard', 'clipboardmonitor', 'clipboard-monitor', 'clipboard_monitor'
+                                  ]))):
                                 # Only use this if we haven't found a main service yet, or if this one has more memory (likely the active one)
                                 if service_memory == 0 or memory_mb > service_memory:
                                     service_memory = memory_mb

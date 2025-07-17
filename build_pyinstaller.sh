@@ -207,11 +207,11 @@ update_plist_templates() {
     
     # Update main service plist template
     sed "s|/usr/bin/python3|$PWD/$FINAL_APP_NAME/Contents/Resources/Services/ClipboardMonitor|g" \
-        com.clipboardmonitor.plist > "$resources_dir/com.clipboardmonitor.plist.template"
-    
-    # Update menu bar plist template  
+        plist_files/com.clipboardmonitor.plist > "$resources_dir/com.clipboardmonitor.plist"
+
+    # Update menu bar plist template
     sed "s|/usr/bin/python3|$PWD/$FINAL_APP_NAME/Contents/MacOS/ClipboardMonitorMenuBar|g" \
-        com.clipboardmonitor.menubar.plist > "$resources_dir/com.clipboardmonitor.menubar.plist.template"
+        plist_files/com.clipboardmonitor.menubar.plist > "$resources_dir/com.clipboardmonitor.menubar.plist"
     
     print_success "Plist templates updated"
 }
