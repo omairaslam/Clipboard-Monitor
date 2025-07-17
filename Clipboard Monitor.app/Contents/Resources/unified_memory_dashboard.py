@@ -193,6 +193,9 @@ class UnifiedMemoryDashboard:
         self.peak_menubar_memory = 0.0
         self.peak_service_memory = 0.0
         self.peak_total_memory = 0.0
+        self.peak_menubar_cpu = 0.0
+        self.peak_service_cpu = 0.0
+        self.peak_total_cpu = 0.0
 
     class RequestHandler(BaseHTTPRequestHandler):
         def __init__(self, dashboard_instance, *args, **kwargs):
@@ -214,8 +217,12 @@ class UnifiedMemoryDashboard:
                 self.end_headers()
                 self.wfile.write(self.dashboard.render_dashboard_html().encode())
             elif self.path == '/api/memory':
+                # Memory data for Memory tab charts - use the more comprehensive method
                 self.send_response(200)
                 self.send_header('Content-type', 'application/json')
+                self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
+                self.send_header('Pragma', 'no-cache')
+                self.send_header('Expires', '0')
                 self.end_headers()
                 data = json.dumps(self.dashboard.get_memory_data())
                 self.wfile.write(data.encode())
@@ -223,32 +230,37 @@ class UnifiedMemoryDashboard:
                 # Current status including monitoring state (for Controls tab)
                 self.send_response(200)
                 self.send_header('Content-type', 'application/json')
+                self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
+                self.send_header('Pragma', 'no-cache')
+                self.send_header('Expires', '0')
                 self.end_headers()
                 data = json.dumps(self.dashboard.get_comprehensive_dashboard_data())
-                self.wfile.write(data.encode())
-            elif self.path == '/api/memory':
-                # Memory data for Memory tab charts
-                self.send_response(200)
-                self.send_header('Content-type', 'application/json')
-                self.end_headers()
-                data = json.dumps(self.dashboard.get_memory_data())
                 self.wfile.write(data.encode())
             elif self.path == '/api/data':
                 # Comprehensive dashboard data for monitoring dashboard compatibility
                 self.send_response(200)
                 self.send_header('Content-type', 'application/json')
+                self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
+                self.send_header('Pragma', 'no-cache')
+                self.send_header('Expires', '0')
                 self.end_headers()
                 data = json.dumps(self.dashboard.get_comprehensive_dashboard_data())
                 self.wfile.write(data.encode())
             elif self.path == '/api/processes':
                 self.send_response(200)
                 self.send_header('Content-type', 'application/json')
+                self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
+                self.send_header('Pragma', 'no-cache')
+                self.send_header('Expires', '0')
                 self.end_headers()
                 data = json.dumps(self.dashboard.get_process_data())
                 self.wfile.write(data.encode())
             elif self.path == '/api/system':
                 self.send_response(200)
                 self.send_header('Content-type', 'application/json')
+                self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
+                self.send_header('Pragma', 'no-cache')
+                self.send_header('Expires', '0')
                 self.end_headers()
                 data = json.dumps(self.dashboard.get_system_data())
                 self.wfile.write(data.encode())
@@ -291,7 +303,7 @@ class UnifiedMemoryDashboard:
                     hours_param = params.get('hours', ['1'])[0]
                     resolution = params.get('resolution', ['full'])[0]
 
-                    print(f"Historical chart request: hours={hours_param}, resolution={resolution}")
+                    # Historical chart request processing
 
                     try:
                         if hours_param == 'all':
@@ -320,7 +332,7 @@ class UnifiedMemoryDashboard:
                         'session_start': self.dashboard.session_start_time.isoformat()
                     }
 
-                    print(f"Returning {len(chart_data['points'])} points for chart")
+                    # Returning chart data
 
                     self.send_response(200)
                     self.send_header('Content-type', 'application/json')
@@ -646,7 +658,35 @@ class UnifiedMemoryDashboard:
                 </div>
             </div>
 
-            <!-- Row 4: System Metrics -->
+            <!-- Row 4: CPU Metrics -->
+            <div style="display: flex; flex-wrap: wrap; gap: 20px; font-size: 13px; color: #555; align-items: center; margin-bottom: 8px;">
+                <span style="font-weight: bold; color: #333; margin-right: 10px;">⚡ CPU:</span>
+                <div style="display: flex; align-items: center;">
+                    <span style="font-weight: bold; color: #666; margin-right: 4px;">📱 Menu Bar</span>
+                    <span id="header-menubar-cpu" style="color: #2196F3; font-weight: bold; width: 40px; display: inline-block; text-align: right;">--</span>
+                    <span style="color: #666; font-size: 11px; margin-left: 3px;">(↑</span>
+                    <span id="header-menubar-cpu-peak" style="color: #FF5722; font-weight: bold; font-size: 11px; width: 35px; display: inline-block; text-align: right; margin-left: 2px;">--</span>
+                    <span style="color: #666; font-size: 11px;">)</span>
+                </div>
+                <span style="color: #ddd;">•</span>
+                <div style="display: flex; align-items: center;">
+                    <span style="font-weight: bold; color: #666; margin-right: 4px;">⚙️ Service</span>
+                    <span id="header-service-cpu" style="color: #4CAF50; font-weight: bold; width: 40px; display: inline-block; text-align: right;">--</span>
+                    <span style="color: #666; font-size: 11px; margin-left: 3px;">(↑</span>
+                    <span id="header-service-cpu-peak" style="color: #FF5722; font-weight: bold; font-size: 11px; width: 35px; display: inline-block; text-align: right; margin-left: 2px;">--</span>
+                    <span style="color: #666; font-size: 11px;">)</span>
+                </div>
+                <span style="color: #ddd;">•</span>
+                <div style="display: flex; align-items: center;">
+                    <span style="font-weight: bold; color: #666; margin-right: 4px;">📊 Total</span>
+                    <span id="header-total-cpu" style="color: #FF9800; font-weight: bold; width: 45px; display: inline-block; text-align: right;">--</span>
+                    <span style="color: #666; font-size: 11px; margin-left: 3px;">(↑</span>
+                    <span id="header-total-cpu-peak" style="color: #FF5722; font-weight: bold; font-size: 11px; width: 40px; display: inline-block; text-align: right; margin-left: 2px;">--</span>
+                    <span style="color: #666; font-size: 11px;">)</span>
+                </div>
+            </div>
+
+            <!-- Row 5: System Metrics -->
             <div style="display: flex; flex-wrap: wrap; gap: 20px; font-size: 13px; color: #555; align-items: center;">
                 <span style="font-weight: bold; color: #333; margin-right: 10px;">🖥️ System:</span>
                 <div style="display: flex; align-items: center;">
@@ -683,7 +723,7 @@ class UnifiedMemoryDashboard:
                 <span style="color: #ddd;">•</span>
                 <div style="display: flex; align-items: center;">
                     <span style="font-weight: bold; color: #666; margin-right: 4px;">🕐 Session</span>
-                    <span id="header-session-time" style="color: #795548; font-weight: bold; width: 50px; display: inline-block; text-align: right;">--</span>
+                    <span id="header-session-time" style="color: #795548; font-weight: bold; width: 70px; display: inline-block; text-align: right;">--</span>
                 </div>
                 <span style="color: #ddd;">•</span>
                 <div style="display: flex; align-items: center;">
@@ -1019,13 +1059,10 @@ class UnifiedMemoryDashboard:
 
         async function fetchMemoryData() {
             try {
-                console.log('Fetching memory data from /api/memory...');
                 const response = await fetch('/api/memory');  // Use /api/memory for memory tab data
-                console.log('Response status:', response.status, response.statusText);
 
                 if (response.ok) {
                     const data = await response.json();
-                    console.log('Memory data received:', data);
 
                     if (!isConnected) {
                         // Update banner status
@@ -1035,7 +1072,6 @@ class UnifiedMemoryDashboard:
                             statusLight.style.background = '#4CAF50';
                             statusText.textContent = 'Connected';
                             statusText.style.color = '#4CAF50';
-                            console.log('Connection status updated to Connected');
                         }
                         isConnected = true;
                     }
@@ -1053,18 +1089,30 @@ class UnifiedMemoryDashboard:
 
                         const menubarMemory = menubarProcess ? menubarProcess.memory_mb : 0;
                         const serviceMemory = serviceProcess ? serviceProcess.memory_mb : 0;
+                        const menubarCpu = menubarProcess ? menubarProcess.cpu_percent : 0;
+                        const serviceCpu = serviceProcess ? serviceProcess.cpu_percent : 0;
 
                         // Optional debug output (can be enabled for troubleshooting)
                         // console.log('Process detection:', {
-                        //     menubarProcess: menubarProcess ? `PID ${menubarProcess.pid}: ${menubarProcess.memory_mb} MB` : 'Not found',
-                        //     serviceProcess: serviceProcess ? `PID ${serviceProcess.pid}: ${serviceProcess.memory_mb} MB` : 'Not found'
+                        //     menubarProcess: menubarProcess ? `PID ${menubarProcess.pid}: ${menubarProcess.memory_mb} MB, ${menubarProcess.cpu_percent}% CPU` : 'Not found',
+                        //     serviceProcess: serviceProcess ? `PID ${serviceProcess.pid}: ${serviceProcess.memory_mb} MB, ${serviceProcess.cpu_percent}% CPU` : 'Not found'
                         // });
 
                         updateDashboard({
                             timestamp: data.timestamp,
                             menubar_memory: menubarMemory,
                             service_memory: serviceMemory,
-                            total_memory: menubarMemory + serviceMemory
+                            total_memory: menubarMemory + serviceMemory,
+                            menubar_cpu: menubarCpu,
+                            service_cpu: serviceCpu,
+                            total_cpu: menubarCpu + serviceCpu,
+                            peak_menubar_memory: data.peak_menubar_memory,
+                            peak_service_memory: data.peak_service_memory,
+                            peak_total_memory: data.peak_total_memory,
+                            peak_menubar_cpu: data.peak_menubar_cpu,
+                            peak_service_cpu: data.peak_service_cpu,
+                            peak_total_cpu: data.peak_total_cpu,
+                            session_start_time: data.session_start_time
                         });
                     }
                 } else {
@@ -1082,7 +1130,6 @@ class UnifiedMemoryDashboard:
                         statusLight.style.background = '#f44336';
                         statusText.textContent = 'Disconnected';
                         statusText.style.color = '#f44336';
-                        console.log('Connection status updated to Disconnected');
                     }
                     isConnected = false;
                 }
@@ -1094,15 +1141,26 @@ class UnifiedMemoryDashboard:
             const peakMenubarMemory = data.peak_menubar_memory || 0;
             const peakServiceMemory = data.peak_service_memory || 0;
             const peakTotalMemory = data.peak_total_memory || 0;
+            const peakMenubarCpu = data.peak_menubar_cpu || 0;
+            const peakServiceCpu = data.peak_service_cpu || 0;
+            const peakTotalCpu = data.peak_total_cpu || 0;
             const sessionStartTime = data.session_start_time ? new Date(data.session_start_time) : new Date();
 
-            // Update header metrics (moved to header)
+            // Update header memory metrics
             document.getElementById('header-menubar-memory').textContent = data.menubar_memory.toFixed(1) + 'MB';
-            document.getElementById('header-menubar-peak').textContent = (peakMenubarMemory || data.menubar_memory || 0).toFixed(1) + 'MB';
+            document.getElementById('header-menubar-peak').textContent = (peakMenubarMemory !== undefined ? peakMenubarMemory : 0).toFixed(1) + 'MB';
             document.getElementById('header-service-memory').textContent = data.service_memory.toFixed(1) + 'MB';
-            document.getElementById('header-service-peak').textContent = (peakServiceMemory || data.service_memory || 0).toFixed(1) + 'MB';
+            document.getElementById('header-service-peak').textContent = (peakServiceMemory !== undefined ? peakServiceMemory : 0).toFixed(1) + 'MB';
             document.getElementById('header-total-memory').textContent = data.total_memory.toFixed(1) + 'MB';
-            document.getElementById('header-total-peak').textContent = (peakTotalMemory || data.total_memory || 0).toFixed(1) + 'MB';
+            document.getElementById('header-total-peak').textContent = (peakTotalMemory !== undefined ? peakTotalMemory : 0).toFixed(1) + 'MB';
+
+            // Update header CPU metrics
+            document.getElementById('header-menubar-cpu').textContent = (data.menubar_cpu || 0).toFixed(1) + '%';
+            document.getElementById('header-menubar-cpu-peak').textContent = (peakMenubarCpu !== undefined ? peakMenubarCpu : 0).toFixed(1) + '%';
+            document.getElementById('header-service-cpu').textContent = (data.service_cpu || 0).toFixed(1) + '%';
+            document.getElementById('header-service-cpu-peak').textContent = (peakServiceCpu !== undefined ? peakServiceCpu : 0).toFixed(1) + '%';
+            document.getElementById('header-total-cpu').textContent = (data.total_cpu || 0).toFixed(1) + '%';
+            document.getElementById('header-total-cpu-peak').textContent = (peakTotalCpu !== undefined ? peakTotalCpu : 0).toFixed(1) + '%';
 
             // Update session time - use persistent session start time
             if (!globalSessionStartTime && data.session_start_time) {
@@ -1113,9 +1171,10 @@ class UnifiedMemoryDashboard:
                 const sessionDuration = new Date() - globalSessionStartTime;
                 const hours = Math.floor(sessionDuration / (1000 * 60 * 60));
                 const minutes = Math.floor((sessionDuration % (1000 * 60 * 60)) / (1000 * 60));
-                document.getElementById('header-session-time').textContent = `${hours}h ${minutes}m`;
+                const seconds = Math.floor((sessionDuration % (1000 * 60)) / 1000);
+                document.getElementById('header-session-time').textContent = `${hours}h ${minutes}m ${seconds}s`;
             } else {
-                document.getElementById('header-session-time').textContent = '0h 0m';
+                document.getElementById('header-session-time').textContent = '0h 0m 0s';
             }
 
             // Update last update time in header
@@ -1707,19 +1766,10 @@ class UnifiedMemoryDashboard:
 
             try {
                 // Refresh all dashboard data with progress indication
-                console.log('🔄 Refreshing memory data...');
                 await fetchMemoryData();
-
-                console.log('🔄 Refreshing system data...');
                 await fetchSystemData();
-
-                console.log('🔄 Refreshing process data...');
                 await fetchProcessData();
-
-                console.log('🔄 Refreshing analysis data...');
                 await loadAnalysisData();
-
-                console.log('🔄 Refreshing monitoring status...');
                 await updateMonitoringStatus();
 
                 // Success feedback
@@ -1819,15 +1869,12 @@ class UnifiedMemoryDashboard:
                         document.getElementById('resolution-select').value = '10sec';
                     }
 
-                    console.log(`Loading historical data: range=${timeRange}, resolution=${resolution}`);
-
                     const response = await fetch(`/api/historical-chart?hours=${timeRange}&resolution=${resolution}`);
                     if (!response.ok) {
                         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                     }
 
                     const data = await response.json();
-                    console.log(`Loaded ${data.points?.length || 0} historical points`);
 
                     this.historicalData = data.points || [];
 
@@ -1856,8 +1903,6 @@ class UnifiedMemoryDashboard:
                 if (this.mode !== 'historical') return;
 
                 try {
-                    console.log(`🔄 Auto-refreshing historical data: range=${this.currentTimeRange}, resolution=${this.currentResolution}`);
-
                     // Show subtle loading indicator
                     const chartTitle = document.getElementById('chart-title');
                     const originalTitle = chartTitle ? chartTitle.textContent : '';
@@ -1871,7 +1916,6 @@ class UnifiedMemoryDashboard:
                     }
 
                     const data = await response.json();
-                    console.log(`📊 Refreshed ${data.points?.length || 0} historical points`);
 
                     this.historicalData = data.points || [];
                     this.updateChart();
@@ -2155,6 +2199,7 @@ class UnifiedMemoryDashboard:
                     'total_memory_mb': round(total_clipboard_memory, 2),
                     'process_count': len(clipboard_processes)
                 },
+                'session_start_time': self.session_start_time.isoformat(),
                 'timestamp': datetime.now().isoformat()
             }
             
@@ -2191,15 +2236,17 @@ class UnifiedMemoryDashboard:
             return {'error': str(e), 'timestamp': datetime.now().isoformat()}
     
     def collect_memory_data(self):
-        """Collect current memory usage data for WebSocket updates."""
+        """Collect current memory usage and CPU data for WebSocket updates."""
         try:
             menubar_memory = 0
             service_memory = 0
+            menubar_cpu = 0
+            service_cpu = 0
 
             # Debug: collect all clipboard-related processes
             clipboard_processes = []
 
-            for proc in psutil.process_iter(['pid', 'name', 'cmdline', 'memory_info']):
+            for proc in psutil.process_iter(['pid', 'name', 'cmdline', 'memory_info', 'cpu_percent']):
                 try:
                     cmdline = proc.info.get('cmdline', [])
                     if cmdline:
@@ -2212,17 +2259,20 @@ class UnifiedMemoryDashboard:
 
                         if is_clipboard_process:
                             memory_mb = proc.info['memory_info'].rss / 1024 / 1024
+                            cpu_percent = proc.info.get('cpu_percent', 0) or 0
                             clipboard_processes.append({
                                 'pid': proc.info['pid'],
                                 'name': proc.info['name'],
                                 'cmdline': cmdline_str,
-                                'memory_mb': memory_mb
+                                'memory_mb': memory_mb,
+                                'cpu_percent': cpu_percent
                             })
 
                             # Improved detection logic - support both PyInstaller and Python execution
                             if ('clipboardmonitormenubar' in cmdline_str.lower() or
                                 'menu_bar_app.py' in cmdline_str):
                                 menubar_memory = memory_mb
+                                menubar_cpu = cpu_percent
                             elif (('clipboardmonitor.app/contents/macos/clipboardmonitor' in cmdline_str.lower() and
                                    'menubar' not in cmdline_str.lower()) or
                                   ('main.py' in cmdline_str and any(path_part in cmdline_str for path_part in [
@@ -2231,6 +2281,7 @@ class UnifiedMemoryDashboard:
                                 # Only use this if we haven't found a main service yet, or if this one has more memory (likely the active one)
                                 if service_memory == 0 or memory_mb > service_memory:
                                     service_memory = memory_mb
+                                    service_cpu = cpu_percent
 
                 except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
                     continue
@@ -2248,19 +2299,37 @@ class UnifiedMemoryDashboard:
             if service_memory > self.peak_service_memory:
                 self.peak_service_memory = service_memory
 
-            # Track peak total memory
+            # Track peak CPU values
+            if menubar_cpu > self.peak_menubar_cpu:
+                self.peak_menubar_cpu = menubar_cpu
+
+            if service_cpu > self.peak_service_cpu:
+                self.peak_service_cpu = service_cpu
+
+            # Track peak totals
             total_memory = menubar_memory + service_memory
+            total_cpu = menubar_cpu + service_cpu
+
             if total_memory > self.peak_total_memory:
                 self.peak_total_memory = total_memory
+
+            if total_cpu > self.peak_total_cpu:
+                self.peak_total_cpu = total_cpu
 
             return {
                 'timestamp': datetime.now().isoformat(),
                 'menubar_memory': round(menubar_memory, 2),
                 'service_memory': round(service_memory, 2),
                 'total_memory': round(total_memory, 2),
+                'menubar_cpu': round(menubar_cpu, 2),
+                'service_cpu': round(service_cpu, 2),
+                'total_cpu': round(total_cpu, 2),
                 'peak_menubar_memory': round(self.peak_menubar_memory, 2),
                 'peak_service_memory': round(self.peak_service_memory, 2),
                 'peak_total_memory': round(self.peak_total_memory, 2),
+                'peak_menubar_cpu': round(self.peak_menubar_cpu, 2),
+                'peak_service_cpu': round(self.peak_service_cpu, 2),
+                'peak_total_cpu': round(self.peak_total_cpu, 2),
                 'session_start_time': self.session_start_time.isoformat()
             }
 
@@ -2371,7 +2440,7 @@ class UnifiedMemoryDashboard:
                 filtered.append(point)
                 last_timestamp = point_timestamp
 
-        print(f"Resolution filter: {len(data)} -> {len(filtered)} points (interval: {interval}s)")
+        # Resolution filter applied
         return filtered
 
     def get_analysis_data(self, hours=24):
@@ -2476,16 +2545,13 @@ class UnifiedMemoryDashboard:
             try:
                 # Collect memory data
                 memory_data = self.collect_memory_data()
-                print(f"Collected data: menubar={memory_data.get('menubar_memory', 0):.1f}MB, service={memory_data.get('service_memory', 0):.1f}MB")
 
                 # Add to advanced monitoring history (separate from basic data collection)
                 self.advanced_data_history.append(memory_data)
-                print(f"Advanced data history now has {len(self.advanced_data_history)} points")
 
                 # Limit advanced history size
                 if len(self.advanced_data_history) > self.max_history:
                     self.advanced_data_history = self.advanced_data_history[-self.max_history:]
-                    print(f"Trimmed advanced history to {len(self.advanced_data_history)} points")
 
                 # Perform leak analysis if we have enough advanced data
                 if len(self.advanced_data_history) > 10:
@@ -2500,17 +2566,17 @@ class UnifiedMemoryDashboard:
                             menubar_growth = menubar_trend[-1] - menubar_trend[0]
                             service_growth = service_trend[-1] - service_trend[0]
 
+                            # Memory growth detection (silent monitoring)
                             if menubar_growth > 5.0:  # More than 5MB growth
-                                print(f"⚠️  Menu Bar memory growth detected: +{menubar_growth:.1f}MB")
+                                pass  # Could log to file if needed
 
                             if service_growth > 5.0:  # More than 5MB growth
-                                print(f"⚠️  Service memory growth detected: +{service_growth:.1f}MB")
+                                pass  # Could log to file if needed
 
                     except Exception as e:
                         print(f"Error in leak analysis: {e}")
 
                 # Wait for the specified interval
-                print(f"Waiting {self.monitor_interval} seconds until next collection...")
                 time.sleep(self.monitor_interval)
 
             except Exception as e:
@@ -2519,7 +2585,7 @@ class UnifiedMemoryDashboard:
                 traceback.print_exc()
                 time.sleep(5)  # Wait before retrying
 
-        print("Background monitoring loop stopped")
+        # Background monitoring loop stopped
 
     def force_garbage_collection(self):
         """Force garbage collection and return stats"""
@@ -2618,20 +2684,14 @@ class UnifiedMemoryDashboard:
 
                 # Don't timeout if advanced monitoring is active
                 if self.monitoring_active:
-                    print(f"Auto-timeout: Advanced monitoring active, keeping server alive")
                     continue
 
                 # Check if we've exceeded the timeout
                 if minutes_inactive >= self.auto_timeout_minutes:
-                    print(f"Auto-timeout: {minutes_inactive:.1f} minutes inactive, shutting down server")
-
                     # Graceful shutdown
                     if self.server:
-                        print("Auto-timeout: Stopping server...")
                         threading.Thread(target=self.server.shutdown).start()
                     break
-                else:
-                    print(f"Auto-timeout: {minutes_inactive:.1f} minutes inactive (timeout at {self.auto_timeout_minutes})")
 
             except Exception as e:
                 print(f"Error in auto-timeout monitor: {e}")

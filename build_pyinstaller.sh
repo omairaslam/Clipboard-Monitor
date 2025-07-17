@@ -60,32 +60,48 @@ clean_build() {
     print_success "Build directories cleaned"
 }
 
+# Function to activate virtual environment
+activate_venv() {
+    print_status "Activating virtual environment..."
+
+    # Check if virtual environment exists
+    if [ ! -d ".venv" ]; then
+        print_error "Virtual environment not found. Please create it first with: python3 -m venv .venv"
+        exit 1
+    fi
+
+    # Activate virtual environment
+    source .venv/bin/activate
+
+    # Verify activation
+    if [ "$VIRTUAL_ENV" = "" ]; then
+        print_error "Failed to activate virtual environment"
+        exit 1
+    fi
+
+    print_success "Virtual environment activated: $VIRTUAL_ENV"
+}
+
 # Function to check and install dependencies
 check_dependencies() {
     print_status "Checking dependencies..."
-    
-    # Check if Python 3 is available
-    if ! command_exists python3; then
-        print_error "Python 3 is required but not installed"
+
+    # Check if Python is available (should be from venv)
+    if ! command_exists python; then
+        print_error "Python is required but not available in virtual environment"
         exit 1
     fi
-    
-    # Check if pip is available
-    if ! command_exists pip3; then
-        print_error "pip3 is required but not installed"
+
+    # Check if pip is available (should be from venv)
+    if ! command_exists pip; then
+        print_error "pip is required but not available in virtual environment"
         exit 1
     fi
-    
-    # Install PyInstaller if not present
-    if ! python3 -c "import PyInstaller" 2>/dev/null; then
-        print_status "Installing PyInstaller..."
-        pip3 install pyinstaller
-    fi
-    
+
     # Install project dependencies
     print_status "Installing project dependencies..."
-    pip3 install -r requirements.txt
-    
+    pip install -r requirements.txt
+
     print_success "Dependencies checked and installed"
 }
 
@@ -99,16 +115,16 @@ build_executables() {
     
     # Build main service executable
     print_status "Building main service executable..."
-    pyinstaller --distpath "$DIST_DIR" --workpath "$BUILD_DIR" main.spec
-    
+    python -m PyInstaller --distpath "$DIST_DIR" --workpath "$BUILD_DIR" main.spec
+
     if [ ! -d "$DIST_DIR/ClipboardMonitor.app" ]; then
         print_error "Failed to build main service executable"
         exit 1
     fi
-    
+
     # Build menu bar app executable
     print_status "Building menu bar app executable..."
-    pyinstaller --distpath "$DIST_DIR" --workpath "$BUILD_DIR" menu_bar_app.spec
+    python -m PyInstaller --distpath "$DIST_DIR" --workpath "$BUILD_DIR" menu_bar_app.spec
     
     if [ ! -d "$DIST_DIR/ClipboardMonitorMenuBar.app" ]; then
         print_error "Failed to build menu bar app executable"
@@ -228,6 +244,7 @@ main() {
     fi
     
     clean_build
+    activate_venv
     check_dependencies
     build_executables
     create_app_bundle

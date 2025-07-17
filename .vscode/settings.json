@@ -68,6 +68,18 @@
             "task": "Clear Logs & Restart All Services",
             "tooltip": "Clear all logs and restart both services",
             "color": "error"
+        },
+        {
+            "label": "🚀 Build & Create DMG",
+            "task": "Build & Create DMG",
+            "tooltip": "Build application and create DMG in one step",
+            "color": "default"
+        },
+        {
+            "label": "🧪 Test DMG (VS Code Safe)",
+            "task": "Test DMG (VS Code Safe)",
+            "tooltip": "Safe DMG testing - mount, uninstall, copy files (no install script)",
+            "color": "default"
         }
     ],
     "trae.tab.enableRename": true,

@@ -77,6 +77,95 @@
             "type": "shell",
             "command": "./clear_logs.sh && ./restart_services.sh",
             "problemMatcher": []
+        },
+        {
+            "label": "Test DMG Installation",
+            "type": "shell",
+            "command": "./test_dmg_install.sh",
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "new",
+                "focus": true,
+                "clear": true,
+                "echo": true
+            },
+            "options": {
+                "env": {
+                    "TERM": "xterm-256color"
+                }
+            },
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            }
+        },
+        {
+            "label": "Test DMG (VS Code Safe)",
+            "type": "shell",
+            "command": "./test_dmg_safe.sh",
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "new",
+                "focus": true,
+                "clear": true,
+                "echo": true
+            },
+            "options": {
+                "env": {
+                    "TERM": "xterm-256color"
+                }
+            },
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            }
+        },
+        {
+            "label": "Build PyInstaller",
+            "type": "shell",
+            "command": "./build_pyinstaller.sh",
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "new",
+                "focus": true
+            },
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            }
+        },
+        {
+            "label": "Create DMG",
+            "type": "shell",
+            "command": "./create_dmg.sh",
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "new",
+                "focus": true
+            },
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            }
+        },
+        {
+            "label": "Build & Create DMG",
+            "type": "shell",
+            "command": "./build_pyinstaller.sh && ./create_dmg.sh",
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "new",
+                "focus": true
+            },
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
         }
     ]
 }

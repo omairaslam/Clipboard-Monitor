@@ -19,7 +19,7 @@ missing module named _frozen_importlib_external - imported by importlib._bootstr
 missing module named pep517 - imported by importlib.metadata (delayed)
 excluded module named _frozen_importlib - imported by importlib (optional), importlib.abc (optional), zipimport (top-level)
 missing module named winreg - imported by importlib._bootstrap_external (conditional), platform (delayed, optional), mimetypes (optional), urllib.request (delayed, conditional, optional)
-missing module named nt - imported by os (delayed, conditional, optional), ntpath (optional), shutil (conditional), importlib._bootstrap_external (conditional), pathlib (conditional), ctypes (delayed, conditional)
+missing module named nt - imported by shutil (conditional), importlib._bootstrap_external (conditional), ntpath (optional), pathlib (conditional), os (delayed, conditional, optional), ctypes (delayed, conditional)
 missing module named pyimod02_importers - imported by /Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/.venv/lib/python3.9/site-packages/PyInstaller/hooks/rthooks/pyi_rth_pkgutil.py (delayed)
 missing module named vms_lib - imported by platform (delayed, optional)
 missing module named 'java.lang' - imported by platform (delayed, optional), xml.sax._exceptions (conditional)

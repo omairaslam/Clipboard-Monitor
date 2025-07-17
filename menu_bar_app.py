@@ -1739,10 +1739,22 @@ read -n 1
 
     def _auto_start_dashboard(self):
         """Auto-start unified dashboard on app launch (silent, no browser opening)"""
+        debug_log_path = safe_expanduser("~/Library/Logs/ClipboardMonitor_dashboard_debug.log")
+
         try:
             import subprocess
             import time
             import os
+            import datetime
+
+            # Enhanced debug logging
+            with open(debug_log_path, 'a') as f:
+                f.write(f"[{datetime.datetime.now()}] _auto_start_dashboard called\n")
+                f.write(f"  Current working directory: {os.getcwd()}\n")
+                f.write(f"  __file__: {__file__}\n")
+                f.write(f"  sys.argv: {sys.argv}\n")
+                f.write(f"  sys.executable: {sys.executable}\n")
+                f.write(f"  sys.frozen: {getattr(sys, 'frozen', False)}\n")
 
             # Write debug to file since print doesn't work in PyInstaller
             with open('/tmp/clipboard_debug.log', 'a') as f:
@@ -1753,6 +1765,8 @@ read -n 1
             # This prevents recursive spawning
             current_cmdline = ' '.join(sys.argv)
             if '--auto-start' in current_cmdline or 'unified_memory_dashboard.py' in current_cmdline:
+                with open(debug_log_path, 'a') as f:
+                    f.write("  Detected dashboard launch context, skipping auto-start to prevent recursion\n")
                 print("Detected dashboard launch context, skipping auto-start to prevent recursion")
                 return
 
@@ -1794,13 +1808,34 @@ read -n 1
             # Start unified dashboard (silent mode)
             script_path = os.path.join(os.path.dirname(__file__), 'unified_memory_dashboard.py')
 
-            # For bundled app, try alternative paths
-            if not os.path.exists(script_path):
-                script_path = os.path.join(os.path.dirname(__file__), '..', 'Resources', 'unified_memory_dashboard.py')
-            if not os.path.exists(script_path):
-                script_path = os.path.join(os.path.dirname(__file__), '..', 'Frameworks', 'unified_memory_dashboard.py')
+            # Enhanced path detection for DMG environment
+            possible_paths = [
+                script_path,
+                os.path.join(os.path.dirname(__file__), '..', 'Resources', 'unified_memory_dashboard.py'),
+                os.path.join(os.path.dirname(__file__), '..', 'Frameworks', 'unified_memory_dashboard.py'),
+                # Additional paths for DMG environment
+                os.path.join(os.path.dirname(__file__), 'unified_memory_dashboard.py'),
+                os.path.abspath(os.path.join(os.path.dirname(__file__), 'unified_memory_dashboard.py')),
+                # Check in the same directory as the executable
+                os.path.join(os.path.dirname(sys.executable), 'unified_memory_dashboard.py'),
+                # Check in Resources directory relative to executable
+                os.path.join(os.path.dirname(sys.executable), '..', 'Resources', 'unified_memory_dashboard.py'),
+            ]
 
-            if os.path.exists(script_path):
+            script_found = False
+            with open(debug_log_path, 'a') as f:
+                f.write("  Searching for unified_memory_dashboard.py in paths:\n")
+                for path in possible_paths:
+                    abs_path = os.path.abspath(path)
+                    exists = os.path.exists(abs_path)
+                    f.write(f"    {abs_path} - {'EXISTS' if exists else 'NOT FOUND'}\n")
+                    if exists and not script_found:
+                        script_path = abs_path
+                        script_found = True
+
+            if script_found:
+                with open(debug_log_path, 'a') as f:
+                    f.write(f"  Found dashboard script at: {script_path}\n")
                 print(f"DEBUG: Found dashboard script at: {script_path}")
 
                 # PROTECTION: Add environment variable to prevent recursive launches
@@ -1817,22 +1852,44 @@ read -n 1
                                 python_executable = alt_python
                                 break
 
+                with open(debug_log_path, 'a') as f:
+                    f.write(f"  Using Python executable: {python_executable}\n")
+                    f.write(f"  Starting dashboard with command: {python_executable} {script_path} --auto-start\n")
+
                 print(f"DEBUG: Using Python executable: {python_executable}")
                 print(f"DEBUG: Starting dashboard with command: {python_executable} {script_path} --auto-start")
 
-                proc = subprocess.Popen([python_executable, script_path, '--auto-start'], env=env)
-                self._monitoring_processes['unified_dashboard'] = proc
+                try:
+                    proc = subprocess.Popen([python_executable, script_path, '--auto-start'],
+                                          env=env,
+                                          stdout=subprocess.PIPE,
+                                          stderr=subprocess.PIPE)
+                    self._monitoring_processes['unified_dashboard'] = proc
 
-                print("Auto-started unified dashboard (5-minute timeout)")
+                    with open(debug_log_path, 'a') as f:
+                        f.write(f"  Dashboard process started with PID: {proc.pid}\n")
 
-                # Show subtle notification
-                rumps.notification("Clipboard Monitor", "Dashboard Auto-Started",
-                                 "Memory monitoring available at localhost:8001 (5min timeout)")
+                    print("Auto-started unified dashboard (5-minute timeout)")
+
+                    # Show subtle notification
+                    rumps.notification("Clipboard Monitor", "Dashboard Auto-Started",
+                                     "Memory monitoring available at localhost:8001 (5min timeout)")
+                except Exception as e:
+                    with open(debug_log_path, 'a') as f:
+                        f.write(f"  ERROR starting dashboard process: {str(e)}\n")
+                    print(f"ERROR starting dashboard process: {str(e)}")
             else:
+                with open(debug_log_path, 'a') as f:
+                    f.write("  Unified dashboard script not found in any searched paths\n")
                 print(f"DEBUG: Unified dashboard script not found at: {script_path}")
                 print("Unified dashboard script not found, skipping auto-start")
 
         except Exception as e:
+            with open(debug_log_path, 'a') as f:
+                f.write(f"[{datetime.datetime.now()}] ERROR in _auto_start_dashboard: {str(e)}\n")
+                import traceback
+                f.write(f"  Traceback: {traceback.format_exc()}\n")
+                f.write("---\n")
             print(f"Error auto-starting unified dashboard: {e}")
             # Don't show error to user for auto-start failures
 
@@ -2061,30 +2118,86 @@ read -n 1
 
     def update_memory_status(self, _):
         """Update the memory status in the menu."""
+        debug_log_path = safe_expanduser("~/Library/Logs/ClipboardMonitor_memory_debug.log")
+
         try:
             import psutil
+            import datetime
 
             # Get memory for menu bar app (current process)
             menubar_process = psutil.Process(os.getpid())
             menubar_memory = menubar_process.memory_info().rss / 1024 / 1024  # MB
 
+            # Debug logging - log current process info
+            current_cmdline = ' '.join(menubar_process.cmdline()) if menubar_process.cmdline() else 'No cmdline'
+
+            with open(debug_log_path, 'a') as f:
+                f.write(f"[{datetime.datetime.now()}] Memory Status Update\n")
+                f.write(f"  Current process PID: {os.getpid()}\n")
+                f.write(f"  Current process cmdline: {current_cmdline}\n")
+                f.write(f"  Menu bar memory: {menubar_memory:.1f}MB\n")
+
             # Get memory for clipboard monitor service
             service_memory = 0
+            service_found = False
+            clipboard_processes = []
+
             for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
                 try:
                     cmdline = proc.info.get('cmdline', [])
                     if cmdline:
-                        # Check for PyInstaller-built main service executable
                         cmdline_str = ' '.join(cmdline) if cmdline else ''
-                        # More specific matching for the main service
+
+                        # Log all clipboard-related processes for debugging
+                        if any(keyword in cmdline_str.lower() for keyword in ['clipboard', 'main.py', 'clipboardmonitor']):
+                            memory_mb = proc.memory_info().rss / 1024 / 1024
+                            clipboard_processes.append({
+                                'pid': proc.info['pid'],
+                                'name': proc.info['name'],
+                                'cmdline': cmdline_str,
+                                'memory_mb': memory_mb,
+                                'is_current': proc.pid == os.getpid()
+                            })
+
+                        # Check for PyInstaller-built main service executable
+                        # Enhanced matching for DMG environment
+                        is_service_process = False
+
+                        # Original matching logic
                         if (('ClipboardMonitor.app/Contents/MacOS/ClipboardMonitor' in cmdline_str and
                              'MenuBar' not in cmdline_str) or
                             ('main.py' in cmdline_str and 'menu_bar_app.py' not in cmdline_str)):
-                            if proc.pid != os.getpid():  # Not the menu bar app
-                                service_memory = proc.memory_info().rss / 1024 / 1024  # MB
-                                break
-                except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess, AttributeError):
-                    pass
+                            is_service_process = True
+
+                        # Additional matching for DMG environment
+                        elif ('ClipboardMonitor' in cmdline_str and
+                              'MenuBar' not in cmdline_str and
+                              proc.pid != os.getpid()):
+                            # Check if this could be the service process
+                            if ('Services/ClipboardMonitor.app' in cmdline_str or
+                                'Resources/Services' in cmdline_str):
+                                is_service_process = True
+
+                        if is_service_process and proc.pid != os.getpid():
+                            service_memory = proc.memory_info().rss / 1024 / 1024  # MB
+                            service_found = True
+                            with open(debug_log_path, 'a') as f:
+                                f.write(f"  Found service process: PID {proc.pid}, {service_memory:.1f}MB\n")
+                                f.write(f"    Service cmdline: {cmdline_str}\n")
+                            break
+
+                except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess, AttributeError) as e:
+                    continue
+
+            # Log all clipboard processes for debugging
+            with open(debug_log_path, 'a') as f:
+                f.write(f"  All clipboard-related processes found:\n")
+                for proc_info in clipboard_processes:
+                    f.write(f"    PID {proc_info['pid']}: {proc_info['name']} - {proc_info['memory_mb']:.1f}MB {'(CURRENT)' if proc_info['is_current'] else ''}\n")
+                    f.write(f"      cmdline: {proc_info['cmdline']}\n")
+                f.write(f"  Service process found: {service_found}\n")
+                f.write(f"  Service memory: {service_memory:.1f}MB\n")
+                f.write("---\n")
 
             # Update history for mini histograms
             self.menubar_history.append(menubar_memory)
@@ -2125,9 +2238,16 @@ read -n 1
                     self.memory_data["menubar"] = self.memory_data["menubar"][-max_points:]
                     self.memory_data["service"] = self.memory_data["service"][-max_points:]
 
-        except Exception:
-            # Memory status removed - error handling simplified
-            pass
+        except Exception as e:
+            # Enhanced error logging for debugging
+            try:
+                with open(debug_log_path, 'a') as f:
+                    f.write(f"[{datetime.datetime.now()}] ERROR in update_memory_status: {str(e)}\n")
+                    import traceback
+                    f.write(f"  Traceback: {traceback.format_exc()}\n")
+                    f.write("---\n")
+            except:
+                pass
 
     def _generate_mini_histogram(self, values, peak_value):
         """Generate mini histogram bars for memory visualization"""
