@@ -33,7 +33,7 @@ class ClipboardMonitorMenuBar(rumps.App):
         # Configuration
         self.config_manager = ConfigManager()
         self.home_dir = str(Path.home())
-        self.plist_path = f"{self.home_dir}/Library/LaunchAgents/com.omairaslam.clipboardmonitor.plist"
+        self.plist_path = f"{self.home_dir}/Library/LaunchAgents/com.clipboardmonitor.plist"
         # Always use get_app_paths() for log paths
         paths = get_app_paths()
         self.log_path = paths["out_log"]
@@ -56,7 +56,6 @@ class ClipboardMonitorMenuBar(rumps.App):
         self._init_menu_items()
         self._init_submenus()
         self._init_preferences_menu()
-        self._init_memory_usage_menu()  # Initialize memory usage menu
 
         # Build the main menu structure
         self._build_main_menu()
@@ -91,40 +90,43 @@ class ClipboardMonitorMenuBar(rumps.App):
         self.memory_menubar_item = rumps.MenuItem("Menu Bar: Initializing...")
         self.memory_service_item = rumps.MenuItem("Service: Initializing...")
 
-        # Memory monitoring submenu
+        # Memory monitoring submenu (consolidated with memory usage items)
         self.memory_monitor_menu = rumps.MenuItem("Memory Monitor")
         self.memory_unified_dashboard_item = rumps.MenuItem("📊 Unified Dashboard", callback=self.start_unified_dashboard)
         self.memory_stats_item = rumps.MenuItem("📋 Memory Statistics", callback=self.show_memory_stats)
         self.memory_cleanup_item = rumps.MenuItem("🧹 Force Memory Cleanup", callback=self.force_memory_cleanup)
+
+        # Memory tracking items (moved from Memory Usage menu)
+        self.memory_trends_item = rumps.MenuItem("📈 View Memory Trends", callback=self.show_memory_trends)
+        self.toggle_tracking_item = rumps.MenuItem("🔄 Start Memory Tracking", callback=self.toggle_memory_tracking)
 
         # Build memory monitor submenu
         self.memory_monitor_menu.add(self.memory_unified_dashboard_item)
         self.memory_monitor_menu.add(rumps.separator)
         self.memory_monitor_menu.add(self.memory_stats_item)
         self.memory_monitor_menu.add(self.memory_cleanup_item)
+        self.memory_monitor_menu.add(rumps.separator)
+        self.memory_monitor_menu.add(self.memory_trends_item)
+        self.memory_monitor_menu.add(self.toggle_tracking_item)
 
-    def _init_memory_usage_menu(self):
-        """Initialize the memory usage monitoring menu."""
-        self.memory_usage_menu = rumps.MenuItem("Memory Usage")
-        self.memory_status = rumps.MenuItem("Current Usage: Calculating...")
-        self.memory_usage_menu.add(self.memory_status)
-        self.memory_usage_menu.add(rumps.MenuItem("View Memory Trends", callback=self.show_memory_trends))
-        self.toggle_tracking_item = rumps.MenuItem("Start Memory Tracking", callback=self.toggle_memory_tracking)
-        self.memory_usage_menu.add(self.toggle_tracking_item)
-
-        # Initialize monitoring processes tracking
+        # Initialize monitoring processes tracking (moved from removed _init_memory_usage_menu)
         self._monitoring_processes = {}
 
-        # Memory tracking data structures
+        # Memory tracking data structures (moved from removed _init_memory_usage_menu)
         self.memory_data = {"menubar": [], "service": []}
         self.memory_timestamps = []
         self.memory_tracking_active = False
+
+        # Auto-start unified dashboard on app launch - DISABLED to prevent multiple spawning
+        # self._auto_start_dashboard()
 
         # Mini histogram data for menu display
         self.menubar_history = []
         self.service_history = []
         self.menubar_peak = 0
         self.service_peak = 0
+
+
 
     def _init_submenus(self):
         """Initialize and populate submenus."""
@@ -630,9 +632,8 @@ class ClipboardMonitorMenuBar(rumps.App):
         self.menu.add(self.module_menu)
         self.menu.add(rumps.separator)
 
-        # Memory monitoring tools (enhanced section)
+        # Memory monitoring tools (consolidated section)
         self.menu.add(self.memory_monitor_menu)
-        self.menu.add(self.memory_usage_menu)
         self.menu.add(rumps.separator)
 
         # Section 3: Preferences
@@ -668,7 +669,7 @@ class ClipboardMonitorMenuBar(rumps.App):
         try:
             # Check if the process is running using launchctl
             result = subprocess.run(
-                ["launchctl", "list", "com.omairaslam.clipboardmonitor"], 
+                ["launchctl", "list", "com.clipboardmonitor"],
                 capture_output=True, 
                 text=True
             )
@@ -755,6 +756,9 @@ class ClipboardMonitorMenuBar(rumps.App):
             rumps.notification("Clipboard Monitor", "Service Restarted", "The clipboard monitor service has been restarted.")
             self.log_event("Service restarted via menu.", "INFO")
             self.update_status()
+
+            # Auto-start dashboard after service restart - DISABLED to prevent multiple spawning
+            # self._auto_start_dashboard()
         except Exception as e:
             self.log_error(f"Failed to restart service: {str(e)}")
             show_notification("Error", "Failed to restart service", str(e), self.log_path, self.error_log_path)
@@ -1612,12 +1616,84 @@ read -n 1
 
             # Start unified dashboard
             script_path = os.path.join(os.path.dirname(__file__), 'unified_memory_dashboard.py')
+
+            # For bundled app, try alternative paths
+            if not os.path.exists(script_path):
+                # Try in the same directory as the executable
+                script_path = os.path.join(os.path.dirname(sys.executable), 'unified_memory_dashboard.py')
+
+            if not os.path.exists(script_path):
+                # Try in the Resources directory for bundled app
+                script_path = os.path.join(os.path.dirname(__file__), '..', 'Resources', 'unified_memory_dashboard.py')
+
             if os.path.exists(script_path):
-                proc = subprocess.Popen([sys.executable, script_path])
+                print(f"Starting unified dashboard from: {script_path}")
+
+                # Test if the script can be imported (basic syntax check)
+                try:
+                    import subprocess
+                    test_proc = subprocess.run([sys.executable, '-c', f'import sys; sys.path.insert(0, "{os.path.dirname(script_path)}"); import unified_memory_dashboard'],
+                                             capture_output=True, timeout=10)
+                    if test_proc.returncode != 0:
+                        rumps.alert("Dashboard Import Error",
+                                   f"The dashboard script has syntax errors:\n\n{test_proc.stderr.decode()}")
+                        return
+                except Exception as e:
+                    print(f"Warning: Could not test dashboard import: {e}")
+
+                # Kill any existing dashboard processes first (more thorough cleanup)
+                try:
+                    import psutil
+                    for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
+                        try:
+                            cmdline = proc.info.get('cmdline', [])
+                            if cmdline:
+                                cmdline_str = ' '.join(cmdline)
+                                if 'unified_memory_dashboard.py' in cmdline_str:
+                                    print(f"Killing existing dashboard process: {proc.info['pid']}")
+                                    proc.terminate()
+                        except:
+                            continue
+                    time.sleep(1)  # Give processes time to terminate
+                except:
+                    pass
+
+                # Start new dashboard instance
+                proc = subprocess.Popen([sys.executable, script_path],
+                                      stdout=subprocess.PIPE,
+                                      stderr=subprocess.PIPE,
+                                      cwd=os.path.dirname(script_path))
                 self._monitoring_processes['unified_dashboard'] = proc
 
-                # Wait for server to start
-                time.sleep(3)
+                # Wait for server to start and check if it's actually running
+                print("Waiting for dashboard server to start...")
+                for i in range(10):  # Wait up to 10 seconds
+                    time.sleep(1)
+                    try:
+                        import urllib.request
+                        urllib.request.urlopen('http://localhost:8001', timeout=1)
+                        print("Dashboard server is responding")
+                        break
+                    except:
+                        if i == 9:  # Last attempt
+                            print("Dashboard server failed to start")
+                            # Check if process is still running
+                            if proc.poll() is not None:
+                                stdout, stderr = proc.communicate()
+                                print(f"Dashboard process exited with code: {proc.returncode}")
+                                print(f"Stdout: {stdout.decode()}")
+                                print(f"Stderr: {stderr.decode()}")
+
+                                # Show detailed error information
+                                error_msg = f"Dashboard failed to start.\n\nExit code: {proc.returncode}"
+                                if stderr:
+                                    error_msg += f"\n\nError details:\n{stderr.decode()}"
+                                if stdout:
+                                    error_msg += f"\n\nOutput:\n{stdout.decode()}"
+
+                                rumps.alert("Dashboard Error", error_msg)
+                                return
+                        continue
 
                 # Open browser
                 webbrowser.open('http://localhost:8001')
@@ -1626,28 +1702,86 @@ read -n 1
                                  "Comprehensive monitoring available at localhost:8001")
             else:
                 rumps.alert("Unified Dashboard not found",
-                           "The unified_memory_dashboard.py file was not found.")
+                           f"The unified_memory_dashboard.py file was not found.\nSearched paths:\n{script_path}")
 
         except Exception as e:
             rumps.alert("Error", f"Failed to start Unified Memory Dashboard: {e}")
 
+    def _auto_start_dashboard(self):
+        """Auto-start unified dashboard on app launch (silent, no browser opening)"""
+        try:
+            import subprocess
+            import time
+            import os
+
+            # PROTECTION: Check if we're already being launched by a dashboard process
+            # This prevents recursive spawning
+            current_cmdline = ' '.join(sys.argv)
+            if '--auto-start' in current_cmdline or 'unified_memory_dashboard.py' in current_cmdline:
+                print("Detected dashboard launch context, skipping auto-start to prevent recursion")
+                return
+
+            # PROTECTION: Check for multiple ClipboardMonitor processes
+            try:
+                import psutil
+                clipboard_processes = []
+                for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
+                    try:
+                        cmdline = proc.info.get('cmdline', [])
+                        if cmdline:
+                            cmdline_str = ' '.join(cmdline).lower()
+                            if 'clipboardmonitorMenuBar' in cmdline_str or 'menu_bar_app.py' in cmdline_str:
+                                clipboard_processes.append(proc.info['pid'])
+                    except:
+                        continue
+
+                if len(clipboard_processes) > 1:
+                    print(f"Multiple ClipboardMonitor processes detected ({len(clipboard_processes)}), skipping auto-start")
+                    return
+            except:
+                pass  # If psutil check fails, continue with caution
+
+            # Check if already running
+            if self._is_process_running('unified_dashboard'):
+                print("Unified dashboard already running, skipping auto-start")
+                return
+
+            # Kill any existing dashboard processes first
+            dashboard_processes = ['unified_dashboard', 'visualizer', 'monitoring_dashboard']
+            for process_name in dashboard_processes:
+                if self._is_process_running(process_name):
+                    self._kill_monitoring_process(process_name)
+
+            # Start unified dashboard (silent mode)
+            script_path = os.path.join(os.path.dirname(__file__), 'unified_memory_dashboard.py')
+            if os.path.exists(script_path):
+                # PROTECTION: Add environment variable to prevent recursive launches
+                env = os.environ.copy()
+                env['CLIPBOARD_MONITOR_DASHBOARD_PARENT'] = str(os.getpid())
+
+                proc = subprocess.Popen([sys.executable, script_path, '--auto-start'], env=env)
+                self._monitoring_processes['unified_dashboard'] = proc
+
+                print("Auto-started unified dashboard (5-minute timeout)")
+
+                # Show subtle notification
+                rumps.notification("Clipboard Monitor", "Dashboard Auto-Started",
+                                 "Memory monitoring available at localhost:8001 (5min timeout)")
+            else:
+                print("Unified dashboard script not found, skipping auto-start")
+
+        except Exception as e:
+            print(f"Error auto-starting unified dashboard: {e}")
+            # Don't show error to user for auto-start failures
+
     def show_memory_stats(self, sender):
-        """Show current memory statistics"""
+        """Show comprehensive memory statistics for debugging"""
         try:
             import psutil
             import gc
-
-            # Get current process memory info
-            process = psutil.Process()
-            memory_info = process.memory_info()
-            memory_percent = process.memory_percent()
-
-            # Get system memory info
-            system_memory = psutil.virtual_memory()
-
-            # Force garbage collection and get counts
-            gc.collect()
-            gc_stats = gc.get_stats()
+            import os
+            import threading
+            from datetime import datetime
 
             # Format memory sizes
             def format_bytes(bytes_val):
@@ -1657,27 +1791,146 @@ read -n 1
                     bytes_val /= 1024.0
                 return f"{bytes_val:.1f} TB"
 
-            stats_message = f"""Memory Statistics:
+            # Get current process (menu bar app) memory info
+            current_process = psutil.Process()
+            current_memory = current_process.memory_info()
+            current_percent = current_process.memory_percent()
 
-Process Memory:
-• RSS: {format_bytes(memory_info.rss)}
-• VMS: {format_bytes(memory_info.vms)}
-• Percent: {memory_percent:.1f}%
+            # Find all clipboard-related processes
+            clipboard_processes = []
+            total_clipboard_memory = 0
 
-System Memory:
-• Total: {format_bytes(system_memory.total)}
-• Available: {format_bytes(system_memory.available)}
-• Used: {system_memory.percent:.1f}%
+            for proc in psutil.process_iter(['pid', 'name', 'cmdline', 'memory_info', 'cpu_percent', 'create_time', 'status']):
+                try:
+                    cmdline = proc.info.get('cmdline', [])
+                    if cmdline:
+                        cmdline_str = ' '.join(cmdline).lower()
 
-Garbage Collection:
-• Generation 0: {gc_stats[0]['collections']} collections
-• Generation 1: {gc_stats[1]['collections']} collections
-• Generation 2: {gc_stats[2]['collections']} collections"""
+                        # Enhanced detection for clipboard processes
+                        is_clipboard_process = any(keyword in cmdline_str for keyword in [
+                            'clipboard', 'menu_bar_app', 'main.py', 'unified_memory_dashboard'
+                        ]) or (
+                            'python' in proc.info['name'].lower() and
+                            any(path_part in cmdline_str for path_part in [
+                                'clipboardmonitor', 'clipboard-monitor', 'clipboard_monitor'
+                            ])
+                        )
 
-            rumps.alert("Memory Statistics", stats_message)
+                        if is_clipboard_process:
+                            memory_mb = proc.info['memory_info'].rss / 1024 / 1024
+                            total_clipboard_memory += memory_mb
+
+                            # Determine process type
+                            process_type = "unknown"
+                            if 'menu_bar_app.py' in cmdline_str:
+                                process_type = "menu_bar"
+                            elif 'main.py' in cmdline_str and any(path_part in cmdline_str for path_part in [
+                                'clipboard', 'clipboardmonitor', 'clipboard-monitor', 'clipboard_monitor'
+                            ]):
+                                process_type = "main_service"
+                            elif 'unified_memory_dashboard.py' in cmdline_str:
+                                process_type = "dashboard"
+
+                            clipboard_processes.append({
+                                'pid': proc.info['pid'],
+                                'name': proc.info['name'],
+                                'type': process_type,
+                                'memory_mb': memory_mb,
+                                'cpu_percent': proc.info['cpu_percent'] or 0,
+                                'status': proc.info['status'],
+                                'create_time': datetime.fromtimestamp(proc.info['create_time']).strftime('%H:%M:%S'),
+                                'is_current': proc.info['pid'] == current_process.pid
+                            })
+
+                except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+                    continue
+
+            # Get system memory info
+            system_memory = psutil.virtual_memory()
+            swap_memory = psutil.swap_memory()
+
+            # Get CPU info
+            cpu_count = psutil.cpu_count()
+            cpu_percent = psutil.cpu_percent(interval=1)
+            load_avg = os.getloadavg() if hasattr(os, 'getloadavg') else (0, 0, 0)
+
+            # Force garbage collection and get detailed stats
+            collected = gc.collect()
+            gc_stats = gc.get_stats()
+            gc_counts = gc.get_count()
+            gc_thresholds = gc.get_threshold()
+
+            # Memory tracking stats
+            tracking_status = "Active" if self.memory_tracking_active else "Inactive"
+            tracking_points = len(self.memory_data.get("menubar", []))
+            peak_menubar = self.menubar_peak
+            peak_service = self.service_peak
+
+            # Thread information
+            thread_count = threading.active_count()
+            main_thread = threading.main_thread()
+            current_thread = threading.current_thread()
+
+            # Build comprehensive stats message
+            stats_message = f"""🔍 COMPREHENSIVE MEMORY DIAGNOSTICS
+
+📊 CLIPBOARD PROCESSES ({len(clipboard_processes)} found):"""
+
+            for proc in clipboard_processes:
+                current_marker = " ← CURRENT" if proc['is_current'] else ""
+                stats_message += f"""
+• {proc['type'].upper()}: PID {proc['pid']} ({proc['status']})
+  Memory: {proc['memory_mb']:.1f} MB | CPU: {proc['cpu_percent']:.1f}%
+  Started: {proc['create_time']}{current_marker}"""
+
+            stats_message += f"""
+
+💾 CURRENT PROCESS DETAILS:
+• RSS: {format_bytes(current_memory.rss)} (Physical RAM)
+• VMS: {format_bytes(current_memory.vms)} (Virtual Memory)
+• Percent: {current_percent:.2f}% of system memory
+• PID: {current_process.pid}
+• Threads: {thread_count} active threads
+
+📈 MEMORY TRACKING:
+• Status: {tracking_status}
+• Data Points: {tracking_points}
+• Menu Bar Peak: {peak_menubar:.1f} MB
+• Service Peak: {peak_service:.1f} MB
+• Total Clipboard Memory: {total_clipboard_memory:.1f} MB
+
+🖥️  SYSTEM RESOURCES:
+• RAM Total: {format_bytes(system_memory.total)}
+• RAM Available: {format_bytes(system_memory.available)} ({100-system_memory.percent:.1f}% free)
+• RAM Used: {format_bytes(system_memory.used)} ({system_memory.percent:.1f}%)
+• Swap Total: {format_bytes(swap_memory.total)}
+• Swap Used: {format_bytes(swap_memory.used)} ({swap_memory.percent:.1f}%)
+
+⚡ CPU & PERFORMANCE:
+• CPU Cores: {cpu_count}
+• CPU Usage: {cpu_percent:.1f}%
+• Load Average: {load_avg[0]:.2f}, {load_avg[1]:.2f}, {load_avg[2]:.2f}
+
+🗑️  GARBAGE COLLECTION:
+• Objects Collected: {collected}
+• Gen 0: {gc_counts[0]} objects (threshold: {gc_thresholds[0]})
+• Gen 1: {gc_counts[1]} objects (threshold: {gc_thresholds[1]})
+• Gen 2: {gc_counts[2]} objects (threshold: {gc_thresholds[2]})
+• Collections: G0:{gc_stats[0]['collections']}, G1:{gc_stats[1]['collections']}, G2:{gc_stats[2]['collections']}
+
+🧵 THREADING INFO:
+• Active Threads: {thread_count}
+• Main Thread: {main_thread.name} ({'alive' if main_thread.is_alive() else 'dead'})
+• Current Thread: {current_thread.name}
+
+⏰ TIMESTAMP: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"""
+
+            rumps.alert("Memory Diagnostics", stats_message)
 
         except Exception as e:
-            rumps.alert("Error", f"Failed to get memory statistics: {e}")
+            import traceback
+            error_details = traceback.format_exc()
+            rumps.alert("Diagnostics Error", f"Failed to get memory diagnostics:\n\n{str(e)}\n\nDetails:\n{error_details[:500]}...")
 
     def force_memory_cleanup(self, sender):
         """Force garbage collection and memory cleanup"""
@@ -1785,13 +2038,7 @@ Garbage Collection:
             menubar_histogram = self._generate_mini_histogram(self.menubar_history, self.menubar_peak)
             service_histogram = self._generate_mini_histogram(self.service_history, self.service_peak)
 
-            # Get color indicators
-            menubar_color = self._get_memory_color_indicator(menubar_memory, self.menubar_peak)
-            service_color = self._get_memory_color_indicator(service_memory, self.service_peak)
-
-            # Update memory usage submenu item with detailed info
-            self.memory_status.title = (f"Menu Bar: {menubar_memory:.1f}MB {menubar_histogram} {menubar_color} Peak: {self.menubar_peak:.0f}MB\n"
-                                      f"Service: {service_memory:.1f}MB  {service_histogram} {service_color} Avg: {sum(self.service_history)/len(self.service_history) if self.service_history else 0:.0f}MB")
+            # Memory status removed - consolidated into Memory Monitor menu
 
             # Update main menu display items (two separate lines)
             self.memory_menubar_item.title = f"Menu Bar: {menubar_memory:.1f}MB {menubar_histogram} Peak: {self.menubar_peak:.0f}MB"
@@ -1810,8 +2057,9 @@ Garbage Collection:
                     self.memory_data["menubar"] = self.memory_data["menubar"][-max_points:]
                     self.memory_data["service"] = self.memory_data["service"][-max_points:]
 
-        except Exception as e:
-            self.memory_status.title = f"Memory: Error ({str(e)[:20]}...)"
+        except Exception:
+            # Memory status removed - error handling simplified
+            pass
 
     def _generate_mini_histogram(self, values, peak_value):
         """Generate mini histogram bars for memory visualization"""
@@ -1856,14 +2104,14 @@ Garbage Collection:
         self.memory_tracking_active = not self.memory_tracking_active
 
         if self.memory_tracking_active:
-            sender.title = "Stop Memory Tracking"
+            sender.title = "🛑 Stop Memory Tracking"
             # Clear previous data
             self.memory_data = {"menubar": [], "service": []}
             self.memory_timestamps = []
             rumps.notification("Memory Tracking", "Started",
                               "Memory usage is now being recorded for trend analysis.")
         else:
-            sender.title = "Start Memory Tracking"
+            sender.title = "🔄 Start Memory Tracking"
             rumps.notification("Memory Tracking", "Stopped",
                               "Memory tracking has been stopped.")
 

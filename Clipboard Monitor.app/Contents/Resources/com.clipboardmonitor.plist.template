@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- Unique identifier for your LaunchAgent -->
+    <key>Label</key>
+    <string>com.clipboardmonitor</string>
+
+    <!-- The command and arguments to run (Python interpreter and your script) -->
+    <key>ProgramArguments</key>
+    <array>
+        <!-- Full path to Python 3 interpreter -->
+        <string>/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/Clipboard Monitor.app/Contents/Resources/Services/ClipboardMonitor</string>
+        <!-- Full path to your main.py script -->
+        <string>/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/main.py</string>
+    </array>
+
+    <!-- Start the agent automatically when loaded (e.g., at user login) -->
+    <key>RunAtLoad</key>
+    <true/>
+
+    <!-- Relaunch the script if it crashes or exits -->
+    <key>KeepAlive</key>
+    <true/>
+
+    <!-- (Has no effect for Python scripts, only for app bundles) -->
+    <key>LSBackgroundOnly</key>
+    <true/>
+
+    <!-- Log file for standard output -->
+    <key>StandardOutPath</key>
+    <string>/Users/omair.aslam/Library/Logs/ClipboardMonitor.out.log</string>
+
+    <!-- Log file for standard error -->
+    <key>StandardErrorPath</key>
+    <string>/Users/omair.aslam/Library/Logs/ClipboardMonitor.err.log</string>
+
+    <!-- Working directory for your script (helps with relative paths) -->
+    <key>WorkingDirectory</key>
+    <string>/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair VS Code Workspaces/Clipboard Monitor/</string>
+
+    <!-- Environment variables for the script -->
+    <key>EnvironmentVariables</key>
+    <dict>
+        <!-- Ensures Python output is written to logs immediately -->
+        <key>PYTHONUNBUFFERED</key>
+        <string>1</string>
+        <!-- Set PATH for subprocesses -->
+        <key>PATH</key>
+        <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+        <!-- Explicitly set HOME to prevent tilde expansion issues -->
+        <key>HOME</key>
+        <string>/Users/omair.aslam</string>
+    </dict>
+
+</dict>
+</plist>

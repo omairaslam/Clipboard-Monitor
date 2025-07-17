@@ -1,0 +1,1 @@
+../Resources/cli_history_viewer.py

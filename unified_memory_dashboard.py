@@ -2373,8 +2373,11 @@ class UnifiedMemoryDashboard:
         historical_data = self.get_historical_data(hours)
         analysis = {}
 
-        for process_name, points in historical_data.items():
-            if len(points) < 2:
+        # Only process actual process data, skip metadata keys
+        process_keys = ['main_service', 'menu_bar', 'system']
+        for process_name in process_keys:
+            points = historical_data.get(process_name, [])
+            if not isinstance(points, list) or len(points) < 2:
                 analysis[process_name] = {
                     "status": "insufficient_data",
                     "severity": "low",
@@ -2382,7 +2385,7 @@ class UnifiedMemoryDashboard:
                     "total_growth_mb": 0,
                     "start_memory_mb": 0,
                     "end_memory_mb": 0,
-                    "data_points": len(points)
+                    "data_points": len(points) if isinstance(points, list) else 0
                 }
                 continue
 
@@ -2685,6 +2688,46 @@ class UnifiedMemoryDashboard:
 
 if __name__ == "__main__":
     import argparse
+    import os
+    import sys
+
+    # PROTECTION: Prevent recursive launches
+    if 'CLIPBOARD_MONITOR_DASHBOARD_PARENT' in os.environ:
+        parent_pid = os.environ.get('CLIPBOARD_MONITOR_DASHBOARD_PARENT')
+        print(f"Dashboard launched by ClipboardMonitor parent PID {parent_pid}")
+
+        # Check if parent is still running
+        try:
+            import psutil
+            if not psutil.pid_exists(int(parent_pid)):
+                print("Parent process no longer exists, exiting dashboard")
+                sys.exit(0)
+        except:
+            pass
+
+    # PROTECTION: Check for multiple dashboard instances (only for auto-start mode)
+    # Manual starts are allowed to override existing instances
+    if '--auto-start' in sys.argv:
+        try:
+            import psutil
+            dashboard_processes = []
+            for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
+                try:
+                    cmdline = proc.info.get('cmdline', [])
+                    if cmdline:
+                        cmdline_str = ' '.join(cmdline)
+                        if 'unified_memory_dashboard.py' in cmdline_str and proc.info['pid'] != os.getpid():
+                            dashboard_processes.append(proc.info['pid'])
+                except:
+                    continue
+
+            if len(dashboard_processes) > 0:
+                print(f"Other dashboard instances detected ({len(dashboard_processes)}), exiting auto-start to prevent conflicts")
+                sys.exit(0)
+        except:
+            pass  # If check fails, continue with caution
+    else:
+        print("Manual dashboard start - will override any existing instances")
 
     parser = argparse.ArgumentParser(description='Unified Memory Dashboard')
     parser.add_argument('--auto-start', action='store_true',
