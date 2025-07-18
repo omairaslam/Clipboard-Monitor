@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Layout Options</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f0f2f5;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        .option-links {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+        .option-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            text-decoration: none;
+            color: inherit;
+        }
+        .option-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+            text-decoration: none;
+            color: inherit;
+        }
+        .option-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 8px;
+        }
+        .option-description {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 12px;
+        }
+        .option-preview {
+            font-size: 12px;
+            color: #888;
+            font-style: italic;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        .header h1 {
+            color: #333;
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+        .header p {
+            color: #666;
+            font-size: 16px;
+        }
+        .comparison-note {
+            background: #e3f2fd;
+            border-left: 4px solid #2196F3;
+            padding: 15px;
+            margin-bottom: 30px;
+            border-radius: 4px;
+        }
+        .comparison-note h3 {
+            margin-top: 0;
+            color: #1976D2;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 Dashboard Layout Options</h1>
+            <p>Choose the best top bar layout for your Clipboard Monitor dashboard</p>
+        </div>
+
+        <div class="comparison-note">
+            <h3>🎯 How to Compare</h3>
+            <p><strong>Click each option below</strong> to see how it looks in your browser. Each layout shows the same data with different visual approaches. Consider:</p>
+            <ul style="margin: 10px 0 0 20px;">
+                <li><strong>Readability:</strong> How easy is it to scan the information?</li>
+                <li><strong>Space efficiency:</strong> How much vertical space does it use?</li>
+                <li><strong>Visual appeal:</strong> Does it look modern and professional?</li>
+                <li><strong>Information density:</strong> Can you see all important metrics at a glance?</li>
+            </ul>
+        </div>
+
+        <div class="option-links">
+            <a href="option1_cards.html" class="option-card">
+                <div class="option-title">Option 1: Card-Based</div>
+                <div class="option-description">Clean cards with color-coded borders and clear metric separation</div>
+                <div class="option-preview">Best for: Visual clarity and modern design</div>
+            </a>
+
+            <a href="option2_progress.html" class="option-card">
+                <div class="option-title">Option 2: Progress Bars</div>
+                <div class="option-description">Visual progress bars showing memory and CPU utilization</div>
+                <div class="option-preview">Best for: Understanding resource usage at a glance</div>
+            </a>
+
+            <a href="option3_table.html" class="option-card">
+                <div class="option-title">Option 3: Compact Table</div>
+                <div class="option-description">Structured table layout with comprehensive data</div>
+                <div class="option-preview">Best for: Maximum information density</div>
+            </a>
+
+            <a href="option4_widgets.html" class="option-card">
+                <div class="option-title">Option 4: Modern Widgets</div>
+                <div class="option-description">Gradient background with glass-effect widgets</div>
+                <div class="option-preview">Best for: Modern, eye-catching design</div>
+            </a>
+
+            <a href="option5_minimal.html" class="option-card">
+                <div class="option-title">Option 5: Minimal Bar</div>
+                <div class="option-description">Ultra-compact single-row status bar layout</div>
+                <div class="option-preview">Best for: Maximum space efficiency</div>
+            </a>
+        </div>
+
+        <div style="background: white; border-radius: 8px; padding: 20px; margin-top: 30px;">
+            <h3 style="color: #333; margin-top: 0;">📋 Quick Comparison</h3>
+            <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                <thead>
+                    <tr style="background: #f8f9fa;">
+                        <th style="padding: 10px; text-align: left; border-bottom: 1px solid #dee2e6;">Option</th>
+                        <th style="padding: 10px; text-align: center; border-bottom: 1px solid #dee2e6;">Height</th>
+                        <th style="padding: 10px; text-align: center; border-bottom: 1px solid #dee2e6;">Info Density</th>
+                        <th style="padding: 10px; text-align: center; border-bottom: 1px solid #dee2e6;">Visual Appeal</th>
+                        <th style="padding: 10px; text-align: center; border-bottom: 1px solid #dee2e6;">Best For</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td style="padding: 8px; border-bottom: 1px solid #eee;"><strong>1. Cards</strong></td>
+                        <td style="padding: 8px; text-align: center; border-bottom: 1px solid #eee;">Medium</td>
+                        <td style="padding: 8px; text-align: center; border-bottom: 1px solid #eee;">High</td>
+                        <td style="padding: 8px; text-align: center; border-bottom: 1px solid #eee;">⭐⭐⭐⭐⭐</td>
+                        <td style="padding: 8px; text-align: center; border-bottom: 1px solid #eee;">General use</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px; border-bottom: 1px solid #eee;"><strong>2. Progress</strong></td>
+                        <td style="padding: 8px; text-align: center; border-bottom: 1px solid #eee;">Medium</td>
+                        <td style="padding: 8px; text-align: center; border-bottom: 1px solid #eee;">Medium</td>
+                        <td style="padding: 8px; text-align: center; border-bottom: 1px solid #eee;">⭐⭐⭐⭐</td>
+                        <td style="padding: 8px; text-align: center; border-bottom: 1px solid #eee;">Visual tracking</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px; border-bottom: 1px solid #eee;"><strong>3. Table</strong></td>
+                        <td style="padding: 8px; text-align: center; border-bottom: 1px solid #eee;">Compact</td>
+                        <td style="padding: 8px; text-align: center; border-bottom: 1px solid #eee;">Very High</td>
+                        <td style="padding: 8px; text-align: center; border-bottom: 1px solid #eee;">⭐⭐⭐</td>
+                        <td style="padding: 8px; text-align: center; border-bottom: 1px solid #eee;">Data analysis</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px; border-bottom: 1px solid #eee;"><strong>4. Widgets</strong></td>
+                        <td style="padding: 8px; text-align: center; border-bottom: 1px solid #eee;">Medium</td>
+                        <td style="padding: 8px; text-align: center; border-bottom: 1px solid #eee;">Medium</td>
+                        <td style="padding: 8px; text-align: center; border-bottom: 1px solid #eee;">⭐⭐⭐⭐⭐</td>
+                        <td style="padding: 8px; text-align: center; border-bottom: 1px solid #eee;">Modern UI</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px;"><strong>5. Minimal</strong></td>
+                        <td style="padding: 8px; text-align: center;">Very Compact</td>
+                        <td style="padding: 8px; text-align: center;">High</td>
+                        <td style="padding: 8px; text-align: center;">⭐⭐⭐</td>
+                        <td style="padding: 8px; text-align: center;">Space saving</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</body>
+</html>

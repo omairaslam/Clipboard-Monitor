@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Option 1: Card-Based Layout</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2 style="text-align: center; color: #333; margin-bottom: 30px;">Option 1: Card-Based Compact Grid</h2>
+        
+        <!-- Option 1 Layout -->
+        <div class="metrics-header" style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: 8px; padding: 12px; margin-bottom: 20px; border: 1px solid #dee2e6;">
+            <!-- Title Row -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <h1 style="margin: 0; font-size: 18px; color: #333;">📊 Clipboard Monitor Dashboard</h1>
+                <div style="display: flex; gap: 15px; font-size: 12px;">
+                    <span style="padding: 4px 8px; border-radius: 12px; background: #4CAF50; color: white;">● Connected</span>
+                    <span style="color: #666;">Session: 2h 15m</span>
+                </div>
+            </div>
+            
+            <!-- Metrics Cards Row -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 12px;">
+                <!-- Menu Bar Card -->
+                <div style="background: white; border-radius: 6px; padding: 8px; border-left: 3px solid #2196F3; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                    <div style="font-size: 11px; color: #666; margin-bottom: 2px;">📱 MENU BAR</div>
+                    <div style="display: flex; justify-content: space-between; align-items: baseline;">
+                        <span style="font-size: 14px; font-weight: bold; color: #2196F3;">55.2MB</span>
+                        <span style="font-size: 10px; color: #FF5722;">↑67.1MB</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: baseline; margin-top: 2px;">
+                        <span style="font-size: 14px; font-weight: bold; color: #4CAF50;">0.8%</span>
+                        <span style="font-size: 10px; color: #FF5722;">↑2.1%</span>
+                    </div>
+                </div>
+                
+                <!-- Service Card -->
+                <div style="background: white; border-radius: 6px; padding: 8px; border-left: 3px solid #9C27B0; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                    <div style="font-size: 11px; color: #666; margin-bottom: 2px;">⚙️ SERVICE</div>
+                    <div style="display: flex; justify-content: space-between; align-items: baseline;">
+                        <span style="font-size: 14px; font-weight: bold; color: #9C27B0;">40.6MB</span>
+                        <span style="font-size: 10px; color: #FF5722;">↑45.2MB</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: baseline; margin-top: 2px;">
+                        <span style="font-size: 14px; font-weight: bold; color: #4CAF50;">1.2%</span>
+                        <span style="font-size: 10px; color: #FF5722;">↑15.8%</span>
+                    </div>
+                </div>
+                
+                <!-- Total Card -->
+                <div style="background: white; border-radius: 6px; padding: 8px; border-left: 3px solid #607D8B; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                    <div style="font-size: 11px; color: #666; margin-bottom: 2px;">📊 TOTAL</div>
+                    <div style="display: flex; justify-content: space-between; align-items: baseline;">
+                        <span style="font-size: 14px; font-weight: bold; color: #607D8B;">95.8MB</span>
+                        <span style="font-size: 10px; color: #FF5722;">↑112.3MB</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: baseline; margin-top: 2px;">
+                        <span style="font-size: 14px; font-weight: bold; color: #4CAF50;">2.0%</span>
+                        <span style="font-size: 10px; color: #FF5722;">↑17.9%</span>
+                    </div>
+                </div>
+                
+                <!-- System Card -->
+                <div style="background: white; border-radius: 6px; padding: 8px; border-left: 3px solid #FF9800; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                    <div style="font-size: 11px; color: #666; margin-bottom: 2px;">💻 SYSTEM</div>
+                    <div style="display: flex; justify-content: space-between; align-items: baseline;">
+                        <span style="font-size: 14px; font-weight: bold; color: #FF9800;">16GB</span>
+                        <span style="font-size: 10px; color: #4CAF50;">12.3GB free</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: baseline; margin-top: 2px;">
+                        <span style="font-size: 14px; font-weight: bold; color: #F44336;">23.5%</span>
+                        <span style="font-size: 10px; color: #666;">8 cores</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sample dashboard content below -->
+        <div style="background: white; border-radius: 8px; padding: 20px; margin-top: 20px;">
+            <h3 style="color: #333; margin-top: 0;">Dashboard Content Below</h3>
+            <p style="color: #666;">This is where your charts and other dashboard content would appear...</p>
+            <div style="height: 200px; background: #f8f9fa; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: #666;">
+                📈 Charts and Graphs Area
+            </div>
+        </div>
+    </div>
+</body>
+</html>

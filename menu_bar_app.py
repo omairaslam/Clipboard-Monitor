@@ -1725,9 +1725,7 @@ read -n 1
                                 return
                         continue
 
-                # Open browser
-                webbrowser.open('http://localhost:8001')
-
+                # Browser will be opened automatically by the dashboard
                 rumps.notification("Unified Memory Dashboard", "Started Successfully",
                                  "Comprehensive monitoring available at localhost:8001")
             else:

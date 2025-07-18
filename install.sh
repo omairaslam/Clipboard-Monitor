@@ -447,18 +447,61 @@ main() {
     print_success "Menu bar service configuration ready (manual installation required)"
     echo ""
 
-    print_step "📋 Manual plist file installation required..."
+    print_step "📋 Interactive plist file installation..."
     echo ""
-    echo -e "${YELLOW}⚠️  IMPORTANT: SentinelOne security software prevents automated plist creation${NC}"
-    echo -e "${BLUE}📁 Plist files are provided in the DMG for manual installation:${NC}"
+    echo -e "${BLUE}🎯 EASY DRAG-AND-DROP INSTALLATION${NC}"
+    echo -e "${BLUE}The DMG includes everything you need for a simple installation!${NC}"
+    echo ""
+    echo -e "${BLUE}📁 What's included in the DMG:${NC}"
     echo -e "${BLUE}   • com.clipboardmonitor.plist${NC}"
     echo -e "${BLUE}   • com.clipboardmonitor.menubar.plist${NC}"
+    echo -e "${BLUE}   • LaunchAgents folder (shortcut to ~/Library/LaunchAgents)${NC}"
     echo ""
-    echo -e "${BLUE}📋 MANUAL INSTALLATION STEPS:${NC}"
-    echo -e "${BLUE}   1. Copy both plist files from the DMG to:${NC}"
-    echo -e "${BLUE}      ~/Library/LaunchAgents/${NC}"
-    echo -e "${BLUE}   2. Press any key to continue with the installation${NC}"
+    echo -e "${BLUE}🚀 SUPER SIMPLE INSTALLATION:${NC}"
+    echo -e "${BLUE}   1. I'll open both the DMG and LaunchAgents folder for you${NC}"
+    echo -e "${BLUE}   2. Just drag the 2 plist files to the LaunchAgents folder${NC}"
+    echo -e "${BLUE}   3. Come back here and press any key to continue${NC}"
     echo ""
+
+    # Offer to open the folders automatically
+    echo -e "${BLUE}Would you like me to open the folders for you now? (Y/n)${NC}"
+    read -p "" -n 1 -r
+    echo # Move to a new line
+
+    # Default to 'y' if user just pressed Enter
+    if [[ -z $REPLY ]]; then
+        REPLY="y"
+    fi
+
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        print_step "📂 Opening folders for easy installation..."
+
+        # Open the DMG folder (should already be mounted)
+        if [ -d "/Volumes/Clipboard Monitor" ]; then
+            open "/Volumes/Clipboard Monitor"
+            print_success "Opened DMG folder"
+        else
+            print_warning "DMG folder not found - please open it manually"
+        fi
+
+        # Open LaunchAgents folder (create if it doesn't exist)
+        mkdir -p "$HOME/Library/LaunchAgents"
+        open "$HOME/Library/LaunchAgents"
+        print_success "Opened LaunchAgents folder"
+
+        echo ""
+        echo -e "${GREEN}✨ Perfect! Both folders are now open.${NC}"
+        echo -e "${BLUE}📋 Now just drag these 2 files from the DMG to LaunchAgents:${NC}"
+        echo -e "${BLUE}   • com.clipboardmonitor.plist${NC}"
+        echo -e "${BLUE}   • com.clipboardmonitor.menubar.plist${NC}"
+        echo ""
+    else
+        echo -e "${BLUE}📋 Manual installation:${NC}"
+        echo -e "${BLUE}   Copy both plist files from the DMG to: ~/Library/LaunchAgents/${NC}"
+        echo ""
+    fi
+
+    echo -e "${BLUE}⏳ Waiting for you to copy the plist files...${NC}"
     read -p "Press any key after copying the plist files..." -n 1 -s
     echo ""
     print_success "Proceeding with service installation"

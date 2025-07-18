@@ -42,6 +42,10 @@ print_error() {
     echo -e "${RED}❌ $1${NC}"
 }
 
+print_info() {
+    echo -e "${BLUE}ℹ️  $1${NC}"
+}
+
 # Function to ask for user confirmation
 ask_permission() {
     local step_description="$1"
@@ -56,8 +60,13 @@ ask_permission() {
     # Interactive mode - ask for confirmation
     local response
     while true; do
-        echo -n "Continue? (y/n): "
+        echo -n "Continue? (Y/n): "
         read -r response
+
+        # Default to yes if empty response
+        if [[ -z "$response" ]]; then
+            response="y"
+        fi
 
         # Convert to lowercase for comparison
         response=$(echo "$response" | tr '[:upper:]' '[:lower:]')
@@ -71,7 +80,7 @@ ask_permission() {
                 return 1
                 ;;
             *)
-                echo "Please enter 'y' for yes or 'n' for no."
+                echo "Please enter 'y' for yes or 'n' for no. (Default: yes)"
                 ;;
         esac
     done
@@ -161,28 +170,72 @@ copy_app_to_applications() {
 # Function to copy plist files
 copy_plist_files() {
     if ask_permission "Copy plist files to LaunchAgents folder"; then
-        print_step "Copying plist files..."
-        
+        print_step "Preparing for manual plist file copying..."
+
         # Create LaunchAgents directory if it doesn't exist
         mkdir -p "$LAUNCH_AGENTS_DIR"
-        
-        # Find and copy plist files
+
+        # Check if plist files exist in DMG
         local plist_files_found=0
-        
+        local plist_list=""
+
         for plist_file in "$MOUNT_POINT"/*.plist; do
             if [ -f "$plist_file" ]; then
                 local filename=$(basename "$plist_file")
-                print_step "Copying $filename to LaunchAgents"
-                cp "$plist_file" "$LAUNCH_AGENTS_DIR/"
+                plist_list="$plist_list\n  • $filename"
                 plist_files_found=1
             fi
         done
-        
+
         if [ $plist_files_found -eq 0 ]; then
             print_warning "No plist files found in DMG"
-        else
-            print_success "Plist files copied to LaunchAgents"
+            return
         fi
+
+        print_info "Found plist files to copy:$plist_list"
+        echo ""
+        print_step "Opening folders for manual copying..."
+
+        # Open the DMG folder (source)
+        open "$MOUNT_POINT"
+        sleep 1
+
+        # Open the LaunchAgents folder (destination)
+        open "$LAUNCH_AGENTS_DIR"
+        sleep 1
+
+        print_info "📁 Two Finder windows should now be open:"
+        print_info "   1. DMG folder (source) - contains the .plist files"
+        print_info "   2. LaunchAgents folder (destination) - where to copy them"
+        echo ""
+        print_step "Please manually copy the .plist files from DMG to LaunchAgents folder"
+
+        # Wait for user confirmation
+        local response
+        while true; do
+            echo -n "Have you copied the plist files? (Y/n): "
+            read -r response
+
+            # Default to yes if empty response
+            if [[ -z "$response" ]]; then
+                response="y"
+            fi
+
+            response=$(echo "$response" | tr '[:upper:]' '[:lower:]')
+
+            case "$response" in
+                y|yes)
+                    print_success "Plist files copying completed"
+                    break
+                    ;;
+                n|no)
+                    print_warning "Please copy the plist files before continuing"
+                    ;;
+                *)
+                    echo "Please enter 'y' for yes or 'n' for no. (Default: yes)"
+                    ;;
+            esac
+        done
     fi
 }
 

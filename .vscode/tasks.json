@@ -164,7 +164,51 @@
             },
             "group": {
                 "kind": "build",
+                "isDefault": false
+            }
+        },
+        {
+            "label": "🚀 Build Create Install DMG",
+            "type": "shell",
+            "command": "./build_create_install_dmg.sh --quiet",
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "new",
+                "focus": true,
+                "clear": true,
+                "echo": true
+            },
+            "options": {
+                "env": {
+                    "TERM": "xterm-256color"
+                }
+            },
+            "group": {
+                "kind": "build",
                 "isDefault": true
+            }
+        },
+        {
+            "label": "🚀 Build Create Install DMG (Verbose)",
+            "type": "shell",
+            "command": "./build_create_install_dmg.sh",
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "new",
+                "focus": true,
+                "clear": true,
+                "echo": true
+            },
+            "options": {
+                "env": {
+                    "TERM": "xterm-256color"
+                }
+            },
+            "group": {
+                "kind": "build",
+                "isDefault": false
             }
         }
     ]

@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>5 Compact Top Bar Options - Optimized Vertical Space</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f7fa;
+            line-height: 1.3;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .option-section {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 25px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .option-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+        .topbar-mockup {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 8px;
+            padding: 12px;
+            border: 1px solid #dee2e6;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+        .topbar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .cards-grid {
+            display: grid;
+            gap: 10px;
+        }
+        .card {
+            background: white;
+            border-radius: 6px;
+            padding: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border-left: 3px solid;
+            position: relative;
+        }
+        .card-clipboard { border-left-color: #2196F3; }
+        .card-system { border-left-color: #9C27B0; }
+        .card-network { border-left-color: #FF9800; }
+        .card-session { border-left-color: #795548; }
+        .metric-item {
+            position: relative;
+            cursor: help;
+        }
+        .tooltip {
+            position: absolute;
+            background: #333;
+            color: white;
+            padding: 6px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            white-space: nowrap;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            margin-bottom: 5px;
+        }
+        .tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 4px solid transparent;
+            border-top-color: #333;
+        }
+        .metric-item:hover .tooltip {
+            opacity: 1;
+        }
+        .status-good { color: #4CAF50; }
+        .status-warning { color: #FF9800; }
+        .status-critical { color: #F44336; }
+        .trend-up { color: #FF5722; }
+        .metric-value { font-weight: bold; }
+        .icon { font-size: 9px; margin-right: 2px; }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        .live-indicator { animation: pulse 2s infinite; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎯 5 Compact Top Bar Options</h1>
+            <p>Vertically optimized layouts with bubble tooltips and minimal white space</p>
+        </div>
+
+        <!-- Option 1: Horizontal Dense Grid -->
+        <div class="option-section">
+            <div class="option-title">Option 1: Horizontal Dense Grid (Single Row)</div>
+            <p style="color: #666; font-size: 14px; margin-bottom: 15px;">
+                <strong>Concept:</strong> Ultra-compact single row with 4 equal columns, dense metric packing
+            </p>
+            
+            <div class="topbar-mockup">
+                <div class="topbar-header" style="margin-bottom: 8px;">
+                    <div style="font-size: 16px; font-weight: bold; color: #333;">📊 Clipboard Monitor Dashboard</div>
+                    <div style="display: flex; gap: 8px; align-items: center; font-size: 11px;">
+                        <span style="background: #4CAF50; color: white; padding: 2px 6px; border-radius: 8px;">● Connected</span>
+                        <span style="background: #F44336; color: white; padding: 2px 6px; border-radius: 8px;" class="live-indicator">🔴 Advanced</span>
+                        <span style="color: #666;">2h 15m • 2s ago</span>
+                    </div>
+                </div>
+                
+                <div class="cards-grid" style="grid-template-columns: 2fr 1fr 1fr 1fr;">
+                    <!-- Clipboard Monitor Card -->
+                    <div class="card card-clipboard">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; font-size: 9px;">
+                            <!-- Process Columns -->
+                            <div>
+                                <div style="font-weight: bold; color: #2196F3; margin-bottom: 3px; font-size: 10px;">📱 Menu Bar</div>
+                                <div class="metric-item">
+                                    <span class="icon">💾</span><span class="metric-value" style="color: #2196F3;">55.2MB</span>
+                                    <div class="tooltip">Current memory usage - Monitor for gradual increases indicating potential leaks</div>
+                                </div>
+                                <div class="metric-item">
+                                    <span class="icon">⚡</span><span class="metric-value" style="color: #2196F3;">0.8%</span>
+                                    <div class="tooltip">CPU usage percentage - High values may indicate processing bottlenecks</div>
+                                </div>
+                                <div class="metric-item">
+                                    <span class="icon">🧵</span><span class="metric-value" style="color: #2196F3;">12</span>
+                                    <div class="tooltip">Active threads - Increasing count may indicate resource contention</div>
+                                </div>
+                                <div class="metric-item">
+                                    <span class="icon">🔗</span><span class="metric-value" style="color: #2196F3;">45</span>
+                                    <div class="tooltip">File handles - Critical for leak detection, should remain stable</div>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <div style="font-weight: bold; color: #4CAF50; margin-bottom: 3px; font-size: 10px;">⚙️ Service</div>
+                                <div class="metric-item">
+                                    <span class="icon">💾</span><span class="metric-value" style="color: #4CAF50;">40.6MB</span>
+                                    <div class="tooltip">Service memory usage - Compare with menu bar for balance analysis</div>
+                                </div>
+                                <div class="metric-item">
+                                    <span class="icon">⚡</span><span class="metric-value" style="color: #4CAF50;">1.2%</span>
+                                    <div class="tooltip">Service CPU usage - Should correlate with clipboard activity</div>
+                                </div>
+                                <div class="metric-item">
+                                    <span class="icon">🧵</span><span class="metric-value" style="color: #4CAF50;">8</span>
+                                    <div class="tooltip">Service threads - Lower count indicates efficient processing</div>
+                                </div>
+                                <div class="metric-item">
+                                    <span class="icon">🔗</span><span class="metric-value" style="color: #4CAF50;">23</span>
+                                    <div class="tooltip">Service file handles - Monitor for gradual increases</div>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <div style="font-weight: bold; color: #333; margin-bottom: 3px; font-size: 10px;">📊 Analytics</div>
+                                <div class="metric-item">
+                                    <span class="icon">📊</span><span class="metric-value" style="color: #FF9800;">95.8MB</span>
+                                    <div class="tooltip">Total memory usage - Sum of all clipboard processes</div>
+                                </div>
+                                <div class="metric-item">
+                                    <span class="icon">📈</span><span class="metric-value trend-up">+2.3MB/min</span>
+                                    <div class="tooltip">Memory growth rate - Positive values indicate potential leaks</div>
+                                </div>
+                                <div class="metric-item">
+                                    <span class="icon">⚡</span><span class="metric-value" style="color: #9C27B0;">1.2MB/op</span>
+                                    <div class="tooltip">Memory efficiency - Lower values indicate better optimization</div>
+                                </div>
+                                <div class="metric-item">
+                                    <span class="icon">🔄</span><span class="metric-value" style="color: #607D8B;">12/min</span>
+                                    <div class="tooltip">Operations per minute - Activity level indicator</div>
+                                </div>
+                                <div class="metric-item">
+                                    <span class="icon">🗑️</span><span class="status-good">Low</span>
+                                    <div class="tooltip">Garbage collection pressure - High values indicate memory stress</div>
+                                </div>
+                                <div class="metric-item">
+                                    <span class="icon">📚</span><span class="metric-value" style="color: #795548;">1,247</span>
+                                    <div class="tooltip">History items - Directly impacts memory usage</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- System Card -->
+                    <div class="card card-system">
+                        <div style="font-weight: bold; color: #333; margin-bottom: 4px; font-size: 10px;">💻 System</div>
+                        <div style="font-size: 9px; display: grid; grid-template-columns: 1fr; gap: 1px;">
+                            <div class="metric-item">
+                                <span class="icon">🧠</span><span class="metric-value" style="color: #9C27B0;">23.5%</span>
+                                <div class="tooltip">System RAM usage - High values affect overall performance</div>
+                            </div>
+                            <div class="metric-item">
+                                <span class="icon">⚡</span><span class="metric-value" style="color: #F44336;">23.5%</span>
+                                <div class="tooltip">System CPU usage - Background load affecting clipboard performance</div>
+                            </div>
+                            <div class="metric-item">
+                                <span class="icon">💾</span><span class="metric-value" style="color: #607D8B;">78%</span>
+                                <div class="tooltip">Disk usage - High values may slow file operations</div>
+                            </div>
+                            <div class="metric-item">
+                                <span class="icon">🌡️</span><span class="metric-value" style="color: #FF5722;">65°C</span>
+                                <div class="tooltip">CPU temperature - High temps cause throttling</div>
+                            </div>
+                            <div class="metric-item">
+                                <span class="icon">📊</span><span class="metric-value" style="color: #795548;">2.1</span>
+                                <div class="tooltip">System load average - Values >1 indicate system stress</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Network & Power Card -->
+                    <div class="card card-network">
+                        <div style="font-weight: bold; color: #333; margin-bottom: 4px; font-size: 10px;">🌐 Network</div>
+                        <div style="font-size: 9px; display: grid; grid-template-columns: 1fr; gap: 1px;">
+                            <div class="metric-item">
+                                <span class="icon">⬇️</span><span class="metric-value" style="color: #4CAF50;">125 Mbps</span>
+                                <div class="tooltip">Download speed - Affects cloud sync performance</div>
+                            </div>
+                            <div class="metric-item">
+                                <span class="icon">⬆️</span><span class="metric-value" style="color: #2196F3;">45 Mbps</span>
+                                <div class="tooltip">Upload speed - Important for backup operations</div>
+                            </div>
+                            <div class="metric-item">
+                                <span class="icon">📡</span><span class="metric-value" style="color: #FF9800;">12ms</span>
+                                <div class="tooltip">Network latency - Low values ensure responsive sync</div>
+                            </div>
+                            <div class="metric-item">
+                                <span class="icon">🔋</span><span class="metric-value status-good">87%</span>
+                                <div class="tooltip">Battery level - Affects performance throttling</div>
+                            </div>
+                            <div class="metric-item">
+                                <span class="icon">⚡</span><span class="metric-value" style="color: #FF9800;">12.5W</span>
+                                <div class="tooltip">Power consumption - Monitor for efficiency optimization</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Session Card -->
+                    <div class="card card-session">
+                        <div style="font-weight: bold; color: #333; margin-bottom: 4px; font-size: 10px;">📊 Session</div>
+                        <div style="font-size: 9px; display: grid; grid-template-columns: 1fr; gap: 1px;">
+                            <div class="metric-item">
+                                <span class="icon">⏰</span><span class="metric-value" style="color: #795548;">2h 15m</span>
+                                <div class="tooltip">Session duration - Longer sessions help identify memory trends</div>
+                            </div>
+                            <div class="metric-item">
+                                <span class="icon">💻</span><span class="metric-value" style="color: #795548;">1d 5h</span>
+                                <div class="tooltip">System uptime - Affects baseline performance metrics</div>
+                            </div>
+                            <div class="metric-item">
+                                <span class="icon">📈</span><span class="metric-value" style="color: #607D8B;">1,247</span>
+                                <div class="tooltip">Data points collected - More points improve trend accuracy</div>
+                            </div>
+                            <div class="metric-item">
+                                <span class="icon">📊</span><span class="metric-value" style="color: #FF5722;">112.3MB</span>
+                                <div class="tooltip">Peak memory usage - Highest memory consumption recorded</div>
+                            </div>
+                            <div class="metric-item">
+                                <span class="icon">⚡</span><span class="metric-value" style="color: #FF5722;">17.9%</span>
+                                <div class="tooltip">Peak CPU usage - Highest CPU consumption recorded</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Option 2: Stacked Compact Layout -->
+        <div class="option-section">
+            <div class="option-title">Option 2: Stacked Compact Layout (Two Rows)</div>
+            <p style="color: #666; font-size: 14px; margin-bottom: 15px;">
+                <strong>Concept:</strong> Two-row layout with clipboard on top row, system cards stacked below
+            </p>
+
+            <div class="topbar-mockup">
+                <div class="topbar-header" style="margin-bottom: 6px;">
+                    <div style="font-size: 16px; font-weight: bold; color: #333;">📊 Clipboard Monitor Dashboard</div>
+                    <div style="display: flex; gap: 8px; align-items: center; font-size: 11px;">
+                        <span style="background: #4CAF50; color: white; padding: 2px 6px; border-radius: 8px;">● Connected</span>
+                        <span style="background: #F44336; color: white; padding: 2px 6px; border-radius: 8px;" class="live-indicator">🔴 Advanced</span>
+                        <span style="color: #666;">2h 15m • 2s ago</span>
+                    </div>
+                </div>
+
+                <!-- Row 1: Clipboard Monitor -->
+                <div style="margin-bottom: 6px;">
+                    <div class="card card-clipboard">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 2fr; gap: 10px; font-size: 9px;">
+                            <div>
+                                <div style="font-weight: bold; color: #2196F3; margin-bottom: 3px; font-size: 10px;">📱 Menu Bar</div>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2px;">
+                                    <div class="metric-item"><span class="icon">💾</span><span class="metric-value" style="color: #2196F3;">55.2MB</span><div class="tooltip">Memory usage tracking</div></div>
+                                    <div class="metric-item"><span class="icon">⚡</span><span class="metric-value" style="color: #2196F3;">0.8%</span><div class="tooltip">CPU utilization</div></div>
+                                    <div class="metric-item"><span class="icon">🧵</span><span class="metric-value" style="color: #2196F3;">12</span><div class="tooltip">Thread count</div></div>
+                                    <div class="metric-item"><span class="icon">🔗</span><span class="metric-value" style="color: #2196F3;">45</span><div class="tooltip">File handles</div></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div style="font-weight: bold; color: #4CAF50; margin-bottom: 3px; font-size: 10px;">⚙️ Service</div>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2px;">
+                                    <div class="metric-item"><span class="icon">💾</span><span class="metric-value" style="color: #4CAF50;">40.6MB</span><div class="tooltip">Service memory</div></div>
+                                    <div class="metric-item"><span class="icon">⚡</span><span class="metric-value" style="color: #4CAF50;">1.2%</span><div class="tooltip">Service CPU</div></div>
+                                    <div class="metric-item"><span class="icon">🧵</span><span class="metric-value" style="color: #4CAF50;">8</span><div class="tooltip">Service threads</div></div>
+                                    <div class="metric-item"><span class="icon">🔗</span><span class="metric-value" style="color: #4CAF50;">23</span><div class="tooltip">Service handles</div></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div style="font-weight: bold; color: #333; margin-bottom: 3px; font-size: 10px;">📊 Combined Analytics</div>
+                                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px;">
+                                    <div class="metric-item"><span class="icon">📊</span><span class="metric-value" style="color: #FF9800;">95.8MB</span><div class="tooltip">Total memory</div></div>
+                                    <div class="metric-item"><span class="icon">📈</span><span class="metric-value trend-up">+2.3MB/min</span><div class="tooltip">Growth rate</div></div>
+                                    <div class="metric-item"><span class="icon">⚡</span><span class="metric-value" style="color: #9C27B0;">1.2MB/op</span><div class="tooltip">Efficiency</div></div>
+                                    <div class="metric-item"><span class="icon">🔄</span><span class="metric-value" style="color: #607D8B;">12/min</span><div class="tooltip">Operations</div></div>
+                                    <div class="metric-item"><span class="icon">🗑️</span><span class="status-good">Low</span><div class="tooltip">GC pressure</div></div>
+                                    <div class="metric-item"><span class="icon">📚</span><span class="metric-value" style="color: #795548;">1,247</span><div class="tooltip">History size</div></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Row 2: System Cards -->
+                <div class="cards-grid" style="grid-template-columns: 1fr 1fr 1fr;">
+                    <div class="card card-system">
+                        <div style="font-weight: bold; color: #333; margin-bottom: 3px; font-size: 10px;">💻 System</div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2px; font-size: 9px;">
+                            <div class="metric-item"><span class="icon">🧠</span><span class="metric-value" style="color: #9C27B0;">23.5%</span><div class="tooltip">RAM usage</div></div>
+                            <div class="metric-item"><span class="icon">⚡</span><span class="metric-value" style="color: #F44336;">23.5%</span><div class="tooltip">CPU usage</div></div>
+                            <div class="metric-item"><span class="icon">💾</span><span class="metric-value" style="color: #607D8B;">78%</span><div class="tooltip">Disk usage</div></div>
+                            <div class="metric-item"><span class="icon">🌡️</span><span class="metric-value" style="color: #FF5722;">65°C</span><div class="tooltip">Temperature</div></div>
+                        </div>
+                    </div>
+                    <div class="card card-network">
+                        <div style="font-weight: bold; color: #333; margin-bottom: 3px; font-size: 10px;">🌐 Network</div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2px; font-size: 9px;">
+                            <div class="metric-item"><span class="icon">⬇️</span><span class="metric-value" style="color: #4CAF50;">125 Mbps</span><div class="tooltip">Download</div></div>
+                            <div class="metric-item"><span class="icon">⬆️</span><span class="metric-value" style="color: #2196F3;">45 Mbps</span><div class="tooltip">Upload</div></div>
+                            <div class="metric-item"><span class="icon">🔋</span><span class="metric-value status-good">87%</span><div class="tooltip">Battery</div></div>
+                            <div class="metric-item"><span class="icon">⚡</span><span class="metric-value" style="color: #FF9800;">12.5W</span><div class="tooltip">Power</div></div>
+                        </div>
+                    </div>
+                    <div class="card card-session">
+                        <div style="font-weight: bold; color: #333; margin-bottom: 3px; font-size: 10px;">📊 Session</div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2px; font-size: 9px;">
+                            <div class="metric-item"><span class="icon">⏰</span><span class="metric-value" style="color: #795548;">2h 15m</span><div class="tooltip">Session time</div></div>
+                            <div class="metric-item"><span class="icon">📈</span><span class="metric-value" style="color: #607D8B;">1,247</span><div class="tooltip">Data points</div></div>
+                            <div class="metric-item"><span class="icon">📊</span><span class="metric-value" style="color: #FF5722;">112.3MB</span><div class="tooltip">Peak memory</div></div>
+                            <div class="metric-item"><span class="icon">⚡</span><span class="metric-value" style="color: #FF5722;">17.9%</span><div class="tooltip">Peak CPU</div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Option 3: Sidebar + Main Layout -->
+        <div class="option-section">
+            <div class="option-title">Option 3: Sidebar + Main Layout</div>
+            <p style="color: #666; font-size: 14px; margin-bottom: 15px;">
+                <strong>Concept:</strong> Vertical sidebar for system metrics, main area for clipboard analytics
+            </p>
+
+            <div class="topbar-mockup">
+                <div class="topbar-header" style="margin-bottom: 6px;">
+                    <div style="font-size: 16px; font-weight: bold; color: #333;">📊 Clipboard Monitor Dashboard</div>
+                    <div style="display: flex; gap: 8px; align-items: center; font-size: 11px;">
+                        <span style="background: #4CAF50; color: white; padding: 2px 6px; border-radius: 8px;">● Connected</span>
+                        <span style="background: #F44336; color: white; padding: 2px 6px; border-radius: 8px;" class="live-indicator">🔴 Advanced</span>
+                        <span style="color: #666;">2h 15m • 2s ago</span>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 200px 1fr; gap: 10px;">
+                    <!-- Sidebar -->
+                    <div style="display: grid; grid-template-rows: repeat(3, 1fr); gap: 4px;">
+                        <div class="card card-system">
+                            <div style="font-weight: bold; color: #333; margin-bottom: 3px; font-size: 10px;">💻 System</div>
+                            <div style="font-size: 8px;">
+                                <div class="metric-item"><span class="icon">🧠</span><span class="metric-value" style="color: #9C27B0;">23.5%</span><div class="tooltip">System RAM</div></div>
+                                <div class="metric-item"><span class="icon">⚡</span><span class="metric-value" style="color: #F44336;">23.5%</span><div class="tooltip">System CPU</div></div>
+                                <div class="metric-item"><span class="icon">💾</span><span class="metric-value" style="color: #607D8B;">78%</span><div class="tooltip">Disk usage</div></div>
+                            </div>
+                        </div>
+                        <div class="card card-network">
+                            <div style="font-weight: bold; color: #333; margin-bottom: 3px; font-size: 10px;">🌐 Network</div>
+                            <div style="font-size: 8px;">
+                                <div class="metric-item"><span class="icon">⬇️</span><span class="metric-value" style="color: #4CAF50;">125 Mbps</span><div class="tooltip">Download</div></div>
+                                <div class="metric-item"><span class="icon">⬆️</span><span class="metric-value" style="color: #2196F3;">45 Mbps</span><div class="tooltip">Upload</div></div>
+                                <div class="metric-item"><span class="icon">🔋</span><span class="metric-value status-good">87%</span><div class="tooltip">Battery</div></div>
+                            </div>
+                        </div>
+                        <div class="card card-session">
+                            <div style="font-weight: bold; color: #333; margin-bottom: 3px; font-size: 10px;">📊 Session</div>
+                            <div style="font-size: 8px;">
+                                <div class="metric-item"><span class="icon">⏰</span><span class="metric-value" style="color: #795548;">2h 15m</span><div class="tooltip">Session time</div></div>
+                                <div class="metric-item"><span class="icon">📈</span><span class="metric-value" style="color: #607D8B;">1,247</span><div class="tooltip">Data points</div></div>
+                                <div class="metric-item"><span class="icon">📊</span><span class="metric-value" style="color: #FF5722;">112.3MB</span><div class="tooltip">Peak memory</div></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Main Clipboard Area -->
+                    <div class="card card-clipboard">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 2fr; gap: 10px; font-size: 9px;">
+                            <div>
+                                <div style="font-weight: bold; color: #2196F3; margin-bottom: 3px; font-size: 10px;">📱 Menu Bar</div>
+                                <div class="metric-item"><span class="icon">💾</span><span class="metric-value" style="color: #2196F3;">55.2MB</span><div class="tooltip">Menu bar memory</div></div>
+                                <div class="metric-item"><span class="icon">⚡</span><span class="metric-value" style="color: #2196F3;">0.8%</span><div class="tooltip">Menu bar CPU</div></div>
+                                <div class="metric-item"><span class="icon">🧵</span><span class="metric-value" style="color: #2196F3;">12</span><div class="tooltip">Threads</div></div>
+                                <div class="metric-item"><span class="icon">🔗</span><span class="metric-value" style="color: #2196F3;">45</span><div class="tooltip">Handles</div></div>
+                            </div>
+                            <div>
+                                <div style="font-weight: bold; color: #4CAF50; margin-bottom: 3px; font-size: 10px;">⚙️ Service</div>
+                                <div class="metric-item"><span class="icon">💾</span><span class="metric-value" style="color: #4CAF50;">40.6MB</span><div class="tooltip">Service memory</div></div>
+                                <div class="metric-item"><span class="icon">⚡</span><span class="metric-value" style="color: #4CAF50;">1.2%</span><div class="tooltip">Service CPU</div></div>
+                                <div class="metric-item"><span class="icon">🧵</span><span class="metric-value" style="color: #4CAF50;">8</span><div class="tooltip">Service threads</div></div>
+                                <div class="metric-item"><span class="icon">🔗</span><span class="metric-value" style="color: #4CAF50;">23</span><div class="tooltip">Service handles</div></div>
+                            </div>
+                            <div>
+                                <div style="font-weight: bold; color: #333; margin-bottom: 3px; font-size: 10px;">📊 Analytics</div>
+                                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px;">
+                                    <div class="metric-item"><span class="icon">📊</span><span class="metric-value" style="color: #FF9800;">95.8MB</span><div class="tooltip">Total memory</div></div>
+                                    <div class="metric-item"><span class="icon">📈</span><span class="metric-value trend-up">+2.3MB/min</span><div class="tooltip">Growth rate</div></div>
+                                    <div class="metric-item"><span class="icon">⚡</span><span class="metric-value" style="color: #9C27B0;">1.2MB/op</span><div class="tooltip">Efficiency</div></div>
+                                    <div class="metric-item"><span class="icon">🔄</span><span class="metric-value" style="color: #607D8B;">12/min</span><div class="tooltip">Operations</div></div>
+                                    <div class="metric-item"><span class="icon">🗑️</span><span class="status-good">Low</span><div class="tooltip">GC pressure</div></div>
+                                    <div class="metric-item"><span class="icon">📚</span><span class="metric-value" style="color: #795548;">1,247</span><div class="tooltip">History</div></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Option 4: Ultra-Compact Tabs -->
+        <div class="option-section">
+            <div class="option-title">Option 4: Ultra-Compact Tabs Layout</div>
+            <p style="color: #666; font-size: 14px; margin-bottom: 15px;">
+                <strong>Concept:</strong> Tab-based interface with clipboard always visible, system metrics in tabs
+            </p>
+
+            <div class="topbar-mockup">
+                <div class="topbar-header" style="margin-bottom: 6px;">
+                    <div style="font-size: 16px; font-weight: bold; color: #333;">📊 Clipboard Monitor Dashboard</div>
+                    <div style="display: flex; gap: 8px; align-items: center; font-size: 11px;">
+                        <span style="background: #4CAF50; color: white; padding: 2px 6px; border-radius: 8px;">● Connected</span>
+                        <span style="background: #F44336; color: white; padding: 2px 6px; border-radius: 8px;" class="live-indicator">🔴 Advanced</span>
+                        <span style="color: #666;">2h 15m • 2s ago</span>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 10px;">
+                    <!-- Main Clipboard Area -->
+                    <div class="card card-clipboard">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; font-size: 9px;">
+                            <div>
+                                <div style="font-weight: bold; color: #2196F3; margin-bottom: 3px; font-size: 10px;">📱 Menu Bar</div>
+                                <div class="metric-item"><span class="icon">💾</span><span class="metric-value" style="color: #2196F3;">55.2MB</span><div class="tooltip">Memory usage</div></div>
+                                <div class="metric-item"><span class="icon">⚡</span><span class="metric-value" style="color: #2196F3;">0.8%</span><div class="tooltip">CPU usage</div></div>
+                                <div class="metric-item"><span class="icon">🧵</span><span class="metric-value" style="color: #2196F3;">12</span><div class="tooltip">Threads</div></div>
+                                <div class="metric-item"><span class="icon">🔗</span><span class="metric-value" style="color: #2196F3;">45</span><div class="tooltip">Handles</div></div>
+                            </div>
+                            <div>
+                                <div style="font-weight: bold; color: #4CAF50; margin-bottom: 3px; font-size: 10px;">⚙️ Service</div>
+                                <div class="metric-item"><span class="icon">💾</span><span class="metric-value" style="color: #4CAF50;">40.6MB</span><div class="tooltip">Service memory</div></div>
+                                <div class="metric-item"><span class="icon">⚡</span><span class="metric-value" style="color: #4CAF50;">1.2%</span><div class="tooltip">Service CPU</div></div>
+                                <div class="metric-item"><span class="icon">🧵</span><span class="metric-value" style="color: #4CAF50;">8</span><div class="tooltip">Service threads</div></div>
+                                <div class="metric-item"><span class="icon">🔗</span><span class="metric-value" style="color: #4CAF50;">23</span><div class="tooltip">Service handles</div></div>
+                            </div>
+                            <div>
+                                <div style="font-weight: bold; color: #333; margin-bottom: 3px; font-size: 10px;">📊 Analytics</div>
+                                <div class="metric-item"><span class="icon">📊</span><span class="metric-value" style="color: #FF9800;">95.8MB</span><div class="tooltip">Total memory</div></div>
+                                <div class="metric-item"><span class="icon">📈</span><span class="metric-value trend-up">+2.3MB/min</span><div class="tooltip">Growth rate</div></div>
+                                <div class="metric-item"><span class="icon">⚡</span><span class="metric-value" style="color: #9C27B0;">1.2MB/op</span><div class="tooltip">Efficiency</div></div>
+                                <div class="metric-item"><span class="icon">🔄</span><span class="metric-value" style="color: #607D8B;">12/min</span><div class="tooltip">Operations</div></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tabbed System Info -->
+                    <div style="background: white; border-radius: 6px; padding: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                        <div style="display: flex; margin-bottom: 4px; border-bottom: 1px solid #eee;">
+                            <div style="padding: 2px 6px; font-size: 9px; background: #2196F3; color: white; border-radius: 3px 3px 0 0; margin-right: 2px;">💻 System</div>
+                            <div style="padding: 2px 6px; font-size: 9px; background: #f5f5f5; color: #666; border-radius: 3px 3px 0 0; margin-right: 2px;">🌐 Network</div>
+                            <div style="padding: 2px 6px; font-size: 9px; background: #f5f5f5; color: #666; border-radius: 3px 3px 0 0;">📊 Session</div>
+                        </div>
+                        <div style="font-size: 8px;">
+                            <div class="metric-item"><span class="icon">🧠</span><span class="metric-value" style="color: #9C27B0;">23.5%</span> RAM<div class="tooltip">System RAM usage</div></div>
+                            <div class="metric-item"><span class="icon">⚡</span><span class="metric-value" style="color: #F44336;">23.5%</span> CPU<div class="tooltip">System CPU usage</div></div>
+                            <div class="metric-item"><span class="icon">💾</span><span class="metric-value" style="color: #607D8B;">78%</span> Disk<div class="tooltip">Disk usage</div></div>
+                            <div class="metric-item"><span class="icon">🌡️</span><span class="metric-value" style="color: #FF5722;">65°C</span> Temp<div class="tooltip">CPU temperature</div></div>
+                            <div class="metric-item"><span class="icon">📊</span><span class="metric-value" style="color: #795548;">2.1</span> Load<div class="tooltip">System load</div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Option 5: Accordion Compact -->
+        <div class="option-section">
+            <div class="option-title">Option 5: Accordion Compact Layout</div>
+            <p style="color: #666; font-size: 14px; margin-bottom: 15px;">
+                <strong>Concept:</strong> Expandable sections with clipboard always expanded, others collapsible
+            </p>
+
+            <div class="topbar-mockup">
+                <div class="topbar-header" style="margin-bottom: 6px;">
+                    <div style="font-size: 16px; font-weight: bold; color: #333;">📊 Clipboard Monitor Dashboard</div>
+                    <div style="display: flex; gap: 8px; align-items: center; font-size: 11px;">
+                        <span style="background: #4CAF50; color: white; padding: 2px 6px; border-radius: 8px;">● Connected</span>
+                        <span style="background: #F44336; color: white; padding: 2px 6px; border-radius: 8px;" class="live-indicator">🔴 Advanced</span>
+                        <span style="color: #666;">2h 15m • 2s ago</span>
+                    </div>
+                </div>
+
+                <!-- Clipboard Section (Always Expanded) -->
+                <div class="card card-clipboard" style="margin-bottom: 4px;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 2fr; gap: 8px; font-size: 9px;">
+                        <div>
+                            <div style="font-weight: bold; color: #2196F3; margin-bottom: 3px; font-size: 10px;">📱 Menu Bar</div>
+                            <div class="metric-item"><span class="icon">💾</span><span class="metric-value" style="color: #2196F3;">55.2MB</span><div class="tooltip">Memory usage</div></div>
+                            <div class="metric-item"><span class="icon">⚡</span><span class="metric-value" style="color: #2196F3;">0.8%</span><div class="tooltip">CPU usage</div></div>
+                            <div class="metric-item"><span class="icon">🧵</span><span class="metric-value" style="color: #2196F3;">12</span><div class="tooltip">Threads</div></div>
+                        </div>
+                        <div>
+                            <div style="font-weight: bold; color: #4CAF50; margin-bottom: 3px; font-size: 10px;">⚙️ Service</div>
+                            <div class="metric-item"><span class="icon">💾</span><span class="metric-value" style="color: #4CAF50;">40.6MB</span><div class="tooltip">Service memory</div></div>
+                            <div class="metric-item"><span class="icon">⚡</span><span class="metric-value" style="color: #4CAF50;">1.2%</span><div class="tooltip">Service CPU</div></div>
+                            <div class="metric-item"><span class="icon">🧵</span><span class="metric-value" style="color: #4CAF50;">8</span><div class="tooltip">Service threads</div></div>
+                        </div>
+                        <div>
+                            <div style="font-weight: bold; color: #333; margin-bottom: 3px; font-size: 10px;">📊 Analytics</div>
+                            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px;">
+                                <div class="metric-item"><span class="icon">📊</span><span class="metric-value" style="color: #FF9800;">95.8MB</span><div class="tooltip">Total memory</div></div>
+                                <div class="metric-item"><span class="icon">📈</span><span class="metric-value trend-up">+2.3MB/min</span><div class="tooltip">Growth rate</div></div>
+                                <div class="metric-item"><span class="icon">⚡</span><span class="metric-value" style="color: #9C27B0;">1.2MB/op</span><div class="tooltip">Efficiency</div></div>
+                                <div class="metric-item"><span class="icon">🔄</span><span class="metric-value" style="color: #607D8B;">12/min</span><div class="tooltip">Operations</div></div>
+                                <div class="metric-item"><span class="icon">🗑️</span><span class="status-good">Low</span><div class="tooltip">GC pressure</div></div>
+                                <div class="metric-item"><span class="icon">📚</span><span class="metric-value" style="color: #795548;">1,247</span><div class="tooltip">History</div></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Compact System Row -->
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px;">
+                    <div style="background: white; border-radius: 4px; padding: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.1); border-left: 2px solid #9C27B0;">
+                        <div style="font-weight: bold; color: #333; margin-bottom: 2px; font-size: 9px; display: flex; align-items: center; justify-content: space-between;">
+                            💻 System <span style="font-size: 8px; color: #666;">▼</span>
+                        </div>
+                        <div style="font-size: 8px; display: flex; justify-content: space-between;">
+                            <div class="metric-item"><span class="icon">🧠</span><span class="metric-value" style="color: #9C27B0;">23.5%</span><div class="tooltip">RAM</div></div>
+                            <div class="metric-item"><span class="icon">⚡</span><span class="metric-value" style="color: #F44336;">23.5%</span><div class="tooltip">CPU</div></div>
+                            <div class="metric-item"><span class="icon">💾</span><span class="metric-value" style="color: #607D8B;">78%</span><div class="tooltip">Disk</div></div>
+                        </div>
+                    </div>
+                    <div style="background: white; border-radius: 4px; padding: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.1); border-left: 2px solid #FF9800;">
+                        <div style="font-weight: bold; color: #333; margin-bottom: 2px; font-size: 9px; display: flex; align-items: center; justify-content: space-between;">
+                            🌐 Network <span style="font-size: 8px; color: #666;">▼</span>
+                        </div>
+                        <div style="font-size: 8px; display: flex; justify-content: space-between;">
+                            <div class="metric-item"><span class="icon">⬇️</span><span class="metric-value" style="color: #4CAF50;">125</span><div class="tooltip">Download</div></div>
+                            <div class="metric-item"><span class="icon">⬆️</span><span class="metric-value" style="color: #2196F3;">45</span><div class="tooltip">Upload</div></div>
+                            <div class="metric-item"><span class="icon">🔋</span><span class="metric-value status-good">87%</span><div class="tooltip">Battery</div></div>
+                        </div>
+                    </div>
+                    <div style="background: white; border-radius: 4px; padding: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.1); border-left: 2px solid #795548;">
+                        <div style="font-weight: bold; color: #333; margin-bottom: 2px; font-size: 9px; display: flex; align-items: center; justify-content: space-between;">
+                            📊 Session <span style="font-size: 8px; color: #666;">▼</span>
+                        </div>
+                        <div style="font-size: 8px; display: flex; justify-content: space-between;">
+                            <div class="metric-item"><span class="icon">⏰</span><span class="metric-value" style="color: #795548;">2h 15m</span><div class="tooltip">Session</div></div>
+                            <div class="metric-item"><span class="icon">📈</span><span class="metric-value" style="color: #607D8B;">1,247</span><div class="tooltip">Points</div></div>
+                            <div class="metric-item"><span class="icon">📊</span><span class="metric-value" style="color: #FF5722;">112MB</span><div class="tooltip">Peak</div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Comparison Summary -->
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; padding: 25px; margin-top: 30px; color: white;">
+            <h2 style="margin-top: 0; font-size: 24px; text-align: center;">🎯 Compact Layout Comparison</h2>
+            <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 20px; margin-top: 25px;">
+                <div style="text-align: center;">
+                    <div style="font-size: 28px; margin-bottom: 8px;">1️⃣</div>
+                    <div style="font-weight: bold; margin-bottom: 8px;">Horizontal Dense</div>
+                    <div style="font-size: 12px; opacity: 0.9; line-height: 1.4;">
+                        ✅ Single row<br>
+                        ✅ Maximum info<br>
+                        ❌ Very dense<br>
+                        📏 Height: ~80px
+                    </div>
+                </div>
+                <div style="text-align: center;">
+                    <div style="font-size: 28px; margin-bottom: 8px;">2️⃣</div>
+                    <div style="font-weight: bold; margin-bottom: 8px;">Stacked Compact</div>
+                    <div style="font-size: 12px; opacity: 0.9; line-height: 1.4;">
+                        ✅ Two organized rows<br>
+                        ✅ Good balance<br>
+                        ✅ Easy to read<br>
+                        📏 Height: ~100px
+                    </div>
+                </div>
+                <div style="text-align: center;">
+                    <div style="font-size: 28px; margin-bottom: 8px;">3️⃣</div>
+                    <div style="font-weight: bold; margin-bottom: 8px;">Sidebar Layout</div>
+                    <div style="font-size: 12px; opacity: 0.9; line-height: 1.4;">
+                        ✅ Clipboard focus<br>
+                        ✅ Organized sidebar<br>
+                        ❌ Different paradigm<br>
+                        📏 Height: ~90px
+                    </div>
+                </div>
+                <div style="text-align: center;">
+                    <div style="font-size: 28px; margin-bottom: 8px;">4️⃣</div>
+                    <div style="font-weight: bold; margin-bottom: 8px;">Ultra-Compact Tabs</div>
+                    <div style="font-size: 12px; opacity: 0.9; line-height: 1.4;">
+                        ✅ Very compact<br>
+                        ✅ Tabbed system<br>
+                        ❌ Hidden info<br>
+                        📏 Height: ~70px
+                    </div>
+                </div>
+                <div style="text-align: center;">
+                    <div style="font-size: 28px; margin-bottom: 8px;">5️⃣</div>
+                    <div style="font-weight: bold; margin-bottom: 8px;">Accordion</div>
+                    <div style="font-size: 12px; opacity: 0.9; line-height: 1.4;">
+                        ✅ Expandable<br>
+                        ✅ Clipboard priority<br>
+                        ✅ Clean design<br>
+                        📏 Height: ~85px
+                    </div>
+                </div>
+            </div>
+
+            <div style="text-align: center; margin-top: 25px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.2);">
+                <h3 style="margin-bottom: 15px;">🔍 Key Features Across All Options</h3>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; font-size: 14px;">
+                    <div>
+                        <strong>📋 Bubble Tooltips</strong><br>
+                        <span style="opacity: 0.9;">Hover any metric for detailed explanation</span>
+                    </div>
+                    <div>
+                        <strong>🎨 Visual Consistency</strong><br>
+                        <span style="opacity: 0.9;">Icons, colors, and status indicators</span>
+                    </div>
+                    <div>
+                        <strong>📏 Vertical Optimization</strong><br>
+                        <span style="opacity: 0.9;">Minimal white space, maximum info</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</body>
+</html>

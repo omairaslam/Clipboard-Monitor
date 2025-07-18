@@ -2,7 +2,10 @@
 
 # Clipboard Monitor - Complete Uninstall Script
 # This script completely removes all traces of Clipboard Monitor from the system
-
+#
+# Updated to detect compiled executables (ClipboardMonitor, ClipboardMonitorMenuBar)
+# instead of Python files (main.py, menu_bar_app.py) for current app structure
+#
 # Note: Removed 'set -e' to handle errors gracefully with user prompts
 
 # --- Configuration & Colors ---
@@ -38,29 +41,43 @@ exit_with_prompt() {
 
 # Function to check service status and show logs if failed
 check_service_status() {
-    local service_name="$1"
-    local plist_file="$2"
-    local log_prefix="$3"
+    local service_display_name="$1"
+    local service_label="$2"
+    local process_name="$3"
+    local log_prefix="$4"
 
-    echo -e "${BLUE}📊 Checking $service_name status...${NC}"
+    echo -e "${BLUE}📊 Checking $service_display_name status...${NC}"
 
-    # Check if plist is loaded
-    if launchctl list | grep -q "$plist_file"; then
-        echo -e "${GREEN}✅ $service_name is loaded${NC}"
+    # Check if service is loaded in launchctl
+    if launchctl list | grep -q "$service_label"; then
+        echo -e "${GREEN}✅ $service_display_name is loaded${NC}"
 
-        # Check if process is running
-        if pgrep -f "$service_name" > /dev/null; then
-            echo -e "${GREEN}✅ $service_name is running${NC}"
+        # Check if process is running using multiple detection methods
+        local process_running=false
+
+        # Method 1: Check by exact process name
+        if pgrep -x "$process_name" > /dev/null 2>&1; then
+            process_running=true
+        # Method 2: Check by partial name match
+        elif pgrep "$process_name" > /dev/null 2>&1; then
+            process_running=true
+        # Method 3: Check for clipboard-related processes (fallback)
+        elif pgrep -f "ClipboardMonitor" > /dev/null 2>&1; then
+            process_running=true
+        fi
+
+        if $process_running; then
+            echo -e "${GREEN}✅ $service_display_name is running${NC}"
             return 0
         else
-            echo -e "${YELLOW}⚠️  $service_name is loaded but not running${NC}"
+            echo -e "${YELLOW}⚠️  $service_display_name is loaded but not running${NC}"
             if [[ -n "$log_prefix" ]]; then
-                show_service_logs "$log_prefix" "$service_name"
+                show_service_logs "$log_prefix" "$service_display_name"
             fi
             return 1
         fi
     else
-        echo -e "${RED}❌ $service_name is not loaded${NC}"
+        echo -e "${RED}❌ $service_display_name is not loaded${NC}"
         return 1
     fi
 }
@@ -145,7 +162,7 @@ print_error() {
 # Function to stop and unload services
 stop_services() {
     print_step "🛑 Stopping Clipboard Monitor services..."
-    
+
     # Stop background service
     if launchctl list | grep -q "$SERVICE_BACKGROUND"; then
         launchctl unload "$LAUNCH_AGENTS_DIR/$PLIST_BACKGROUND" 2>/dev/null || true
@@ -153,7 +170,7 @@ stop_services() {
     else
         print_warning "Background service was not running"
     fi
-    
+
     # Stop menu bar service
     if launchctl list | grep -q "$SERVICE_MENUBAR"; then
         launchctl unload "$LAUNCH_AGENTS_DIR/$PLIST_MENUBAR" 2>/dev/null || true
@@ -161,15 +178,23 @@ stop_services() {
     else
         print_warning "Menu bar service was not running"
     fi
-    
-    # Force kill any remaining processes
+
+    # Force kill any remaining processes using updated process names
+    # Kill compiled executables
+    pkill -x "ClipboardMonitor" 2>/dev/null || true
+    pkill -x "ClipboardMonitorMenuBar" 2>/dev/null || true
+
+    # Kill any clipboard-related processes (broader match)
+    pkill -f "ClipboardMonitor" 2>/dev/null || true
+    pkill -f "Clipboard Monitor" 2>/dev/null || true
+
+    # Legacy process names (for backward compatibility)
     pkill -f "main.py" 2>/dev/null || true
     pkill -f "menu_bar_app.py" 2>/dev/null || true
-    pkill -f "Clipboard Monitor" 2>/dev/null || true
-    
+
     # Give processes time to terminate
     sleep 2
-    
+
     print_success "All services stopped"
 }
 
@@ -278,12 +303,31 @@ remove_app_support() {
 # Function to verify complete removal
 verify_removal() {
     print_step "🔍 Verifying complete removal..."
-    
+
     issues_found=0
-    
-    # Check for remaining processes
-    if pgrep -f "main.py\|menu_bar_app.py\|Clipboard Monitor" >/dev/null 2>&1; then
+
+    # Check for remaining processes using updated detection
+    local remaining_processes=false
+
+    # Check for compiled executables
+    if pgrep -x "ClipboardMonitor" >/dev/null 2>&1 || pgrep -x "ClipboardMonitorMenuBar" >/dev/null 2>&1; then
+        remaining_processes=true
+    fi
+
+    # Check for any clipboard-related processes
+    if pgrep -f "ClipboardMonitor\|Clipboard Monitor" >/dev/null 2>&1; then
+        remaining_processes=true
+    fi
+
+    # Check for legacy Python processes (backward compatibility)
+    if pgrep -f "main.py\|menu_bar_app.py" >/dev/null 2>&1; then
+        remaining_processes=true
+    fi
+
+    if $remaining_processes; then
         print_error "Some processes are still running"
+        echo -e "${YELLOW}   Running processes:${NC}"
+        pgrep -fl "ClipboardMonitor\|Clipboard Monitor\|main.py\|menu_bar_app.py" 2>/dev/null | sed 's/^/   /' || true
         ((issues_found++))
     fi
     
@@ -321,8 +365,8 @@ main() {
     # Check current service status before uninstalling
     echo -e "${BLUE}🔍 Checking current service status...${NC}"
     echo ""
-    check_service_status "main.py" "$PLIST_BACKGROUND" "ClipboardMonitor"
-    check_service_status "menu_bar_app.py" "$PLIST_MENUBAR" "ClipboardMonitorMenuBar"
+    check_service_status "Background Service" "$SERVICE_BACKGROUND" "ClipboardMonitor" "ClipboardMonitor"
+    check_service_status "Menu Bar Service" "$SERVICE_MENUBAR" "ClipboardMonitorMenuBar" "ClipboardMonitorMenuBar"
     echo ""
 
     # Confirm uninstallation

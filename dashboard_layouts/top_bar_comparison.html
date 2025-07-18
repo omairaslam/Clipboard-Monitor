@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Top Bar Design Options Comparison</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f7fa;
+            line-height: 1.4;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            color: #333;
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        .header p {
+            color: #666;
+            font-size: 16px;
+        }
+        .option-section {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .option-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+        .option-description {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 15px;
+            font-style: italic;
+        }
+        .suggested-additions {
+            background: #e8f5e8;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-left: 4px solid #4CAF50;
+        }
+        .suggested-additions h3 {
+            margin-top: 0;
+            color: #2E7D32;
+        }
+        .suggested-additions ul {
+            margin: 10px 0 0 20px;
+            color: #2E7D32;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 Top Bar Design Options Comparison</h1>
+            <p>Compare 5 different layouts for the dashboard header with all current metrics plus suggested additions</p>
+        </div>
+
+        <div class="suggested-additions">
+            <h3>💡 Suggested Additional Metrics</h3>
+            <ul>
+                <li><strong>🔥 Temperature:</strong> CPU temperature monitoring</li>
+                <li><strong>💾 Disk Usage:</strong> Available disk space percentage</li>
+                <li><strong>🌐 Network:</strong> Upload/download speeds</li>
+                <li><strong>🔋 Battery:</strong> Battery level and status (if laptop)</li>
+                <li><strong>📊 Load Average:</strong> System load (1m, 5m, 15m)</li>
+                <li><strong>🧵 Threads:</strong> Active thread count per process</li>
+                <li><strong>📈 Growth Rate:</strong> Memory growth rate (MB/min)</li>
+                <li><strong>⚡ Power Usage:</strong> Energy impact of processes</li>
+            </ul>
+        </div>
+
+        <!-- Option 1: Horizontal Cards -->
+        <div class="option-section">
+            <div class="option-title">Option 1: Horizontal Cards Layout</div>
+            <div class="option-description">Clean card-based design with horizontal flow and comprehensive metrics</div>
+            
+            <div style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: 8px; padding: 16px; border: 1px solid #dee2e6;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                    <h2 style="margin: 0; font-size: 18px; color: #333;">📊 Clipboard Monitor Dashboard</h2>
+                    <div style="display: flex; gap: 15px; align-items: center; font-size: 12px;">
+                        <span style="background: #4CAF50; color: white; padding: 3px 8px; border-radius: 12px;">● Connected</span>
+                        <span style="background: #F44336; color: white; padding: 3px 8px; border-radius: 12px; animation: pulse 2s infinite;">🔴 Advanced</span>
+                    </div>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 12px;">
+                    <!-- Clipboard Monitor Card -->
+                    <div style="background: white; border-radius: 8px; padding: 12px; border-left: 4px solid #2196F3; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                        <div style="font-weight: bold; color: #333; margin-bottom: 8px; font-size: 13px;">📋 Clipboard Monitor</div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 11px;">
+                            <div>
+                                <div style="color: #666; margin-bottom: 2px;">📱 Menu Bar</div>
+                                <div>Memory: <span style="color: #2196F3; font-weight: bold;">55.2MB</span> <span style="color: #FF5722; font-size: 9px;">(↑67.1MB)</span></div>
+                                <div>CPU: <span style="color: #2196F3; font-weight: bold;">0.8%</span> <span style="color: #FF5722; font-size: 9px;">(↑2.1%)</span></div>
+                                <div>Threads: <span style="color: #2196F3; font-weight: bold;">12</span></div>
+                            </div>
+                            <div>
+                                <div style="color: #666; margin-bottom: 2px;">⚙️ Main Service</div>
+                                <div>Memory: <span style="color: #4CAF50; font-weight: bold;">40.6MB</span> <span style="color: #FF5722; font-size: 9px;">(↑45.2MB)</span></div>
+                                <div>CPU: <span style="color: #4CAF50; font-weight: bold;">1.2%</span> <span style="color: #FF5722; font-size: 9px;">(↑15.8%)</span></div>
+                                <div>Threads: <span style="color: #4CAF50; font-weight: bold;">8</span></div>
+                            </div>
+                        </div>
+                        <div style="margin-top: 8px; padding-top: 6px; border-top: 1px solid #eee; font-size: 10px;">
+                            <div>Total Memory: <span style="color: #FF9800; font-weight: bold;">95.8MB</span> <span style="color: #FF5722;">(↑112.3MB)</span></div>
+                            <div>Growth Rate: <span style="color: #9C27B0; font-weight: bold;">+2.3MB/min</span></div>
+                        </div>
+                    </div>
+                    
+                    <!-- System Card -->
+                    <div style="background: white; border-radius: 8px; padding: 12px; border-left: 4px solid #9C27B0; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                        <div style="font-weight: bold; color: #333; margin-bottom: 8px; font-size: 13px;">💻 System</div>
+                        <div style="font-size: 11px; display: flex; flex-direction: column; gap: 2px;">
+                            <div>RAM: <span style="color: #9C27B0; font-weight: bold;">23.5%</span> <span style="color: #666; font-size: 9px;">(16GB)</span></div>
+                            <div>CPU: <span style="color: #F44336; font-weight: bold;">23.5%</span> <span style="color: #666; font-size: 9px;">(8 cores)</span></div>
+                            <div>Disk: <span style="color: #607D8B; font-weight: bold;">78%</span> <span style="color: #666; font-size: 9px;">(512GB)</span></div>
+                            <div>Temp: <span style="color: #FF5722; font-weight: bold;">65°C</span></div>
+                            <div>Load: <span style="color: #795548; font-weight: bold;">2.1</span> <span style="color: #666; font-size: 9px;">(1m)</span></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Network & Power Card -->
+                    <div style="background: white; border-radius: 8px; padding: 12px; border-left: 4px solid #FF9800; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                        <div style="font-weight: bold; color: #333; margin-bottom: 8px; font-size: 13px;">🌐 Network & Power</div>
+                        <div style="font-size: 11px; display: flex; flex-direction: column; gap: 2px;">
+                            <div>↓ Down: <span style="color: #4CAF50; font-weight: bold;">125 Mbps</span></div>
+                            <div>↑ Up: <span style="color: #2196F3; font-weight: bold;">45 Mbps</span></div>
+                            <div>🔋 Battery: <span style="color: #4CAF50; font-weight: bold;">87%</span></div>
+                            <div>⚡ Power: <span style="color: #FF9800; font-weight: bold;">12.5W</span></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Session Card -->
+                    <div style="background: white; border-radius: 8px; padding: 12px; border-left: 4px solid #795548; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                        <div style="font-weight: bold; color: #333; margin-bottom: 8px; font-size: 13px;">📊 Session</div>
+                        <div style="font-size: 11px; display: flex; flex-direction: column; gap: 2px;">
+                            <div>Uptime: <span style="color: #795548; font-weight: bold;">2h 15m</span></div>
+                            <div>System: <span style="color: #795548; font-weight: bold;">1d 5h</span></div>
+                            <div>Points: <span style="color: #607D8B; font-weight: bold;">1,247</span></div>
+                            <div>Updated: <span style="color: #666; font-weight: bold;">2s ago</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Option 2: Compact Table Style -->
+        <div class="option-section">
+            <div class="option-title">Option 2: Compact Table Style</div>
+            <div class="option-description">Dense information display with tabular layout for maximum data visibility</div>
+
+            <div style="background: white; border-radius: 8px; padding: 12px; border: 1px solid #e0e0e0; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid #f0f0f0;">
+                    <h2 style="margin: 0; font-size: 16px; color: #333;">📊 Clipboard Monitor Dashboard</h2>
+                    <div style="font-size: 11px; color: #666;">● Connected • Advanced Monitoring • Session: 2h 15m • Updated: 2s ago</div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: auto repeat(6, 1fr); gap: 8px; align-items: center; font-size: 11px;">
+                    <!-- Headers -->
+                    <div></div>
+                    <div style="font-weight: bold; color: #666; text-align: center; font-size: 10px;">MEMORY</div>
+                    <div style="font-weight: bold; color: #666; text-align: center; font-size: 10px;">CPU</div>
+                    <div style="font-weight: bold; color: #666; text-align: center; font-size: 10px;">THREADS</div>
+                    <div style="font-weight: bold; color: #666; text-align: center; font-size: 10px;">POWER</div>
+                    <div style="font-weight: bold; color: #666; text-align: center; font-size: 10px;">GROWTH</div>
+                    <div style="font-weight: bold; color: #666; text-align: center; font-size: 10px;">STATUS</div>
+
+                    <!-- Menu Bar Row -->
+                    <div style="font-weight: bold; color: #333; padding: 4px 0;">📱 Menu Bar</div>
+                    <div style="text-align: center; color: #2196F3; font-weight: bold;">55.2MB<br><span style="color: #FF5722; font-size: 9px;">↑67.1MB</span></div>
+                    <div style="text-align: center; color: #2196F3; font-weight: bold;">0.8%<br><span style="color: #FF5722; font-size: 9px;">↑2.1%</span></div>
+                    <div style="text-align: center; color: #2196F3; font-weight: bold;">12</div>
+                    <div style="text-align: center; color: #FF9800; font-weight: bold;">5.2W</div>
+                    <div style="text-align: center; color: #4CAF50; font-weight: bold;">+1.2MB/min</div>
+                    <div style="text-align: center; color: #4CAF50; font-size: 10px;">Active</div>
+
+                    <!-- Service Row -->
+                    <div style="font-weight: bold; color: #333; padding: 4px 0;">⚙️ Service</div>
+                    <div style="text-align: center; color: #4CAF50; font-weight: bold;">40.6MB<br><span style="color: #FF5722; font-size: 9px;">↑45.2MB</span></div>
+                    <div style="text-align: center; color: #4CAF50; font-weight: bold;">1.2%<br><span style="color: #FF5722; font-size: 9px;">↑15.8%</span></div>
+                    <div style="text-align: center; color: #4CAF50; font-weight: bold;">8</div>
+                    <div style="text-align: center; color: #FF9800; font-weight: bold;">7.3W</div>
+                    <div style="text-align: center; color: #4CAF50; font-weight: bold;">+1.1MB/min</div>
+                    <div style="text-align: center; color: #4CAF50; font-size: 10px;">Active</div>
+
+                    <!-- System Row -->
+                    <div style="font-weight: bold; color: #333; padding: 4px 0;">💻 System</div>
+                    <div style="text-align: center; color: #9C27B0; font-weight: bold;">23.5%<br><span style="color: #666; font-size: 9px;">16GB</span></div>
+                    <div style="text-align: center; color: #F44336; font-weight: bold;">23.5%<br><span style="color: #666; font-size: 9px;">8 cores</span></div>
+                    <div style="text-align: center; color: #607D8B; font-weight: bold;">156</div>
+                    <div style="text-align: center; color: #FF9800; font-weight: bold;">12.5W</div>
+                    <div style="text-align: center; color: #795548; font-weight: bold;">Load: 2.1</div>
+                    <div style="text-align: center; color: #4CAF50; font-size: 10px;">Normal</div>
+                </div>
+
+                <div style="margin-top: 8px; padding-top: 6px; border-top: 1px solid #eee; display: flex; justify-content: space-between; font-size: 10px; color: #666;">
+                    <span>🌐 Network: ↓125 Mbps ↑45 Mbps</span>
+                    <span>💾 Disk: 78% used (512GB)</span>
+                    <span>🔋 Battery: 87% (3h 24m remaining)</span>
+                    <span>🌡️ CPU Temp: 65°C</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Option 3: Status Bar Style -->
+        <div class="option-section">
+            <div class="option-title">Option 3: Minimal Status Bar</div>
+            <div class="option-description">Ultra-compact single row with essential metrics and expandable details</div>
+
+            <div style="background: white; border-radius: 6px; padding: 8px 12px; border: 1px solid #e0e0e0; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; font-size: 12px;">
+                    <div style="font-weight: bold; color: #333; font-size: 16px;">📊 Clipboard Monitor</div>
+
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <span style="color: #666;">💾</span>
+                        <span style="color: #2196F3; font-weight: bold;">📱55.2MB</span>
+                        <span style="color: #4CAF50; font-weight: bold;">⚙️40.6MB</span>
+                        <span style="color: #FF9800; font-weight: bold;">📊95.8MB</span>
+                        <span style="color: #FF5722; font-size: 10px;">(↑112.3MB)</span>
+                    </div>
+
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <span style="color: #666;">⚡</span>
+                        <span style="color: #2196F3; font-weight: bold;">📱0.8%</span>
+                        <span style="color: #4CAF50; font-weight: bold;">⚙️1.2%</span>
+                        <span style="color: #F44336; font-weight: bold;">💻23.5%</span>
+                    </div>
+
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <span style="color: #666;">🌐</span>
+                        <span style="color: #4CAF50; font-weight: bold;">↓125</span>
+                        <span style="color: #2196F3; font-weight: bold;">↑45</span>
+                        <span style="color: #666; font-size: 10px;">Mbps</span>
+                    </div>
+
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <span style="color: #666;">💻</span>
+                        <span style="color: #9C27B0; font-weight: bold;">16GB</span>
+                        <span style="color: #4CAF50; font-weight: bold;">12.3GB</span>
+                        <span style="color: #FF5722; font-weight: bold;">65°C</span>
+                    </div>
+
+                    <div style="display: flex; align-items: center; gap: 12px; font-size: 11px; color: #666;">
+                        <span style="color: #4CAF50;">● Connected</span>
+                        <span>2h 15m</span>
+                        <span>2s ago</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Option 4: Dashboard Widget Style -->
+        <div class="option-section">
+            <div class="option-title">Option 4: Modern Widget Dashboard</div>
+            <div class="option-description">Colorful widget-based layout with visual indicators and real-time animations</div>
+
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; padding: 16px; color: white;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                    <h2 style="margin: 0; font-size: 18px; color: white;">📊 Clipboard Monitor</h2>
+                    <div style="display: flex; gap: 15px; font-size: 12px; opacity: 0.9;">
+                        <span style="background: rgba(255,255,255,0.2); padding: 3px 8px; border-radius: 10px;">● Live</span>
+                        <span style="background: rgba(244,67,54,0.8); padding: 3px 8px; border-radius: 10px; animation: pulse 2s infinite;">🔴 Advanced</span>
+                        <span>2h 15m</span>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px;">
+                    <!-- Memory Widget -->
+                    <div style="background: rgba(255,255,255,0.15); border-radius: 8px; padding: 12px; backdrop-filter: blur(10px);">
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                            <span style="font-size: 12px; opacity: 0.9;">💾 MEMORY</span>
+                            <div style="width: 8px; height: 8px; background: #4CAF50; border-radius: 50%; animation: pulse 2s infinite;"></div>
+                        </div>
+                        <div style="font-size: 18px; font-weight: bold; margin-bottom: 4px;">95.8<span style="font-size: 12px; opacity: 0.8;">MB</span></div>
+                        <div style="font-size: 10px; opacity: 0.8;">Peak: 112.3MB</div>
+                        <div style="font-size: 10px; opacity: 0.8;">Growth: +2.3MB/min</div>
+                    </div>
+
+                    <!-- CPU Widget -->
+                    <div style="background: rgba(255,255,255,0.15); border-radius: 8px; padding: 12px; backdrop-filter: blur(10px);">
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                            <span style="font-size: 12px; opacity: 0.9;">⚡ CPU</span>
+                            <div style="width: 8px; height: 8px; background: #FF9800; border-radius: 50%;"></div>
+                        </div>
+                        <div style="font-size: 18px; font-weight: bold; margin-bottom: 4px;">2.0<span style="font-size: 12px; opacity: 0.8;">%</span></div>
+                        <div style="font-size: 10px; opacity: 0.8;">Peak: 17.9%</div>
+                        <div style="font-size: 10px; opacity: 0.8;">Temp: 65°C</div>
+                    </div>
+
+                    <!-- System Widget -->
+                    <div style="background: rgba(255,255,255,0.15); border-radius: 8px; padding: 12px; backdrop-filter: blur(10px);">
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                            <span style="font-size: 12px; opacity: 0.9;">💻 SYSTEM</span>
+                            <div style="width: 8px; height: 8px; background: #9C27B0; border-radius: 50%;"></div>
+                        </div>
+                        <div style="font-size: 18px; font-weight: bold; margin-bottom: 4px;">16<span style="font-size: 12px; opacity: 0.8;">GB</span></div>
+                        <div style="font-size: 10px; opacity: 0.8;">Free: 12.3GB</div>
+                        <div style="font-size: 10px; opacity: 0.8;">Load: 2.1</div>
+                    </div>
+
+                    <!-- Network Widget -->
+                    <div style="background: rgba(255,255,255,0.15); border-radius: 8px; padding: 12px; backdrop-filter: blur(10px);">
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                            <span style="font-size: 12px; opacity: 0.9;">🌐 NETWORK</span>
+                            <div style="width: 8px; height: 8px; background: #4CAF50; border-radius: 50%;"></div>
+                        </div>
+                        <div style="font-size: 18px; font-weight: bold; margin-bottom: 4px;">125<span style="font-size: 12px; opacity: 0.8;">Mbps</span></div>
+                        <div style="font-size: 10px; opacity: 0.8;">↓125 ↑45 Mbps</div>
+                        <div style="font-size: 10px; opacity: 0.8;">Latency: 12ms</div>
+                    </div>
+
+                    <!-- Power Widget -->
+                    <div style="background: rgba(255,255,255,0.15); border-radius: 8px; padding: 12px; backdrop-filter: blur(10px);">
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                            <span style="font-size: 12px; opacity: 0.9;">🔋 POWER</span>
+                            <div style="width: 8px; height: 8px; background: #4CAF50; border-radius: 50%;"></div>
+                        </div>
+                        <div style="font-size: 18px; font-weight: bold; margin-bottom: 4px;">87<span style="font-size: 12px; opacity: 0.8;">%</span></div>
+                        <div style="font-size: 10px; opacity: 0.8;">3h 24m left</div>
+                        <div style="font-size: 10px; opacity: 0.8;">12.5W usage</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Option 5: Vertical Sidebar Style -->
+        <div class="option-section">
+            <div class="option-title">Option 5: Vertical Sidebar Layout</div>
+            <div class="option-description">Compact vertical layout with expandable sections and detailed metrics</div>
+
+            <div style="display: flex; gap: 12px;">
+                <div style="background: white; border-radius: 8px; padding: 12px; width: 200px; border: 1px solid #e0e0e0; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
+                    <div style="font-weight: bold; color: #333; margin-bottom: 12px; font-size: 14px; text-align: center;">📊 Monitor</div>
+
+                    <div style="margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #eee;">
+                        <div style="font-size: 11px; color: #666; margin-bottom: 4px;">📋 CLIPBOARD</div>
+                        <div style="font-size: 10px; margin-bottom: 2px;">📱 Menu: <span style="color: #2196F3; font-weight: bold;">55.2MB</span> <span style="color: #4CAF50;">0.8%</span></div>
+                        <div style="font-size: 10px; margin-bottom: 2px;">⚙️ Service: <span style="color: #4CAF50; font-weight: bold;">40.6MB</span> <span style="color: #4CAF50;">1.2%</span></div>
+                        <div style="font-size: 10px;">📊 Total: <span style="color: #FF9800; font-weight: bold;">95.8MB</span> <span style="color: #FF9800;">2.0%</span></div>
+                    </div>
+
+                    <div style="margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #eee;">
+                        <div style="font-size: 11px; color: #666; margin-bottom: 4px;">💻 SYSTEM</div>
+                        <div style="font-size: 10px; margin-bottom: 2px;">🧠 RAM: <span style="color: #9C27B0; font-weight: bold;">23.5%</span> <span style="color: #666;">(16GB)</span></div>
+                        <div style="font-size: 10px; margin-bottom: 2px;">⚡ CPU: <span style="color: #F44336; font-weight: bold;">23.5%</span> <span style="color: #666;">(8 cores)</span></div>
+                        <div style="font-size: 10px; margin-bottom: 2px;">💾 Disk: <span style="color: #607D8B; font-weight: bold;">78%</span> <span style="color: #666;">(512GB)</span></div>
+                        <div style="font-size: 10px;">🌡️ Temp: <span style="color: #FF5722; font-weight: bold;">65°C</span></div>
+                    </div>
+
+                    <div style="margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #eee;">
+                        <div style="font-size: 11px; color: #666; margin-bottom: 4px;">🌐 NETWORK</div>
+                        <div style="font-size: 10px; margin-bottom: 2px;">↓ Down: <span style="color: #4CAF50; font-weight: bold;">125 Mbps</span></div>
+                        <div style="font-size: 10px; margin-bottom: 2px;">↑ Up: <span style="color: #2196F3; font-weight: bold;">45 Mbps</span></div>
+                        <div style="font-size: 10px;">📡 Ping: <span style="color: #FF9800; font-weight: bold;">12ms</span></div>
+                    </div>
+
+                    <div>
+                        <div style="font-size: 11px; color: #666; margin-bottom: 4px;">📊 SESSION</div>
+                        <div style="font-size: 10px; margin-bottom: 2px;">⏰ Uptime: <span style="color: #795548; font-weight: bold;">2h 15m</span></div>
+                        <div style="font-size: 10px; margin-bottom: 2px;">🔋 Battery: <span style="color: #4CAF50; font-weight: bold;">87%</span></div>
+                        <div style="font-size: 10px;">🔄 Updated: <span style="color: #666; font-weight: bold;">2s ago</span></div>
+                    </div>
+                </div>
+
+                <div style="flex: 1; background: white; border-radius: 8px; padding: 12px; border: 1px solid #e0e0e0; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
+                    <div style="font-weight: bold; color: #333; margin-bottom: 12px; font-size: 14px;">📈 Main Dashboard Area</div>
+                    <div style="height: 200px; background: #f8f9fa; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: #666;">
+                        Charts and graphs would appear here with more horizontal space
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Summary and Recommendations -->
+        <div style="background: #e3f2fd; border-radius: 8px; padding: 20px; margin-top: 30px; border-left: 4px solid #2196F3;">
+            <h3 style="margin-top: 0; color: #1976D2;">📋 Comparison Summary</h3>
+            <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 15px; margin-top: 15px;">
+                <div>
+                    <strong>Option 1: Cards</strong><br>
+                    <small>✅ Clean, organized<br>✅ All metrics visible<br>❌ Takes more space</small>
+                </div>
+                <div>
+                    <strong>Option 2: Table</strong><br>
+                    <small>✅ Maximum data density<br>✅ Easy comparison<br>❌ Less visual appeal</small>
+                </div>
+                <div>
+                    <strong>Option 3: Status Bar</strong><br>
+                    <small>✅ Ultra compact<br>✅ Quick overview<br>❌ Limited detail space</small>
+                </div>
+                <div>
+                    <strong>Option 4: Widgets</strong><br>
+                    <small>✅ Modern, attractive<br>✅ Visual indicators<br>❌ May be too flashy</small>
+                </div>
+                <div>
+                    <strong>Option 5: Sidebar</strong><br>
+                    <small>✅ Detailed metrics<br>✅ More chart space<br>❌ Different layout paradigm</small>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</body>
+</html>

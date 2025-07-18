@@ -76,9 +76,21 @@
             "color": "default"
         },
         {
-            "label": "🧪 Test DMG (VS Code Safe)",
-            "task": "Test DMG (VS Code Safe)",
-            "tooltip": "Safe DMG testing - mount, uninstall, copy files (no install script)",
+            "label": "🧪 Test DMG Installation",
+            "task": "Test DMG Installation",
+            "tooltip": "Full DMG testing workflow with manual plist copying - mount, uninstall, install, and verify",
+            "color": "default"
+        },
+        {
+            "label": "🚀 Build Create Install DMG",
+            "task": "🚀 Build Create Install DMG",
+            "tooltip": "Complete unified workflow: Build → Create DMG → Guided Install (Quiet Mode)",
+            "color": "default"
+        },
+        {
+            "label": "🚀 Build Create Install DMG (Verbose)",
+            "task": "🚀 Build Create Install DMG (Verbose)",
+            "tooltip": "Complete unified workflow with guided install and full verbose output",
             "color": "default"
         }
     ],

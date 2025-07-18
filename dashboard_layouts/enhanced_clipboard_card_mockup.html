@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced Clipboard Monitor Card - Complete Mockup</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f7fa;
+            line-height: 1.4;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            color: #333;
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        .comparison-section {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .section-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+        .card-mockup {
+            background: white;
+            border-radius: 8px;
+            padding: 16px;
+            border-left: 4px solid #2196F3;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .metric-value {
+            font-weight: bold;
+        }
+        .peak-value {
+            color: #FF5722;
+            font-size: 9px;
+        }
+        .trend-up { color: #FF5722; }
+        .trend-stable { color: #4CAF50; }
+        .trend-down { color: #2196F3; }
+        .status-good { color: #4CAF50; }
+        .status-warning { color: #FF9800; }
+        .status-critical { color: #F44336; }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        .live-indicator {
+            animation: pulse 2s infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📋 Enhanced Clipboard Monitor Card</h1>
+            <p>Complete mockup with all suggested metrics and real-time indicators</p>
+        </div>
+
+        <!-- Current vs Enhanced Comparison -->
+        <div class="comparison-section">
+            <div class="section-title">📊 Before vs After Comparison</div>
+            
+            <h3 style="color: #666; margin-bottom: 10px;">🔸 Current Design (Basic)</h3>
+            <div class="card-mockup" style="border-left-color: #9E9E9E;">
+                <div style="font-weight: bold; color: #333; margin-bottom: 8px; font-size: 13px;">📋 Clipboard Monitor</div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 11px;">
+                    <div>
+                        <div style="color: #666; margin-bottom: 2px;">📱 Menu Bar</div>
+                        <div>Memory: <span class="metric-value" style="color: #2196F3;">55.2MB</span> <span class="peak-value">(↑67.1MB)</span></div>
+                        <div>CPU: <span class="metric-value" style="color: #2196F3;">0.8%</span> <span class="peak-value">(↑2.1%)</span></div>
+                        <div>Threads: <span class="metric-value" style="color: #2196F3;">12</span></div>
+                    </div>
+                    <div>
+                        <div style="color: #666; margin-bottom: 2px;">⚙️ Main Service</div>
+                        <div>Memory: <span class="metric-value" style="color: #4CAF50;">40.6MB</span> <span class="peak-value">(↑45.2MB)</span></div>
+                        <div>CPU: <span class="metric-value" style="color: #4CAF50;">1.2%</span> <span class="peak-value">(↑15.8%)</span></div>
+                        <div>Threads: <span class="metric-value" style="color: #4CAF50;">8</span></div>
+                    </div>
+                </div>
+                <div style="margin-top: 8px; padding-top: 6px; border-top: 1px solid #eee; font-size: 10px;">
+                    <div>Total Memory: <span class="metric-value" style="color: #FF9800;">95.8MB</span> <span class="peak-value">(↑112.3MB)</span></div>
+                    <div>Growth Rate: <span class="metric-value" style="color: #9C27B0;">+2.3MB/min</span></div>
+                </div>
+            </div>
+
+            <h3 style="color: #2196F3; margin-bottom: 10px; margin-top: 25px;">✨ Enhanced Design (Complete)</h3>
+            <div class="card-mockup">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                    <div style="font-weight: bold; color: #333; font-size: 13px;">📋 Clipboard Monitor</div>
+                    <div style="display: flex; gap: 8px; align-items: center; font-size: 10px;">
+                        <span class="status-good live-indicator">● Active</span>
+                        <span style="color: #666;">Session: 2h 15m</span>
+                        <span class="trend-up">📈 Rising</span>
+                    </div>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 11px; margin-bottom: 12px;">
+                    <!-- Menu Bar Process -->
+                    <div style="background: #f8f9ff; border-radius: 6px; padding: 10px; border-left: 3px solid #2196F3;">
+                        <div style="color: #666; margin-bottom: 6px; font-weight: bold;">📱 Menu Bar App</div>
+                        
+                        <!-- Core Metrics -->
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-bottom: 6px;">
+                            <div>Memory: <span class="metric-value" style="color: #2196F3;">55.2MB</span></div>
+                            <div>CPU: <span class="metric-value" style="color: #2196F3;">0.8%</span></div>
+                            <div>Threads: <span class="metric-value" style="color: #2196F3;">12</span></div>
+                            <div>Handles: <span class="metric-value" style="color: #2196F3;">45</span></div>
+                        </div>
+                        
+                        <!-- Status & Health -->
+                        <div style="font-size: 10px; color: #666; border-top: 1px solid #e3f2fd; padding-top: 4px;">
+                            <div>Uptime: <span class="status-good">2h 15m</span> • Restarts: <span class="status-good">0</span></div>
+                            <div>Swap: <span class="metric-value" style="color: #FF9800;">2.1MB</span> • Energy: <span class="metric-value" style="color: #4CAF50;">5.2W</span></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Main Service Process -->
+                    <div style="background: #f0fff4; border-radius: 6px; padding: 10px; border-left: 3px solid #4CAF50;">
+                        <div style="color: #666; margin-bottom: 6px; font-weight: bold;">⚙️ Main Service</div>
+                        
+                        <!-- Core Metrics -->
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-bottom: 6px;">
+                            <div>Memory: <span class="metric-value" style="color: #4CAF50;">40.6MB</span></div>
+                            <div>CPU: <span class="metric-value" style="color: #4CAF50;">1.2%</span></div>
+                            <div>Threads: <span class="metric-value" style="color: #4CAF50;">8</span></div>
+                            <div>Handles: <span class="metric-value" style="color: #4CAF50;">23</span></div>
+                        </div>
+                        
+                        <!-- Status & Health -->
+                        <div style="font-size: 10px; color: #666; border-top: 1px solid #e8f5e9; padding-top: 4px;">
+                            <div>Uptime: <span class="status-good">2h 15m</span> • Restarts: <span class="status-good">0</span></div>
+                            <div>Swap: <span class="metric-value" style="color: #FF9800;">1.8MB</span> • Energy: <span class="metric-value" style="color: #4CAF50;">7.3W</span></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Enhanced Summary Section -->
+                <div style="background: #fafafa; border-radius: 6px; padding: 10px; border-top: 2px solid #e0e0e0;">
+                    <div style="font-weight: bold; color: #333; margin-bottom: 6px; font-size: 12px;">📊 Combined Analytics</div>
+                    
+                    <!-- Primary Metrics Row -->
+                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 6px; font-size: 11px;">
+                        <div>Total Memory: <span class="metric-value" style="color: #FF9800;">95.8MB</span></div>
+                        <div>Growth Rate: <span class="metric-value trend-up">+2.3MB/min</span></div>
+                        <div>Efficiency: <span class="metric-value" style="color: #9C27B0;">1.2MB/op</span></div>
+                        <div>Operations: <span class="metric-value" style="color: #607D8B;">12/min</span></div>
+                    </div>
+                    
+                    <!-- Secondary Metrics Row -->
+                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; font-size: 10px; color: #666;">
+                        <div>GC Pressure: <span class="status-good">Low</span></div>
+                        <div>Memory Pressure: <span class="status-good">Normal</span></div>
+                        <div>History Size: <span class="metric-value" style="color: #795548;">1,247</span></div>
+                        <div>Queue Depth: <span class="metric-value" style="color: #3F51B5;">2</span></div>
+                    </div>
+                    
+                    <!-- Peak Values & Trends -->
+                    <div style="margin-top: 6px; padding-top: 4px; border-top: 1px solid #e0e0e0; font-size: 9px; color: #999;">
+                        <div style="display: flex; justify-content: space-between;">
+                            <span>Peak Memory: <span class="peak-value">↑112.3MB</span> • Peak CPU: <span class="peak-value">↑17.9%</span></span>
+                            <span>Cache Hit: <span class="status-good">94%</span> • Errors: <span class="status-good">0.1%</span></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Detailed Breakdown -->
+        <div class="comparison-section">
+            <div class="section-title">🔍 Metric Categories Breakdown</div>
+
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 20px;">
+                <!-- Core Process Metrics -->
+                <div style="background: #f8f9ff; border-radius: 8px; padding: 15px; border-left: 3px solid #2196F3;">
+                    <h4 style="margin-top: 0; color: #2196F3;">🔧 Core Process Metrics</h4>
+                    <div style="font-size: 12px; line-height: 1.6;">
+                        <div><strong>Memory:</strong> Current usage + peak</div>
+                        <div><strong>CPU:</strong> Current % + peak</div>
+                        <div><strong>Threads:</strong> Active thread count</div>
+                        <div><strong>Handles:</strong> File/resource handles</div>
+                        <div><strong>Uptime:</strong> Process runtime</div>
+                        <div><strong>Restarts:</strong> Restart counter</div>
+                    </div>
+                </div>
+
+                <!-- Resource Health -->
+                <div style="background: #f0fff4; border-radius: 8px; padding: 15px; border-left: 3px solid #4CAF50;">
+                    <h4 style="margin-top: 0; color: #4CAF50;">💚 Resource Health</h4>
+                    <div style="font-size: 12px; line-height: 1.6;">
+                        <div><strong>Swap Usage:</strong> Virtual memory</div>
+                        <div><strong>Energy Impact:</strong> Power consumption</div>
+                        <div><strong>GC Pressure:</strong> Garbage collection</div>
+                        <div><strong>Memory Pressure:</strong> System-wide</div>
+                        <div><strong>Cache Hit Rate:</strong> Performance</div>
+                        <div><strong>Error Rate:</strong> Reliability</div>
+                    </div>
+                </div>
+
+                <!-- Application Analytics -->
+                <div style="background: #fff8e1; border-radius: 8px; padding: 15px; border-left: 3px solid #FF9800;">
+                    <h4 style="margin-top: 0; color: #FF9800;">📊 Application Analytics</h4>
+                    <div style="font-size: 12px; line-height: 1.6;">
+                        <div><strong>Operations/min:</strong> Activity rate</div>
+                        <div><strong>Efficiency:</strong> Memory per operation</div>
+                        <div><strong>Growth Rate:</strong> Memory trend</div>
+                        <div><strong>History Size:</strong> Data volume</div>
+                        <div><strong>Queue Depth:</strong> Pending work</div>
+                        <div><strong>Trend Indicator:</strong> Direction</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Implementation Phases -->
+        <div class="comparison-section">
+            <div class="section-title">🚀 Implementation Phases</div>
+
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px;">
+                <!-- Phase 1 -->
+                <div style="background: #e8f5e8; border-radius: 8px; padding: 15px; border-left: 4px solid #4CAF50;">
+                    <h4 style="margin-top: 0; color: #2E7D32;">Phase 1: Essential (Week 1)</h4>
+                    <div style="font-size: 12px;">
+                        <div>✅ File Handles per process</div>
+                        <div>✅ Process uptime tracking</div>
+                        <div>✅ Memory growth rate</div>
+                        <div>✅ Operations per minute</div>
+                        <div>✅ Basic trend indicator</div>
+                    </div>
+                    <div style="margin-top: 10px; font-size: 11px; color: #666;">
+                        <strong>Impact:</strong> Core leak detection
+                    </div>
+                </div>
+
+                <!-- Phase 2 -->
+                <div style="background: #fff3e0; border-radius: 8px; padding: 15px; border-left: 4px solid #FF9800;">
+                    <h4 style="margin-top: 0; color: #F57C00;">Phase 2: Enhanced (Week 2)</h4>
+                    <div style="font-size: 12px;">
+                        <div>🔄 GC pressure monitoring</div>
+                        <div>🔄 Memory efficiency calc</div>
+                        <div>🔄 Restart counter</div>
+                        <div>🔄 Swap usage tracking</div>
+                        <div>🔄 Queue depth monitoring</div>
+                    </div>
+                    <div style="margin-top: 10px; font-size: 11px; color: #666;">
+                        <strong>Impact:</strong> Performance analysis
+                    </div>
+                </div>
+
+                <!-- Phase 3 -->
+                <div style="background: #e3f2fd; border-radius: 8px; padding: 15px; border-left: 4px solid #2196F3;">
+                    <h4 style="margin-top: 0; color: #1976D2;">Phase 3: Advanced (Week 3)</h4>
+                    <div style="font-size: 12px;">
+                        <div>⚡ Energy impact tracking</div>
+                        <div>📊 Cache hit rates</div>
+                        <div>⚠️ Error rate monitoring</div>
+                        <div>🧠 Memory pressure</div>
+                        <div>📈 Advanced analytics</div>
+                    </div>
+                    <div style="margin-top: 10px; font-size: 11px; color: #666;">
+                        <strong>Impact:</strong> Complete optimization
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Benefits Summary -->
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; padding: 20px; color: white; text-align: center;">
+            <h3 style="margin-top: 0; font-size: 20px;">🎯 Enhanced Card Benefits</h3>
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-top: 20px;">
+                <div>
+                    <div style="font-size: 24px; margin-bottom: 8px;">🔍</div>
+                    <div style="font-weight: bold;">Early Detection</div>
+                    <div style="font-size: 12px; opacity: 0.9;">Spot leaks before they become critical</div>
+                </div>
+                <div>
+                    <div style="font-size: 24px; margin-bottom: 8px;">📊</div>
+                    <div style="font-weight: bold;">Deep Analysis</div>
+                    <div style="font-size: 12px; opacity: 0.9;">Comprehensive performance insights</div>
+                </div>
+                <div>
+                    <div style="font-size: 24px; margin-bottom: 8px;">⚡</div>
+                    <div style="font-weight: bold;">Optimization</div>
+                    <div style="font-size: 12px; opacity: 0.9;">Identify efficiency improvements</div>
+                </div>
+                <div>
+                    <div style="font-size: 24px; margin-bottom: 8px;">🚨</div>
+                    <div style="font-weight: bold;">Proactive Alerts</div>
+                    <div style="font-size: 12px; opacity: 0.9;">Prevent issues before they occur</div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</body>
+</html>
