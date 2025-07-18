@@ -403,8 +403,13 @@ create_dmg() {
     fi
     chmod +x "/Volumes/${VOLUME_NAME}/uninstall.sh"
 
-    # Create README
-    create_readme "/Volumes/${VOLUME_NAME}/README.txt"
+    # Copy README file
+    print_status "Copying README file..."
+    if ! cp README.txt "/Volumes/${VOLUME_NAME}/"; then
+        print_error "Failed to copy README file"
+        hdiutil detach "/Volumes/${VOLUME_NAME}" 2>/dev/null || true
+        exit 1
+    fi
 
     # Set DMG background and layout (if available)
     setup_dmg_appearance "/Volumes/${VOLUME_NAME}"
@@ -486,27 +491,26 @@ EOF
 setup_dmg_appearance() {
     print_status "Setting up DMG appearance..."
 
-    # Use AppleScript to set up the DMG window appearance
+    # Use AppleScript to set up the DMG window appearance with list view
     osascript << EOF
 tell application "Finder"
     tell disk "$VOLUME_NAME"
         open
-        set current view of container window to icon view
+        set current view of container window to list view
         set toolbar visible of container window to false
         set statusbar visible of container window to false
-        set the bounds of container window to {400, 100, 900, 400}
-        set viewOptions to the icon view options of container window
-        set arrangement of viewOptions to not arranged
-        set icon size of viewOptions to 72
+        set the bounds of container window to {400, 100, 900, 500}
 
-        -- Position items
-        set position of item "$FINAL_APP_NAME" of container window to {150, 150}
-        set position of item "Applications" of container window to {350, 150}
+        -- Configure basic list view options
+        set viewOptions to the list view options of container window
+        set text size of viewOptions to 12
+        set icon size of viewOptions to small icon
+        set calculates folder sizes of viewOptions to false
 
         close
         open
         update without registering applications
-        delay 2
+        delay 3
     end tell
 end tell
 EOF
@@ -779,10 +783,9 @@ copy_app_to_applications_for_test() {
     fi
 }
 
-# Function to open folders for manual installation
+# Function to open DMG for manual installation
 open_folders_for_manual_installation() {
-    print_status "Opening folders for manual installation..."
-    mkdir -p "$HOME/Library/LaunchAgents"
+    print_status "Opening DMG for manual installation..."
     if [ ! -d "/Volumes/${VOLUME_NAME}" ]; then
         print_status "Mounting DMG for manual installation..."
         if [[ "$QUIET_MODE" == "true" ]]; then
@@ -798,14 +801,14 @@ open_folders_for_manual_installation() {
 
     open "/Volumes/${VOLUME_NAME}"
     print_success "Opened DMG folder"
-    open "$HOME/Library/LaunchAgents"
-    print_success "Opened LaunchAgents folder"
 
     echo ""
-    echo -e "${GREEN}✨ Both folders are now open!${NC}"
-    echo -e "${BLUE}📋 Please drag these 2 files from the DMG folder to the LaunchAgents folder:${NC}"
-    echo "     • com.clipboardmonitor.plist"
-    echo "     • com.clipboardmonitor.menubar.plist"
+    echo -e "${GREEN}✨ DMG is now open!${NC}"
+    echo -e "${BLUE}📋 Please drag these 2 plist files onto the LaunchAgents symlink within the DMG:${NC}"
+    echo "     • com.clipboardmonitor.plist → LaunchAgents"
+    echo "     • com.clipboardmonitor.menubar.plist → LaunchAgents"
+    echo ""
+    echo -e "${BLUE}💡 The LaunchAgents symlink is positioned between the plist files for easy dragging!${NC}"
     echo ""
 }
 

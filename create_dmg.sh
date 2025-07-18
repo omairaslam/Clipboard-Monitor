@@ -110,8 +110,12 @@ create_dmg() {
 copy_additional_files() {
     print_status "Adding additional files to DMG..."
     
-    # Create README file
-    create_readme_file "/Volumes/${VOLUME_NAME}/README.txt"
+    # Copy README file
+    if [ -f "README.txt" ]; then
+        cp "README.txt" "/Volumes/${VOLUME_NAME}/"
+    else
+        create_readme_file "/Volumes/${VOLUME_NAME}/README.txt"
+    fi
     
     # Copy install script if it exists
     if [ -f "install.sh" ]; then
@@ -187,27 +191,26 @@ EOF
 setup_dmg_appearance() {
     print_status "Setting up DMG appearance..."
 
-    # Use AppleScript to set up the DMG window appearance
+    # Use AppleScript to set up the DMG window appearance with list view
     osascript << EOF
 tell application "Finder"
     tell disk "$VOLUME_NAME"
         open
-        set current view of container window to icon view
+        set current view of container window to list view
         set toolbar visible of container window to false
         set statusbar visible of container window to false
-        set the bounds of container window to {400, 100, 900, 400}
-        set viewOptions to the icon view options of container window
-        set arrangement of viewOptions to not arranged
-        set icon size of viewOptions to 72
+        set the bounds of container window to {400, 100, 900, 500}
 
-        -- Position items
-        set position of item "$APP_BUNDLE" of container window to {150, 150}
-        set position of item "Applications" of container window to {350, 150}
+        -- Configure basic list view options
+        set viewOptions to the list view options of container window
+        set text size of viewOptions to 12
+        set icon size of viewOptions to small icon
+        set calculates folder sizes of viewOptions to false
 
         close
         open
         update without registering applications
-        delay 2
+        delay 3
     end tell
 end tell
 EOF

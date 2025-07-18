@@ -290,19 +290,147 @@ if [ "$1" == "--uninstall" ]; then
     uninstall_services
 fi
 
+# --- Pre-Installation Check ---
+check_existing_installation() {
+    local app_installed=false
+    local plist_main_exists=false
+    local plist_menubar_exists=false
+    local service_main_running=false
+    local service_menubar_running=false
+    local issues_found=false
+
+    print_step "🔍 Checking for existing installation..."
+    echo ""
+
+    # Check if app is installed
+    if [ -d "/Applications/$APP_NAME" ]; then
+        app_installed=true
+        echo -e "${GREEN}✅ Application found in Applications folder${NC}"
+    else
+        echo -e "${YELLOW}⚪ Application not found in Applications folder${NC}"
+    fi
+
+    # Check if plist files exist
+    if [ -f "$LAUNCH_AGENTS_DIR/$PLIST_BACKGROUND" ]; then
+        plist_main_exists=true
+        echo -e "${GREEN}✅ Main service plist file exists${NC}"
+    else
+        echo -e "${YELLOW}⚪ Main service plist file not found${NC}"
+    fi
+
+    if [ -f "$LAUNCH_AGENTS_DIR/$PLIST_MENUBAR" ]; then
+        plist_menubar_exists=true
+        echo -e "${GREEN}✅ Menu bar service plist file exists${NC}"
+    else
+        echo -e "${YELLOW}⚪ Menu bar service plist file not found${NC}"
+    fi
+
+    # Check if services are running
+    if launchctl list | grep -q "com.clipboardmonitor$"; then
+        service_main_running=true
+        echo -e "${GREEN}✅ Main service is running${NC}"
+    else
+        echo -e "${YELLOW}⚪ Main service is not running${NC}"
+    fi
+
+    if launchctl list | grep -q "com.clipboardmonitor.menubar"; then
+        service_menubar_running=true
+        echo -e "${GREEN}✅ Menu bar service is running${NC}"
+    else
+        echo -e "${YELLOW}⚪ Menu bar service is not running${NC}"
+    fi
+
+    echo ""
+
+    # Determine if we have a complete or partial installation
+    if $app_installed && $plist_main_exists && $plist_menubar_exists; then
+        if $service_main_running && $service_menubar_running; then
+            print_success "Complete installation detected - all components present and running"
+            echo -e "${BLUE}📱 Clipboard Monitor appears to be fully installed and operational.${NC}"
+        else
+            print_warning "Complete installation detected but services not running"
+            echo -e "${BLUE}📱 All files are present but services may need to be restarted.${NC}"
+        fi
+        issues_found=true
+    elif $app_installed || $plist_main_exists || $plist_menubar_exists || $service_main_running || $service_menubar_running; then
+        print_warning "Partial installation detected"
+        echo -e "${BLUE}📱 Some components are installed but the installation appears incomplete.${NC}"
+        issues_found=true
+    else
+        print_success "No existing installation found - ready for fresh installation"
+        return 0
+    fi
+
+    echo ""
+    echo -e "${YELLOW}🔄 RECOMMENDATION:${NC}"
+    echo -e "${BLUE}To ensure a clean installation, it's recommended to uninstall the existing${NC}"
+    echo -e "${BLUE}components before proceeding with the new installation.${NC}"
+    echo ""
+
+    # Ask user if they want to uninstall existing installation
+    echo -e "${BLUE}Would you like to uninstall the existing installation first? (Y/n)${NC}"
+    read -p "" -n 1 -r
+    echo # Move to a new line
+
+    # Default to 'y' if user just pressed Enter
+    if [[ -z $REPLY ]]; then
+        REPLY="y"
+    fi
+
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        echo ""
+        print_step "🧹 Uninstalling existing installation..."
+
+        # Perform silent uninstall without header/exit prompts
+        print_step "🛑 Stopping services..."
+        launchctl unload "$LAUNCH_AGENTS_DIR/$PLIST_BACKGROUND" 2>/dev/null || true
+        launchctl unload "$LAUNCH_AGENTS_DIR/$PLIST_MENUBAR" 2>/dev/null || true
+        print_success "Services stopped"
+
+        print_step "🗂️  Removing plist files..."
+        rm -f "$LAUNCH_AGENTS_DIR/$PLIST_BACKGROUND" 2>/dev/null || true
+        rm -f "$LAUNCH_AGENTS_DIR/$PLIST_MENUBAR" 2>/dev/null || true
+        print_success "Plist files removed"
+
+        print_step "📱 Removing application..."
+        rm -rf "/Applications/$APP_NAME" 2>/dev/null || true
+        print_success "Application removed"
+
+        print_step "🧹 Cleaning up log files..."
+        rm -f "$LOG_DIR/ClipboardMonitor.out.log" 2>/dev/null || true
+        rm -f "$LOG_DIR/ClipboardMonitor.err.log" 2>/dev/null || true
+        rm -f "$LOG_DIR/ClipboardMonitorMenuBar.out.log" 2>/dev/null || true
+        rm -f "$LOG_DIR/ClipboardMonitorMenuBar.err.log" 2>/dev/null || true
+        print_success "Log files cleaned"
+
+        echo ""
+        print_success "Existing installation removed - ready for fresh installation"
+        echo ""
+    else
+        echo ""
+        print_warning "Proceeding with installation over existing components"
+        echo -e "${YELLOW}⚠️  This may cause conflicts or unexpected behavior.${NC}"
+        echo ""
+    fi
+}
+
 # --- Main Installation ---
 main() {
     print_header
 
     echo -e "${BLUE}Welcome to Clipboard Monitor!${NC}"
     echo ""
-    echo "This script will install the necessary background services for Clipboard Monitor."
+    echo "This script will automatically install Clipboard Monitor and set up background services."
     echo "The installation will:"
+    echo "  • Copy the application to your Applications folder"
     echo "  • Set up background clipboard monitoring"
     echo "  • Configure the menu bar interface"
     echo "  • Create system service files"
     echo "  • Verify everything is working properly"
     echo ""
+
+    # Check for existing installation first
+    check_existing_installation
 
     # Ask for user confirmation before proceeding (default: y)
     read -p "Continue with installation? (Y/n) " -n 1 -r
@@ -320,53 +448,84 @@ main() {
     fi
 
     echo ""
-    print_step "🔍 Verifying application location..."
+    print_step "� Installing application to Applications folder..."
 
-    # Verify application location - only check system Applications folder
+    # Set installation directory
     INSTALL_DIR="/Applications/$APP_NAME"
 
+    # Check if app already exists
     if [ -d "$INSTALL_DIR" ]; then
-        print_success "Found application in Applications folder"
-    else
-        print_error "Application '$APP_NAME' not found!"
-        echo ""
-        echo -e "${RED}❌ The application must be installed before running this script.${NC}"
-        echo ""
-        echo -e "${YELLOW}📋 INSTALLATION STEPS:${NC}"
-        echo -e "${BLUE}   1. 📦 Open the DMG file (if not already open)${NC}"
-        echo -e "${BLUE}   2. 🖱️  Drag '$APP_NAME' to your Applications folder${NC}"
-        echo -e "${BLUE}   3. ✅ Verify the app appears in /Applications/${NC}"
-        echo -e "${BLUE}   4. 🔄 Run this install script again${NC}"
-        echo ""
-        echo -e "${YELLOW}⚠️  IMPORTANT: Do not run the app directly from the DMG!${NC}"
-        echo -e "${YELLOW}   It must be copied to Applications first.${NC}"
-        echo ""
+        print_warning "Application already exists in Applications folder"
+        echo -e "${BLUE}Would you like to replace it with the current version? (Y/n)${NC}"
+        read -p "" -n 1 -r
+        echo # Move to a new line
 
-        # Offer to wait and retry
-        echo -e "${BLUE}Would you like to wait while you copy the app, then retry? (y/n)${NC}"
-        read -r response
-        if [[ "$response" =~ ^[Yy]$ ]]; then
-            echo ""
-            echo -e "${YELLOW}⏳ Waiting for you to copy the app to Applications...${NC}"
-            echo -e "${BLUE}Press any key when ready to retry...${NC}"
-            read -n 1 -s
-            echo ""
+        # Default to 'y' if user just pressed Enter
+        if [[ -z $REPLY ]]; then
+            REPLY="y"
+        fi
 
-            # Retry the check
-            if [ -d "$INSTALL_DIR" ]; then
-                print_success "✅ Found application in Applications folder"
-            else
-                print_error "Application still not found. Please copy it to /Applications/ and try again."
-                exit_with_prompt 1
-            fi
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            print_step "🗑️  Removing existing installation..."
+            rm -rf "$INSTALL_DIR"
+            print_success "Existing installation removed"
         else
+            print_success "Using existing installation"
+            echo -e "${BLUE}   � Application path: $INSTALL_DIR${NC}"
             echo ""
-            echo -e "${BLUE}Please copy the app to Applications and run this script again.${NC}"
-            exit_with_prompt 1
+            return 0
         fi
     fi
 
-    echo -e "${BLUE}   📁 Application path: $INSTALL_DIR${NC}"
+    # Try to find the app in common locations
+    APP_SOURCE=""
+
+    # Check if we're running from DMG
+    if [ -d "/Volumes/Clipboard Monitor/$APP_NAME" ]; then
+        APP_SOURCE="/Volumes/Clipboard Monitor/$APP_NAME"
+        print_success "Found app in mounted DMG"
+    # Check current directory
+    elif [ -d "./$APP_NAME" ]; then
+        APP_SOURCE="./$APP_NAME"
+        print_success "Found app in current directory"
+    # Check parent directory
+    elif [ -d "../$APP_NAME" ]; then
+        APP_SOURCE="../$APP_NAME"
+        print_success "Found app in parent directory"
+    else
+        print_error "Could not locate '$APP_NAME' for installation"
+        echo ""
+        echo -e "${YELLOW}📋 Please ensure one of the following:${NC}"
+        echo -e "${BLUE}   1. 📦 DMG is mounted at '/Volumes/Clipboard Monitor/'${NC}"
+        echo -e "${BLUE}   2. 🖱️  App is in the same directory as this script${NC}"
+        echo -e "${BLUE}   3. 📁 App is in the parent directory${NC}"
+        echo ""
+        exit_with_prompt 1
+    fi
+
+    # Copy the application
+    print_step "📋 Copying application to Applications folder..."
+    echo -e "${BLUE}   📂 Source: $APP_SOURCE${NC}"
+    echo -e "${BLUE}   📁 Destination: $INSTALL_DIR${NC}"
+
+    if ditto "$APP_SOURCE" "$INSTALL_DIR"; then
+        print_success "Application successfully copied to Applications folder"
+
+        # Verify the copy was successful
+        if [ -d "$INSTALL_DIR" ]; then
+            print_success "Installation verified"
+            echo -e "${BLUE}   📁 Application path: $INSTALL_DIR${NC}"
+        else
+            print_error "Installation verification failed"
+            exit_with_prompt 1
+        fi
+    else
+        print_error "Failed to copy application to Applications folder"
+        echo ""
+        echo -e "${YELLOW}💡 This might be due to permission issues.${NC}"
+        echo -e "${BLUE}You can try manually dragging the app to Applications folder.${NC}"
+        exit_with_prompt 1
+    fi
     echo ""
 
     print_step "📁 Preparing system directories..."
@@ -455,16 +614,16 @@ main() {
     echo -e "${BLUE}📁 What's included in the DMG:${NC}"
     echo -e "${BLUE}   • com.clipboardmonitor.plist${NC}"
     echo -e "${BLUE}   • com.clipboardmonitor.menubar.plist${NC}"
-    echo -e "${BLUE}   • LaunchAgents folder (shortcut to ~/Library/LaunchAgents)${NC}"
+    echo -e "${BLUE}   • LaunchAgents symlink (points to ~/Library/LaunchAgents)${NC}"
     echo ""
     echo -e "${BLUE}🚀 SUPER SIMPLE INSTALLATION:${NC}"
-    echo -e "${BLUE}   1. I'll open both the DMG and LaunchAgents folder for you${NC}"
-    echo -e "${BLUE}   2. Just drag the 2 plist files to the LaunchAgents folder${NC}"
+    echo -e "${BLUE}   1. I'll open the DMG in list view for easy access${NC}"
+    echo -e "${BLUE}   2. Just drag both plist files onto the LaunchAgents symlink${NC}"
     echo -e "${BLUE}   3. Come back here and press any key to continue${NC}"
     echo ""
 
-    # Offer to open the folders automatically
-    echo -e "${BLUE}Would you like me to open the folders for you now? (Y/n)${NC}"
+    # Offer to open the DMG automatically
+    echo -e "${BLUE}Would you like me to open the DMG for you now? (Y/n)${NC}"
     read -p "" -n 1 -r
     echo # Move to a new line
 
@@ -474,30 +633,28 @@ main() {
     fi
 
     if [[ $REPLY =~ ^[Yy]$ ]]; then
-        print_step "📂 Opening folders for easy installation..."
+        print_step "📂 Opening DMG for easy installation..."
 
         # Open the DMG folder (should already be mounted)
         if [ -d "/Volumes/Clipboard Monitor" ]; then
             open "/Volumes/Clipboard Monitor"
-            print_success "Opened DMG folder"
+            print_success "Opened DMG in list view"
         else
             print_warning "DMG folder not found - please open it manually"
         fi
 
-        # Open LaunchAgents folder (create if it doesn't exist)
-        mkdir -p "$HOME/Library/LaunchAgents"
-        open "$HOME/Library/LaunchAgents"
-        print_success "Opened LaunchAgents folder"
-
         echo ""
-        echo -e "${GREEN}✨ Perfect! Both folders are now open.${NC}"
-        echo -e "${BLUE}📋 Now just drag these 2 files from the DMG to LaunchAgents:${NC}"
-        echo -e "${BLUE}   • com.clipboardmonitor.plist${NC}"
-        echo -e "${BLUE}   • com.clipboardmonitor.menubar.plist${NC}"
+        echo -e "${GREEN}✨ Perfect! DMG is now open in list view.${NC}"
+        echo -e "${BLUE}📋 Simply drag both plist files onto the LaunchAgents symlink:${NC}"
+        echo -e "${BLUE}   • com.clipboardmonitor.plist → LaunchAgents${NC}"
+        echo -e "${BLUE}   • com.clipboardmonitor.menubar.plist → LaunchAgents${NC}"
+        echo ""
+        echo -e "${BLUE}💡 The LaunchAgents symlink will copy the files to the correct location!${NC}"
         echo ""
     else
         echo -e "${BLUE}📋 Manual installation:${NC}"
-        echo -e "${BLUE}   Copy both plist files from the DMG to: ~/Library/LaunchAgents/${NC}"
+        echo -e "${BLUE}   Drag both plist files from the DMG onto the LaunchAgents symlink${NC}"
+        echo -e "${BLUE}   Or copy them manually to: ~/Library/LaunchAgents/${NC}"
         echo ""
     fi
 
