@@ -298,11 +298,11 @@ update_plist_templates() {
     local resources_dir="$FINAL_APP_NAME/Contents/Resources"
     
     # Update main service plist template
-    sed "s|/usr/bin/python3|$PWD/$FINAL_APP_NAME/Contents/Resources/Services/ClipboardMonitor.app/Contents/MacOS/ClipboardMonitor|g" \
+    sed "s|/usr/bin/python3|/Applications/$FINAL_APP_NAME/Contents/Resources/Services/ClipboardMonitor.app/Contents/MacOS/ClipboardMonitor|g" \
         plist_files/com.clipboardmonitor.plist > "$resources_dir/com.clipboardmonitor.plist"
 
     # Update menu bar plist template
-    sed "s|/usr/bin/python3|$PWD/$FINAL_APP_NAME/Contents/MacOS/ClipboardMonitorMenuBar|g" \
+    sed "s|/usr/bin/python3|/Applications/$FINAL_APP_NAME/Contents/MacOS/ClipboardMonitorMenuBar|g" \
         plist_files/com.clipboardmonitor.menubar.plist > "$resources_dir/com.clipboardmonitor.menubar.plist"
     
     print_success "Plist templates updated"
@@ -494,23 +494,33 @@ setup_dmg_appearance() {
     # Use AppleScript to set up the DMG window appearance with list view
     osascript << EOF
 tell application "Finder"
-    tell disk "$VOLUME_NAME"
+    tell disk "${VOLUME_NAME}"
         open
+        -- Set the view to list view
         set current view of container window to list view
+        
+        -- Basic window properties
         set toolbar visible of container window to false
         set statusbar visible of container window to false
-        set the bounds of container window to {400, 100, 900, 500}
-
-        -- Configure basic list view options
-        set viewOptions to the list view options of container window
-        set text size of viewOptions to 12
-        set icon size of viewOptions to small icon
-        set calculates folder sizes of viewOptions to false
-
+        set the bounds of container window to {400, 100, 950, 500}
+        
+        -- Configure list view options for a clean layout
+        tell the list view options of container window
+            set sort column to name column
+            set calculates folder sizes to false
+            set icon size to small icon
+            set text size to 12
+            set width of column id name column to 350
+            set width of column id modification date column to 150
+            set width of column id size column to 100
+            set width of column id kind column to 150
+        end tell
+        
+        -- Force Finder to save changes
         close
         open
         update without registering applications
-        delay 3
+        delay 2
     end tell
 end tell
 EOF
@@ -697,28 +707,26 @@ display_dmg_info() {
 # ============================================================================
 
 # Main function for the guided installation test phase
-run_guided_installation_test() {
-    print_section "Guided Installation Test"
+run_guided_local_installation() {
+    print_section "Guided Local Installation"
     echo ""
-    echo "The DMG has been created successfully! 🎉"
+    echo "The DMG has been built and verified. Now, let's install it on this machine."
     echo ""
 
     # 1. Clean up any previous installation
     cleanup_existing_installation
 
     # 2. Simulate user copying .app to /Applications
-    copy_app_to_applications_for_test
+    copy_app_to_applications
 
-    # 3. Open folders for manual plist copy
+    # 3. Open folders for manual plist copy and wait for user
     open_folders_for_manual_installation
-
-    # 4. Wait for user to copy plists and confirm
     wait_for_plist_confirmation
 
     # 5. Verify that the app and plists are in the correct locations
     if verify_manual_installation; then
         # 6. Load the services to start the application
-        load_services_for_test
+        load_services
     else
         print_error "Installation verification failed. Cannot start services."
         exit 1
@@ -727,23 +735,43 @@ run_guided_installation_test() {
 
 # Function to cleanup existing installation before testing new DMG
 cleanup_existing_installation() {
-    print_status "Running complete uninstall to clean up any existing installation..."
-    if [ ! -f "./uninstall.sh" ]; then
-        print_error "uninstall.sh not found - using basic cleanup"
-        basic_cleanup_fallback
-        return
+    print_status "Cleaning up any existing installation..."
+    local launch_agents_dir="$HOME/Library/LaunchAgents"
+    local main_plist="$launch_agents_dir/com.clipboardmonitor.plist"
+    local menubar_plist="$launch_agents_dir/com.clipboardmonitor.menubar.plist"
+    local app_in_apps="/Applications/$FINAL_APP_NAME"
+    local log_dir="$HOME/Library/Logs"
+
+    # 1. Stop services
+    print_status "Stopping any running services..."
+    launchctl unload "$main_plist" 2>/dev/null || true
+    launchctl unload "$menubar_plist" 2>/dev/null || true
+    pkill -f "ClipboardMonitor" >/dev/null 2>&1 || true
+    sleep 1
+    print_success "Services stopped."
+
+    # 2. Always remove old plist files to ensure they are updated with correct paths
+    print_status "Removing old plist files..."
+    rm -f "$main_plist" "$menubar_plist"
+    print_success "Old plist files removed."
+
+    # 3. Remove application from /Applications
+    if [ -d "$app_in_apps" ]; then
+        print_status "Removing existing application from /Applications..."
+        rm -rf "$app_in_apps"
+        print_success "Application removed."
     fi
-    chmod +x ./uninstall.sh
+
+    # 4. Remove log files
+    print_status "Removing old log files..."
+    rm -f "$log_dir/ClipboardMonitor.out.log" 2>/dev/null || true
+    rm -f "$log_dir/ClipboardMonitor.err.log" 2>/dev/null || true
+    rm -f "$log_dir/ClipboardMonitorMenuBar.out.log" 2>/dev/null || true
+    rm -f "$log_dir/ClipboardMonitorMenuBar.err.log" 2>/dev/null || true
+    print_success "Log files removed."
+
     echo ""
-    echo -e "${BLUE}🧹 Running automated uninstall to ensure clean state...${NC}"
-    echo ""
-    if [[ "$QUIET_MODE" == "true" ]]; then
-        echo "y" | ./uninstall.sh 2>/dev/null | grep -E "(✅|❌|⚠️|🎉)" || true
-    else
-        echo "y" | ./uninstall.sh
-    fi
-    echo ""
-    print_success "Uninstall completed - system is clean for fresh installation"
+    print_success "Cleanup completed. System is ready for fresh installation."
     echo ""
 }
 
@@ -760,13 +788,13 @@ basic_cleanup_fallback() {
 }
 
 # Function to copy the .app to /Applications for testing
-copy_app_to_applications_for_test() {
-    print_status "Simulating user action: Copying app to /Applications..."
+copy_app_to_applications() {
+    print_status "Automating installation: Copying app to /Applications..."
     local app_in_dmg="/Volumes/${VOLUME_NAME}/$FINAL_APP_NAME"
     local app_in_apps="/Applications/$FINAL_APP_NAME"
 
     if [ ! -d "$app_in_dmg" ]; then
-        print_error "Cannot copy app. DMG not mounted or app not found in DMG."
+        print_error "Cannot copy app. App not found in the mounted DMG."
         return 1
     fi
 
@@ -820,7 +848,7 @@ wait_for_plist_confirmation() {
     echo ""
 
     while true; do
-        read -p "Have you copied both plist files to the LaunchAgents folder? (Y/n): " yn
+        read -p "Have you copied both plist files to the LaunchAgents folder? (Y/n): " yn < /dev/tty
         if [[ -z "$yn" ]]; then
             yn="y"
             echo "y"  # Show the default choice
@@ -887,7 +915,7 @@ verify_manual_installation() {
 }
 
 # Function to load services via launchctl
-load_services_for_test() {
+load_services() {
     print_status "Loading services via launchctl..."
     local launch_agents_dir="$HOME/Library/LaunchAgents"
     local main_plist="$launch_agents_dir/com.clipboardmonitor.plist"
@@ -922,7 +950,7 @@ load_services_for_test() {
     local mb_running=$(launchctl list | grep com.clipboardmonitor.menubar | wc -l)
 
     if [[ "$bg_running" -gt 0 && "$mb_running" -gt 0 ]]; then
-        print_success "Services are running! Check your menu bar for the icon."
+        print_success "Services are running! Check your menu bar for the 📋 icon."
     else
         print_warning "Services loaded but may not be running correctly. Check logs."
         launchctl list | grep com.clipboardmonitor
@@ -948,7 +976,7 @@ main() {
         echo "  2. 📦 Create unified app bundle"
         echo "  3. 💿 Generate DMG file"
         echo "  4. 🧪 Test DMG integrity"
-        echo "  5. 🎯 Provide manual installation guidance"
+        echo "  5. 🎯 Install locally and prepare for distribution"
         echo ""
     fi
 
@@ -1011,7 +1039,7 @@ main() {
         echo ""
 
         # Phase 4: Guided installation test
-        run_guided_installation_test
+        run_guided_local_installation
 
     else
         print_error "Some tests failed. Please review the issues above."
@@ -1022,12 +1050,13 @@ main() {
     # Final cleanup
     cleanup_test
 
-    print_header "✨ Success! Your DMG is ready for distribution!"
+    print_header "✨ Success! Installation Complete & Ready for Distribution"
     echo ""
-    echo "🚀 Next steps:"
-    echo "  1. Test the DMG on a clean machine"
-    echo "  2. Distribute ${DMG_NAME}.dmg to users"
-    echo "  3. Users can drag to Applications and run install.sh"
+    echo -e "${GREEN}✅ The application is now installed and running on this machine.${NC}"
+    echo -e "${BLUE}   You can start using it immediately. Check for the 📋 icon in your menu bar.${NC}"
+    echo ""
+    echo -e "${GREEN}🚀 The DMG is also ready for distribution to other users.${NC}"
+    echo -e "${BLUE}   Share the file '${DMG_NAME}.dmg' with them.${NC}"
     echo ""
 }
 

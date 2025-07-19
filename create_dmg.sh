@@ -194,23 +194,33 @@ setup_dmg_appearance() {
     # Use AppleScript to set up the DMG window appearance with list view
     osascript << EOF
 tell application "Finder"
-    tell disk "$VOLUME_NAME"
+    tell disk "${VOLUME_NAME}"
         open
+        -- Set the view to list view
         set current view of container window to list view
+        
+        -- Basic window properties
         set toolbar visible of container window to false
         set statusbar visible of container window to false
-        set the bounds of container window to {400, 100, 900, 500}
-
-        -- Configure basic list view options
-        set viewOptions to the list view options of container window
-        set text size of viewOptions to 12
-        set icon size of viewOptions to small icon
-        set calculates folder sizes of viewOptions to false
-
+        set the bounds of container window to {400, 100, 950, 500}
+        
+        -- Configure list view options for a clean layout
+        tell the list view options of container window
+            set sort column to name column
+            set calculates folder sizes to false
+            set icon size to small icon
+            set text size to 12
+            set width of column id name column to 350
+            set width of column id modification date column to 150
+            set width of column id size column to 100
+            set width of column id kind column to 150
+        end tell
+        
+        -- Force Finder to save changes
         close
         open
         update without registering applications
-        delay 3
+        delay 2
     end tell
 end tell
 EOF
@@ -281,11 +291,13 @@ main() {
     echo "📱 DMG file: $DMG_NAME.dmg"
     echo "📁 Size: $(du -sh "$DMG_NAME.dmg" | cut -f1)"
     echo ""
-    echo "🔧 Next steps:"
-    echo "  1. Test the DMG: open '$DMG_NAME.dmg'"
-    echo "  2. Distribute the DMG file"
-    echo "  3. Users can drag the app to Applications and run install.sh"
+    echo "🔧 To Install on This Mac:"
+    echo "  1. Open the DMG: open '$DMG_NAME.dmg'"
+    echo "  2. Drag '${APP_NAME}.app' to your Applications folder."
+    echo "  3. Run 'install.sh' from the DMG to set up background services."
     echo ""
+    echo "🚀 Ready for Distribution:"
+    echo "  The file '${DMG_NAME}.dmg' is now ready to be distributed to other users."
 }
 
 # Run main function

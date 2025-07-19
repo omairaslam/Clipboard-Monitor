@@ -2221,7 +2221,7 @@ read -n 1
 
             # Update main menu display items (two separate lines)
             self.memory_menubar_item.title = f"Menu Bar: {menubar_memory:.1f}MB {menubar_histogram} Peak: {self.menubar_peak:.0f}MB"
-            self.memory_service_item.title = f"Service: {service_memory:.1f}MB  {service_histogram} Avg: {sum(self.service_history)/len(self.service_history) if self.service_history else 0:.0f}MB"
+            self.memory_service_item.title = f"Service: {service_memory:.1f}MB  {service_histogram} Peak: {self.service_peak:.0f}MB"
 
             # Record data if tracking is active
             if self.memory_tracking_active:
