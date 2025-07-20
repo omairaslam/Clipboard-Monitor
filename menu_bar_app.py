@@ -347,28 +347,30 @@ class ClipboardMonitorMenuBar(rumps.App):
 
     def _create_drawio_settings_menu(self):
         """Create the 'Draw.io Settings' submenu."""
-        drawio_menu = rumps.MenuItem("Draw.io Settings")
-
         # Copy Code option (restored)
-        self.drawio_copy_code_item = rumps.MenuItem("Copy Code", callback=self.toggle_drawio_setting)
+        self.drawio_copy_code_item = rumps.MenuItem("✅ Copy Code", callback=self.toggle_drawio_setting)
         self.drawio_copy_code_item.state = self.config_manager.get_config_value('modules', 'drawio_copy_code', True)
-        drawio_menu.add(self.drawio_copy_code_item)
 
         # Copy URL option
-        self.drawio_copy_url_item = rumps.MenuItem("Copy URL", callback=self.toggle_drawio_setting)
+        self.drawio_copy_url_item = rumps.MenuItem("✅ Copy URL", callback=self.toggle_drawio_setting)
         self.drawio_copy_url_item.state = self.config_manager.get_config_value('modules', 'drawio_copy_url', True)
-        drawio_menu.add(self.drawio_copy_url_item)
 
         # Open in Browser option
-        self.drawio_open_browser_item = rumps.MenuItem("Open in Browser", callback=self.toggle_drawio_setting)
+        self.drawio_open_browser_item = rumps.MenuItem("✅ Open in Browser", callback=self.toggle_drawio_setting)
         self.drawio_open_browser_item.state = self.config_manager.get_config_value('modules', 'drawio_open_in_browser', True)
-        drawio_menu.add(self.drawio_open_browser_item)
 
         # URL Parameters submenu (restored)
-        drawio_menu.add(rumps.separator)
-        drawio_menu.add(self._create_drawio_url_parameters_menu())
+        url_params_menu = self._create_drawio_url_parameters_menu()
 
-        return drawio_menu
+        # Create a container menu to hold all settings
+        settings_container = rumps.MenuItem("Settings")
+        settings_container.add(self.drawio_copy_code_item)
+        settings_container.add(self.drawio_copy_url_item)
+        settings_container.add(self.drawio_open_browser_item)
+        settings_container.add(rumps.separator)
+        settings_container.add(url_params_menu)
+
+        return settings_container
 
     def _create_drawio_url_parameters_menu(self):
         """Create the 'URL Parameters' submenu for Draw.io."""
@@ -444,28 +446,30 @@ class ClipboardMonitorMenuBar(rumps.App):
 
     def _create_mermaid_settings_menu(self):
         """Create the 'Mermaid Settings' submenu."""
-        mermaid_menu = rumps.MenuItem("Mermaid Settings")
-
         # Copy Code option (restored)
-        self.mermaid_copy_code_item = rumps.MenuItem("Copy Code", callback=self.toggle_mermaid_setting)
+        self.mermaid_copy_code_item = rumps.MenuItem("✅ Copy Code", callback=self.toggle_mermaid_setting)
         self.mermaid_copy_code_item.state = self.config_manager.get_config_value('modules', 'mermaid_copy_code', True)
-        mermaid_menu.add(self.mermaid_copy_code_item)
 
         # Copy URL option
-        self.mermaid_copy_url_item = rumps.MenuItem("Copy URL", callback=self.toggle_mermaid_setting)
+        self.mermaid_copy_url_item = rumps.MenuItem("❌ Copy URL", callback=self.toggle_mermaid_setting)
         self.mermaid_copy_url_item.state = self.config_manager.get_config_value('modules', 'mermaid_copy_url', False)
-        mermaid_menu.add(self.mermaid_copy_url_item)
 
         # Open in Browser option (restored)
-        self.mermaid_open_browser_item = rumps.MenuItem("Open in Browser", callback=self.toggle_mermaid_setting)
+        self.mermaid_open_browser_item = rumps.MenuItem("✅ Open in Browser", callback=self.toggle_mermaid_setting)
         self.mermaid_open_browser_item.state = self.config_manager.get_config_value('modules', 'mermaid_open_in_browser', True)
-        mermaid_menu.add(self.mermaid_open_browser_item)
 
         # Editor Theme submenu (restored)
-        mermaid_menu.add(rumps.separator)
-        mermaid_menu.add(self._create_mermaid_editor_theme_menu())
+        theme_menu = self._create_mermaid_editor_theme_menu()
 
-        return mermaid_menu
+        # Create a container menu to hold all settings
+        settings_container = rumps.MenuItem("Settings")
+        settings_container.add(self.mermaid_copy_code_item)
+        settings_container.add(self.mermaid_copy_url_item)
+        settings_container.add(self.mermaid_open_browser_item)
+        settings_container.add(rumps.separator)
+        settings_container.add(theme_menu)
+
+        return settings_container
 
     def _create_mermaid_editor_theme_menu(self):
         """Create the 'Editor Theme' submenu for Mermaid."""
@@ -618,7 +622,7 @@ class ClipboardMonitorMenuBar(rumps.App):
             rumps.notification("Error", "Failed to update Mermaid editor theme", "Could not save configuration")
 
     def _build_main_menu(self):
-        """Build the main menu structure to match docs/MENU_ORGANIZATION.md."""
+        """Build the clean modular menu structure - Option D: Invisible Disabled."""
         # Section 1: Status & Service Control
         self.menu.add(self.status_item)
         self.menu.add(self.memory_menubar_item)  # Memory visualization line 1
@@ -628,24 +632,156 @@ class ClipboardMonitorMenuBar(rumps.App):
         self.menu.add(self.service_control_menu)
         self.menu.add(rumps.separator)
 
-        # Section 2: History & Modules (as per docs: History items first, then Modules)
-        self.menu.add(self.recent_history_menu)
-        self.menu.add(self.history_menu)
-        self.menu.add(self.module_menu)
-        self.menu.add(rumps.separator)
+        # Section 2: Enabled Modules Only (completely hide disabled modules)
+        self._add_enabled_modules_to_menu()
 
         # Memory monitoring tools (consolidated section)
         self.menu.add(self.memory_monitor_menu)
         self.menu.add(rumps.separator)
 
-        # Section 3: Preferences
-        self.menu.add(self.prefs_menu)
+        # Section 3: Settings (includes module discovery)
+        self.menu.add(self._create_clean_settings_menu())
         self.menu.add(rumps.separator)
 
         # Section 4: Application (Logs then Quit)
         self.menu.add(self.logs_menu)
         self.menu.add(self.quit_item)
-    
+
+    def _add_enabled_modules_to_menu(self):
+        """Add only enabled modules to the main menu with their functionality grouped."""
+        # Check if history module is enabled and add clipboard history functionality
+        if self._is_module_enabled("history_module"):
+            self._add_clipboard_history_menu()
+
+        # Add other enabled modules
+        enabled_modules = self._get_enabled_modules()
+        for module_name in enabled_modules:
+            if module_name != "history_module":  # History handled separately above
+                self._add_module_menu(module_name)
+
+        # Add separator if any modules were added
+        if enabled_modules:
+            self.menu.add(rumps.separator)
+
+    def _is_module_enabled(self, module_name):
+        """Check if a module is enabled."""
+        config_value = self.module_status.get(module_name, True)
+        return config_value not in [0, False]
+
+    def _get_enabled_modules(self):
+        """Get list of enabled module names."""
+        enabled = []
+        modules_dir = os.path.join(os.path.dirname(__file__), 'modules')
+        if os.path.exists(modules_dir):
+            for filename in os.listdir(modules_dir):
+                if filename.endswith('_module.py'):
+                    module_name = filename[:-3]
+                    if self._is_module_enabled(module_name):
+                        enabled.append(module_name)
+        return enabled
+
+    def _add_clipboard_history_menu(self):
+        """Add clipboard history functionality as a grouped module."""
+        clipboard_menu = rumps.MenuItem("📚 Clipboard History")
+        clipboard_menu.add(self.recent_history_menu)
+        clipboard_menu.add(rumps.MenuItem("🌐 View Full History (Browser)", callback=self.open_web_history_viewer))
+        clipboard_menu.add(rumps.MenuItem("💻 View Full History (Terminal)", callback=self.open_cli_history_viewer))
+        clipboard_menu.add(rumps.MenuItem("🗑️ Clear History", callback=self.clear_clipboard_history))
+        self.menu.add(clipboard_menu)
+
+    def _add_module_menu(self, module_name):
+        """Add a module's menu with its settings."""
+        display_name = self.module_display_names.get(module_name, module_name)
+
+        if module_name == "markdown_module":
+            self._add_markdown_module_menu(display_name)
+        elif module_name == "mermaid_module":
+            self._add_mermaid_module_menu(display_name)
+        elif module_name == "drawio_module":
+            self._add_drawio_module_menu(display_name)
+        elif module_name == "code_formatter_module":
+            self._add_code_formatter_module_menu(display_name)
+
+    def _add_markdown_module_menu(self, display_name):
+        """Add Markdown module menu."""
+        markdown_menu = rumps.MenuItem(f"📝 {display_name}")
+        modify_clipboard = rumps.MenuItem("Modify Clipboard Content", callback=self.toggle_markdown_setting)
+        modify_clipboard.state = self.config_manager.get_config_value('modules', 'markdown_modify_clipboard', True)
+        markdown_menu.add(modify_clipboard)
+        self.menu.add(markdown_menu)
+
+    def _add_mermaid_module_menu(self, display_name):
+        """Add Mermaid module menu."""
+        mermaid_menu = rumps.MenuItem(f"🧩 {display_name}")
+        mermaid_menu.add(self._create_mermaid_settings_menu())
+        self.menu.add(mermaid_menu)
+
+    def _add_drawio_module_menu(self, display_name):
+        """Add Draw.io module menu."""
+        drawio_menu = rumps.MenuItem(f"🎨 {display_name}")
+        drawio_menu.add(self._create_drawio_settings_menu())
+        self.menu.add(drawio_menu)
+
+    def _add_code_formatter_module_menu(self, display_name):
+        """Add Code Formatter module menu."""
+        formatter_menu = rumps.MenuItem(f"🔧 {display_name}")
+        modify_clipboard = rumps.MenuItem("Modify Clipboard Content", callback=self.toggle_code_formatter_setting)
+        modify_clipboard.state = self.config_manager.get_config_value('modules', 'code_formatter_modify_clipboard', False)
+        formatter_menu.add(modify_clipboard)
+        self.menu.add(formatter_menu)
+
+    def _create_clean_settings_menu(self):
+        """Create the clean settings menu with module discovery."""
+        settings_menu = rumps.MenuItem("⚙️ Settings")
+
+        # Add module discovery submenu
+        settings_menu.add(self._create_add_modules_menu())
+        settings_menu.add(rumps.separator)
+
+        # Add module-specific settings for enabled modules only
+        self._add_enabled_module_settings(settings_menu)
+
+        # Add system settings
+        settings_menu.add(self._create_general_settings_menu())
+        settings_menu.add(self._create_performance_settings_menu())
+        settings_menu.add(self._create_security_settings_menu())
+        settings_menu.add(self._create_configuration_management_menu())
+
+        return settings_menu
+
+    def _create_add_modules_menu(self):
+        """Create the 'Add Modules' submenu for discovering disabled modules."""
+        add_modules_menu = rumps.MenuItem("➕ Add Modules")
+
+        # Find disabled modules
+        modules_dir = os.path.join(os.path.dirname(__file__), 'modules')
+        if os.path.exists(modules_dir):
+            disabled_found = False
+            for filename in os.listdir(modules_dir):
+                if filename.endswith('_module.py'):
+                    module_name = filename[:-3]
+                    if not self._is_module_enabled(module_name):
+                        display_name = self.module_display_names.get(module_name, module_name)
+                        module_item = rumps.MenuItem(f"{display_name} (Click to enable)", callback=self.enable_module)
+                        module_item._module_name = module_name
+                        add_modules_menu.add(module_item)
+                        disabled_found = True
+
+            if not disabled_found:
+                add_modules_menu.add(rumps.MenuItem("All modules are enabled", callback=None))
+
+        return add_modules_menu
+
+    def _add_enabled_module_settings(self, settings_menu):
+        """Add settings submenus for enabled modules only."""
+        enabled_modules = self._get_enabled_modules()
+
+        if "history_module" in enabled_modules:
+            settings_menu.add(self._create_history_settings_menu())
+
+        # Add other module settings as needed
+        # (Mermaid and Draw.io settings are already in their main menus)
+
     def load_module_config(self):
         """Load module configuration from config file"""
         try:
@@ -812,6 +948,66 @@ class ClipboardMonitorMenuBar(rumps.App):
         if module_name == "drawio_module":
             # Optionally, add any extra logic for drawio_module toggling here
             pass
+
+        # Rebuild menu to reflect changes
+        self._rebuild_menu()
+
+    def enable_module(self, sender):
+        """Enable a disabled module from the Add Modules menu."""
+        module_name = getattr(sender, '_module_name', None)
+        if module_name:
+            self.module_status[module_name] = True
+            self.save_module_config()
+
+            # Get friendly display name for notification
+            display_name = self.module_display_names.get(module_name, module_name)
+
+            # Restart service to apply module changes
+            self.restart_service(None)
+
+            # Notify the user
+            rumps.notification("Clipboard Monitor", "Module Enabled",
+                              f"Module '{display_name}' has been enabled")
+
+            # Rebuild menu to show the newly enabled module
+            self._rebuild_menu()
+
+    def toggle_markdown_setting(self, sender):
+        """Toggle markdown modify clipboard setting."""
+        sender.state = not sender.state
+        self.config_manager.set_config_value('modules', 'markdown_modify_clipboard', sender.state)
+        self.config_manager.save_config()
+        rumps.notification("Clipboard Monitor", "Markdown Settings",
+                          f"Modify clipboard is now {'enabled' if sender.state else 'disabled'}")
+
+    def toggle_code_formatter_setting(self, sender):
+        """Toggle code formatter modify clipboard setting."""
+        sender.state = not sender.state
+        self.config_manager.set_config_value('modules', 'code_formatter_modify_clipboard', sender.state)
+        self.config_manager.save_config()
+        rumps.notification("Clipboard Monitor", "Code Formatter Settings",
+                          f"Modify clipboard is now {'enabled' if sender.state else 'disabled'}")
+
+    def _rebuild_menu(self):
+        """Rebuild the entire menu structure."""
+        # Clear the current menu
+        self.menu.clear()
+
+        # Reinitialize menu items and submenus
+        self._init_menu_items()
+        self._init_submenus()
+        self._init_preferences_menu()
+
+        # Rebuild the main menu
+        self._build_main_menu()
+
+        # Restart history updates if history module is enabled
+        if self._is_module_enabled("history_module"):
+            # Stop existing timer if running
+            if hasattr(self, 'history_timer') and self.history_timer:
+                self.history_timer.stop()
+            # Start new timer
+            self.initial_history_update(None)
     
     def toggle_debug(self, sender):
         """Toggle debug mode"""
