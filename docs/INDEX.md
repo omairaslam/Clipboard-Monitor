@@ -4,8 +4,14 @@ This directory contains comprehensive documentation for the Clipboard Monitor ap
 
 ## 📚 **Core Documentation**
 
-### **[Main Documentation (readme.md)](readme.md)**
-Complete installation and usage guide covering all features, configuration options, and troubleshooting.
+### **[Main Project README (../README.md)](../README.md)**
+**PRIMARY DOCUMENTATION** - Complete installation guide, features overview, and user documentation for the current PKG-based distribution system.
+
+### **[PKG Migration Journey (PKG-Migration-Journey.md)](PKG-Migration-Journey.md)**
+**CURRENT DISTRIBUTION** - Complete story of migrating from DMG to professional PKG installer system with technical details and performance metrics.
+
+### **[Legacy Documentation (readme.md)](readme.md)**
+Historical installation and usage guide (may contain outdated DMG references).
 
 ### **[Latest Updates (LATEST_UPDATES.md)](LATEST_UPDATES.md)**
 Recent changes, improvements, and new features including Copy Code configuration options for Mermaid and Draw.io modules, clear history and RTF functionality.
@@ -118,6 +124,22 @@ For the most current information, always refer to the **[Latest Updates](LATEST_
 - [Menu Bar Recent History Limit is Now User-Configurable](readme.md#menu-bar-recent-history-limit-is-now-user-configurable)
 
 - **Logging Format Update**: See README and LATEST_UPDATES for details on the new plain text logging format, enhanced log readability, and config menu improvements (June 2025).
+
+---
+
+## ⚠️ **Deprecated Documentation**
+
+### **[Deprecated DMG Documentation (DEPRECATED_DMG_DOCS.md)](DEPRECATED_DMG_DOCS.md)**
+**IMPORTANT**: List of deprecated DMG-related documentation files. The project has migrated to PKG distribution.
+
+**Deprecated Files (Historical Reference Only):**
+- DMG_CREATION_SUMMARY.md
+- DMG_LAYOUT_IMPROVEMENTS.md
+- DMG_WITH_IMPROVED_INSTALL_SUMMARY.md
+- PYINSTALLER_DMG_BUILD_GUIDE.md
+- And other DMG-related documentation
+
+**Current System**: Use PKG installer (`ClipboardMonitor-1.0.pkg`) and related PKG documentation.
 
 ---
 

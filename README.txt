@@ -1,48 +1,62 @@
 📋 CLIPBOARD MONITOR - INSTALLATION GUIDE
 ==========================================
 
-🚀 QUICK INSTALLATION (Recommended):
-1. Double-click "install.sh" for automated installation
-2. The script will open this DMG in list view for easy access
-3. Drag both .plist files onto the "LaunchAgents" symlink
-4. The app will be copied automatically and appear in your menu bar
+🚀 SUPER SIMPLE INSTALLATION (One Click!):
+1. Double-click "ClipboardMonitor-1.0.pkg"
+2. Follow the installer prompts (click "Continue" → "Install")
+3. Enter your password when prompted
+4. Done! The app will automatically start and appear in your menu bar
 
-📁 WHAT'S INCLUDED:
-• Clipboard Monitor.app - Main application
-• install.sh - Automated installation script  
-• uninstall.sh - Complete removal script
-• LaunchAgents/ - System service configuration folder
-• *.plist files - Background service definitions
+✨ WHAT HAPPENS AUTOMATICALLY:
+• App installed to /Applications/
+• Background services configured and started
+• Menu bar app launches automatically
+• No manual configuration needed!
 
-⚙️ MANUAL INSTALLATION (Advanced):
-If automated installation doesn't work:
-1. Drag .plist files onto LaunchAgents symlink (or copy to ~/Library/LaunchAgents/)
-2. Manually copy app to Applications folder if needed
-3. Load services: launchctl load ~/Library/LaunchAgents/com.clipboardmonitor*.plist
+📦 WHAT'S INCLUDED:
+• ClipboardMonitor-1.0.pkg - Professional macOS installer
+• build_create_install_pkg.sh - Developer build script
+• Comprehensive module system (Markdown, Mermaid, Draw.io, History)
+• Advanced memory monitoring and dashboard
+• Clean, modular menu interface
 
-💡 AUTOMATED INSTALLATION:
-The install.sh script now automatically copies the app to Applications!
-Just drag the .plist files to the LaunchAgents symlink and run the script.
+🔧 UNINSTALLATION:
+To completely remove Clipboard Monitor:
+1. Run: sudo pkgutil --forget com.clipboardmonitor.pkg
+2. Delete: /Applications/ClipboardMonitor.app (if exists)
+3. Remove: ~/Library/LaunchAgents/com.clipboardmonitor*.plist
+4. Stop services: launchctl unload ~/Library/LaunchAgents/com.clipboardmonitor*.plist
 
-💡 LIST VIEW ADVANTAGE:
-The DMG opens in list view showing all files clearly with the LaunchAgents
-symlink visible - just drag both .plist files onto it for instant installation!
+💡 PROFESSIONAL INSTALLER:
+This PKG installer provides a seamless, professional installation experience
+with automatic service configuration - no manual steps required!
 
-🔧 FEATURES:
-• Real-time clipboard monitoring
-• Memory usage tracking and optimization
-• Menu bar integration with quick access
-• Advanced monitoring dashboard
-• Automatic background service management
+🔧 KEY FEATURES:
+• 📝 Markdown Processing - Automatic markdown formatting
+• 🧩 Mermaid Diagrams - Generate and view diagram code
+• 🎨 Draw.io Integration - Seamless diagram workflow
+• 📚 Clipboard History - Track and manage clipboard items
+• 🧠 Memory Monitoring - Real-time usage tracking with dashboard
+• ⚙️ Modular Design - Enable only the features you need
+• 🎯 Clean Interface - Disabled modules completely hidden
+
+✨ ADVANCED CAPABILITIES:
+• Real-time memory visualization dashboard
+• Comprehensive module system with individual enable/disable
+• Professional menu bar integration
+• Automatic service management and startup
+• Advanced clipboard content processing
+• Memory leak detection and optimization
 
 ❓ TROUBLESHOOTING:
-• If multiple instances spawn: Run uninstall.sh then reinstall
-• For permission issues: Check System Preferences > Security
-• Memory issues: Use built-in memory monitor in menu bar
+• Installation issues: Ensure you have admin privileges
+• Permission prompts: Click "Allow" for system integration
+• Menu bar missing: Check "⚙️ Settings > Add Modules" to enable features
+• Memory issues: Use built-in memory dashboard for analysis
+• Service problems: Use menu bar "🔄 Service Control" options
 
-📞 SUPPORT:
-GitHub: https://github.com/omairaslam/Clipboard-Monitor
-Version: 1.0.0
-
-🗑️ UNINSTALLATION:
-Run uninstall.sh to completely remove all components
+📞 SUPPORT & DOCUMENTATION:
+• GitHub: https://github.com/omairaslam/Clipboard-Monitor
+• Documentation: See docs/ folder for detailed guides
+• Version: 1.0.0 (PKG Distribution)
+• Build System: Professional PKG installer with auto-configuration

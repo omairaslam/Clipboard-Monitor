@@ -92,6 +92,18 @@
             "task": "🚀 Build Create Install DMG (Verbose)",
             "tooltip": "Complete unified workflow with guided install and full verbose output",
             "color": "default"
+        },
+        {
+            "label": "📦 Build PKG",
+            "task": "Build Create Install PKG",
+            "tooltip": "Build and create PKG installer",
+            "color": "default"
+        },
+        {
+            "label": "🧪 Test PKG",
+            "task": "Test PKG Installation",
+            "tooltip": "Test PKG installer functionality",
+            "color": "default"
         }
     ],
     "trae.tab.enableRename": true,

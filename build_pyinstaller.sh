@@ -259,8 +259,9 @@ main() {
     echo ""
     echo "🔧 Next steps:"
     echo "  1. Test the application: open '$FINAL_APP_NAME'"
-    echo "  2. Create DMG: ./create_dmg.sh"
-    echo "  3. Install: Run the install script from within the app"
+    echo "  2. Create PKG installer: ./build_create_install_pkg.sh"
+    echo "  3. Install: Double-click the generated PKG file"
+    echo "  4. Legacy DMG: ./create_dmg.sh (deprecated)"
     echo ""
 }
 
