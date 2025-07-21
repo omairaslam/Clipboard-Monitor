@@ -214,6 +214,28 @@
         {
             "label": "Build Create Install PKG",
             "type": "shell",
+            "command": "./build_create_install_pkg.sh --quiet",
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "new",
+                "focus": true,
+                "clear": true,
+                "echo": true
+            },
+            "options": {
+                "env": {
+                    "TERM": "xterm-256color"
+                }
+            },
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            }
+        },
+        {
+            "label": "Build Create Install PKG (Verbose)",
+            "type": "shell",
             "command": "./build_create_install_pkg.sh",
             "problemMatcher": [],
             "presentation": {
@@ -237,6 +259,28 @@
             "label": "Test PKG Installation",
             "type": "shell",
             "command": "./test_pkg_install.sh",
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "new",
+                "focus": true,
+                "clear": true,
+                "echo": true
+            },
+            "options": {
+                "env": {
+                    "TERM": "xterm-256color"
+                }
+            },
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            }
+        },
+        {
+            "label": "Test Clean Menu Structure",
+            "type": "shell",
+            "command": "python3 test_clean_menu.py",
             "problemMatcher": [],
             "presentation": {
                 "reveal": "always",

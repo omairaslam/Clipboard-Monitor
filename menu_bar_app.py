@@ -13,7 +13,13 @@ from pathlib import Path
 from utils import safe_expanduser, ensure_directory_exists, set_config_value, load_clipboard_history, setup_logging, get_app_paths, show_notification
 from config_manager import ConfigManager
 from constants import POLLING_INTERVALS, ENHANCED_CHECK_INTERVALS
-import pyperclip
+# Optional import for pyperclip (may not be available in PyInstaller bundle)
+try:
+    import pyperclip
+    PYPERCLIP_AVAILABLE = True
+except ImportError:
+    PYPERCLIP_AVAILABLE = False
+    pyperclip = None
 
 # Hide Dock icon for menu bar app
 try:
@@ -33,11 +39,14 @@ class ClipboardMonitorMenuBar(rumps.App):
         # Configuration
         self.config_manager = ConfigManager()
         self.home_dir = str(Path.home())
-        self.plist_path = f"{self.home_dir}/Library/LaunchAgents/com.clipboardmonitor.plist"
-        # Always use get_app_paths() for log paths
-        paths = get_app_paths()
-        self.log_path = paths["out_log"]
-        self.error_log_path = paths["err_log"]
+        # Use development service plist if it exists, otherwise use production
+        dev_plist = f"{self.home_dir}/Library/LaunchAgents/com.clipboardmonitor.service.dev.plist"
+        prod_plist = f"{self.home_dir}/Library/LaunchAgents/com.clipboardmonitor.plist"
+        self.plist_path = dev_plist if os.path.exists(dev_plist) else prod_plist
+        # Use separate log files for menu bar app to avoid permission conflicts
+        log_dir = Path.home() / "Library" / "Logs"
+        self.log_path = str(log_dir / "ClipboardMonitorMenuBar.out.log")
+        self.error_log_path = str(log_dir / "ClipboardMonitorMenuBar.err.log")
         setup_logging(self.log_path, self.error_log_path)
         self.module_status = {}
         self.load_module_config()
@@ -90,32 +99,11 @@ class ClipboardMonitorMenuBar(rumps.App):
         self.memory_menubar_item = rumps.MenuItem("Menu Bar: Initializing...")
         self.memory_service_item = rumps.MenuItem("Service: Initializing...")
 
-        # Memory monitoring submenu (consolidated with memory usage items)
-        self.memory_monitor_menu = rumps.MenuItem("Memory Monitor")
+        # Unified Memory Dashboard (moved to root menu)
         self.memory_unified_dashboard_item = rumps.MenuItem("📊 Unified Dashboard", callback=self.start_unified_dashboard)
-        self.memory_stats_item = rumps.MenuItem("📋 Memory Statistics", callback=self.show_memory_stats)
-        self.memory_cleanup_item = rumps.MenuItem("🧹 Force Memory Cleanup", callback=self.force_memory_cleanup)
 
-        # Memory tracking items (moved from Memory Usage menu)
-        self.memory_trends_item = rumps.MenuItem("📈 View Memory Trends", callback=self.show_memory_trends)
-        self.toggle_tracking_item = rumps.MenuItem("🔄 Start Memory Tracking", callback=self.toggle_memory_tracking)
-
-        # Build memory monitor submenu
-        self.memory_monitor_menu.add(self.memory_unified_dashboard_item)
-        self.memory_monitor_menu.add(rumps.separator)
-        self.memory_monitor_menu.add(self.memory_stats_item)
-        self.memory_monitor_menu.add(self.memory_cleanup_item)
-        self.memory_monitor_menu.add(rumps.separator)
-        self.memory_monitor_menu.add(self.memory_trends_item)
-        self.memory_monitor_menu.add(self.toggle_tracking_item)
-
-        # Initialize monitoring processes tracking (moved from removed _init_memory_usage_menu)
+        # Initialize monitoring processes tracking
         self._monitoring_processes = {}
-
-        # Memory tracking data structures (moved from removed _init_memory_usage_menu)
-        self.memory_data = {"menubar": [], "service": []}
-        self.memory_timestamps = []
-        self.memory_tracking_active = False
 
         # Auto-start unified dashboard on app launch
         with open('/tmp/clipboard_debug.log', 'a') as f:
@@ -372,6 +360,32 @@ class ClipboardMonitorMenuBar(rumps.App):
 
         return settings_container
 
+    def _create_drawio_settings_content(self):
+        """Create Draw.io settings content as a list of menu items (no container)."""
+        # Copy Code option
+        self.drawio_copy_code_item = rumps.MenuItem("✅ Copy Code", callback=self.toggle_drawio_setting)
+        self.drawio_copy_code_item.state = self.config_manager.get_config_value('modules', 'drawio_copy_code', True)
+
+        # Copy URL option
+        self.drawio_copy_url_item = rumps.MenuItem("✅ Copy URL", callback=self.toggle_drawio_setting)
+        self.drawio_copy_url_item.state = self.config_manager.get_config_value('modules', 'drawio_copy_url', True)
+
+        # Open in Browser option
+        self.drawio_open_browser_item = rumps.MenuItem("✅ Open in Browser", callback=self.toggle_drawio_setting)
+        self.drawio_open_browser_item.state = self.config_manager.get_config_value('modules', 'drawio_open_in_browser', True)
+
+        # URL Parameters submenu
+        url_params_menu = self._create_drawio_url_parameters_menu()
+
+        # Return list of items
+        return [
+            self.drawio_copy_code_item,
+            self.drawio_copy_url_item,
+            self.drawio_open_browser_item,
+            rumps.separator,
+            url_params_menu
+        ]
+
     def _create_drawio_url_parameters_menu(self):
         """Create the 'URL Parameters' submenu for Draw.io."""
         url_params_menu = rumps.MenuItem("URL Parameters")
@@ -470,6 +484,32 @@ class ClipboardMonitorMenuBar(rumps.App):
         settings_container.add(theme_menu)
 
         return settings_container
+
+    def _create_mermaid_settings_content(self):
+        """Create Mermaid settings content as a list of menu items (no container)."""
+        # Copy Code option
+        self.mermaid_copy_code_item = rumps.MenuItem("✅ Copy Code", callback=self.toggle_mermaid_setting)
+        self.mermaid_copy_code_item.state = self.config_manager.get_config_value('modules', 'mermaid_copy_code', True)
+
+        # Copy URL option
+        self.mermaid_copy_url_item = rumps.MenuItem("❌ Copy URL", callback=self.toggle_mermaid_setting)
+        self.mermaid_copy_url_item.state = self.config_manager.get_config_value('modules', 'mermaid_copy_url', False)
+
+        # Open in Browser option
+        self.mermaid_open_browser_item = rumps.MenuItem("✅ Open in Browser", callback=self.toggle_mermaid_setting)
+        self.mermaid_open_browser_item.state = self.config_manager.get_config_value('modules', 'mermaid_open_in_browser', True)
+
+        # Editor Theme submenu
+        theme_menu = self._create_mermaid_editor_theme_menu()
+
+        # Return list of items
+        return [
+            self.mermaid_copy_code_item,
+            self.mermaid_copy_url_item,
+            self.mermaid_open_browser_item,
+            rumps.separator,
+            theme_menu
+        ]
 
     def _create_mermaid_editor_theme_menu(self):
         """Create the 'Editor Theme' submenu for Mermaid."""
@@ -570,11 +610,7 @@ class ClipboardMonitorMenuBar(rumps.App):
         self.memory_leak_detection.state = self.config_manager.get_config_value('memory', 'leak_detection', True)
         memory_menu.add(self.memory_leak_detection)
 
-        memory_menu.add(rumps.separator)
 
-        # Memory Statistics and Cleanup
-        memory_menu.add(rumps.MenuItem("📋 Memory Statistics", callback=self.show_memory_stats))
-        memory_menu.add(rumps.MenuItem("🧹 Force Memory Cleanup", callback=self.force_memory_cleanup))
 
         return memory_menu
 
@@ -635,8 +671,12 @@ class ClipboardMonitorMenuBar(rumps.App):
         # Section 2: Enabled Modules Only (completely hide disabled modules)
         self._add_enabled_modules_to_menu()
 
-        # Memory monitoring tools (consolidated section)
-        self.menu.add(self.memory_monitor_menu)
+        # Module Management (moved from Settings for easier access)
+        self.menu.add(self._create_enable_disable_modules_menu())
+        self.menu.add(rumps.separator)
+
+        # Unified Memory Dashboard (moved from Memory Monitor menu)
+        self.menu.add(self.memory_unified_dashboard_item)
         self.menu.add(rumps.separator)
 
         # Section 3: Settings (includes module discovery)
@@ -713,13 +753,23 @@ class ClipboardMonitorMenuBar(rumps.App):
     def _add_mermaid_module_menu(self, display_name):
         """Add Mermaid module menu."""
         mermaid_menu = rumps.MenuItem(f"🧩 {display_name}")
-        mermaid_menu.add(self._create_mermaid_settings_menu())
+
+        # Add settings directly to module menu (no Settings submenu)
+        mermaid_settings = self._create_mermaid_settings_content()
+        for item in mermaid_settings:
+            mermaid_menu.add(item)
+
         self.menu.add(mermaid_menu)
 
     def _add_drawio_module_menu(self, display_name):
         """Add Draw.io module menu."""
         drawio_menu = rumps.MenuItem(f"🎨 {display_name}")
-        drawio_menu.add(self._create_drawio_settings_menu())
+
+        # Add settings directly to module menu (no Settings submenu)
+        drawio_settings = self._create_drawio_settings_content()
+        for item in drawio_settings:
+            drawio_menu.add(item)
+
         self.menu.add(drawio_menu)
 
     def _add_code_formatter_module_menu(self, display_name):
@@ -731,12 +781,8 @@ class ClipboardMonitorMenuBar(rumps.App):
         self.menu.add(formatter_menu)
 
     def _create_clean_settings_menu(self):
-        """Create the clean settings menu with module discovery."""
+        """Create the clean settings menu."""
         settings_menu = rumps.MenuItem("⚙️ Settings")
-
-        # Add module discovery submenu
-        settings_menu.add(self._create_add_modules_menu())
-        settings_menu.add(rumps.separator)
 
         # Add module-specific settings for enabled modules only
         self._add_enabled_module_settings(settings_menu)
@@ -749,28 +795,34 @@ class ClipboardMonitorMenuBar(rumps.App):
 
         return settings_menu
 
-    def _create_add_modules_menu(self):
-        """Create the 'Add Modules' submenu for discovering disabled modules."""
-        add_modules_menu = rumps.MenuItem("➕ Add Modules")
+    def _create_enable_disable_modules_menu(self):
+        """Create the 'Enable/Disable Modules' submenu showing all modules with their status."""
+        modules_menu = rumps.MenuItem("🧩 Enable/Disable Modules")
 
-        # Find disabled modules
+        # Find all modules
         modules_dir = os.path.join(os.path.dirname(__file__), 'modules')
         if os.path.exists(modules_dir):
-            disabled_found = False
-            for filename in os.listdir(modules_dir):
+            for filename in sorted(os.listdir(modules_dir)):
                 if filename.endswith('_module.py'):
                     module_name = filename[:-3]
-                    if not self._is_module_enabled(module_name):
-                        display_name = self.module_display_names.get(module_name, module_name)
-                        module_item = rumps.MenuItem(f"{display_name} (Click to enable)", callback=self.enable_module)
-                        module_item._module_name = module_name
-                        add_modules_menu.add(module_item)
-                        disabled_found = True
+                    display_name = self.module_display_names.get(module_name, module_name)
+                    is_enabled = self._is_module_enabled(module_name)
 
-            if not disabled_found:
-                add_modules_menu.add(rumps.MenuItem("All modules are enabled", callback=None))
+                    # Create menu item with current status
+                    if is_enabled:
+                        status_icon = "✅"
+                        action_text = "Click to disable"
+                        callback = self.disable_module
+                    else:
+                        status_icon = "❌"
+                        action_text = "Click to enable"
+                        callback = self.enable_module
 
-        return add_modules_menu
+                    module_item = rumps.MenuItem(f"{status_icon} {display_name} ({action_text})", callback=callback)
+                    module_item._module_name = module_name
+                    modules_menu.add(module_item)
+
+        return modules_menu
 
     def _add_enabled_module_settings(self, settings_menu):
         """Add settings submenus for enabled modules only."""
@@ -806,11 +858,18 @@ class ClipboardMonitorMenuBar(rumps.App):
         """Check if the service is running and update the status menu item"""
         try:
             # Check if the process is running using launchctl
-            result = subprocess.run(
-                ["launchctl", "list", "com.clipboardmonitor"],
-                capture_output=True, 
-                text=True
-            )
+            # Try development service first, then production service
+            service_names = ["com.clipboardmonitor.service.dev", "com.clipboardmonitor"]
+            result = None
+
+            for service_name in service_names:
+                result = subprocess.run(
+                    ["launchctl", "list", service_name],
+                    capture_output=True,
+                    text=True
+                )
+                if result.returncode == 0:
+                    break
             
             # Check for pause flag
             pause_flag_path = safe_expanduser("~/Library/Application Support/ClipboardMonitor/pause_flag")
@@ -953,7 +1012,7 @@ class ClipboardMonitorMenuBar(rumps.App):
         self._rebuild_menu()
 
     def enable_module(self, sender):
-        """Enable a disabled module from the Add Modules menu."""
+        """Enable a disabled module."""
         module_name = getattr(sender, '_module_name', None)
         if module_name:
             self.module_status[module_name] = True
@@ -970,6 +1029,26 @@ class ClipboardMonitorMenuBar(rumps.App):
                               f"Module '{display_name}' has been enabled")
 
             # Rebuild menu to show the newly enabled module
+            self._rebuild_menu()
+
+    def disable_module(self, sender):
+        """Disable an enabled module."""
+        module_name = getattr(sender, '_module_name', None)
+        if module_name:
+            self.module_status[module_name] = False
+            self.save_module_config()
+
+            # Get friendly display name for notification
+            display_name = self.module_display_names.get(module_name, module_name)
+
+            # Restart service to apply module changes
+            self.restart_service(None)
+
+            # Notify the user
+            rumps.notification("Clipboard Monitor", "Module Disabled",
+                              f"Module '{display_name}' has been disabled")
+
+            # Rebuild menu to hide the disabled module
             self._rebuild_menu()
 
     def toggle_markdown_setting(self, sender):
@@ -1615,9 +1694,12 @@ read -n 1
                         break
                 
                 if content_to_copy:
-                    pyperclip.copy(content_to_copy)
-                    truncated = content_to_copy[:50] + '...' if len(content_to_copy) > 50 else content_to_copy # Use centralized notification
-                    show_notification("Clipboard", "Item Copied", f"Copied: {truncated}", self.log_path, self.error_log_path)
+                    if PYPERCLIP_AVAILABLE:
+                        pyperclip.copy(content_to_copy)
+                        truncated = content_to_copy[:50] + '...' if len(content_to_copy) > 50 else content_to_copy # Use centralized notification
+                        show_notification("Clipboard", "Item Copied", f"Copied: {truncated}", self.log_path, self.error_log_path)
+                    else:
+                        show_notification("Error", "Copy Failed", "pyperclip not available in this environment", self.log_path, self.error_log_path)
                 else:
                     show_notification("Error", "Copy Failed", "Content not found in history", self.log_path, self.error_log_path)
         except Exception as e:
@@ -1834,12 +1916,19 @@ read -n 1
                     # Use the same Python executable logic as the main launch
                     test_python = sys.executable
                     if getattr(sys, 'frozen', False):
-                        test_python = '/usr/bin/python3'
-                        if not os.path.exists(test_python):
-                            for alt_python in ['/usr/local/bin/python3', '/opt/homebrew/bin/python3']:
-                                if os.path.exists(alt_python):
-                                    test_python = alt_python
-                                    break
+                        # Find Python with psutil for testing
+                        python_candidates = ['/usr/bin/python3', '/usr/local/bin/python3', '/opt/homebrew/bin/python3']
+                        test_python = '/usr/bin/python3'  # fallback
+                        for candidate in python_candidates:
+                            if os.path.exists(candidate):
+                                try:
+                                    test_proc = subprocess.run([candidate, '-c', 'import psutil'],
+                                                             capture_output=True, timeout=3)
+                                    if test_proc.returncode == 0:
+                                        test_python = candidate
+                                        break
+                                except:
+                                    continue
 
                     test_proc = subprocess.run([test_python, '-c', f'import sys; sys.path.insert(0, "{os.path.dirname(script_path)}"); import unified_memory_dashboard'],
                                              capture_output=True, timeout=10)
@@ -1870,17 +1959,34 @@ read -n 1
                 # Determine the correct Python executable for PyInstaller
                 python_executable = sys.executable
 
-                # For PyInstaller bundles, we need to use the system Python since the dashboard
-                # script is a separate Python file, not a bundled executable
+                # For PyInstaller bundles, we need to use a Python with psutil installed
                 if getattr(sys, 'frozen', False):
-                    # We're in a PyInstaller bundle, use system Python
-                    python_executable = '/usr/bin/python3'
-                    # Also try common Python locations if /usr/bin/python3 doesn't exist
-                    if not os.path.exists(python_executable):
-                        for alt_python in ['/usr/local/bin/python3', '/opt/homebrew/bin/python3']:
-                            if os.path.exists(alt_python):
-                                python_executable = alt_python
-                                break
+                    # Try to find a Python with psutil installed
+                    python_candidates = [
+                        '/usr/bin/python3',
+                        '/usr/local/bin/python3',
+                        '/opt/homebrew/bin/python3',
+                        sys.executable
+                    ]
+
+                    python_executable = None
+                    for candidate in python_candidates:
+                        if os.path.exists(candidate):
+                            try:
+                                # Test if this Python has psutil
+                                test_proc = subprocess.run([candidate, '-c', 'import psutil; print("OK")'],
+                                                         capture_output=True, timeout=5)
+                                if test_proc.returncode == 0 and b'OK' in test_proc.stdout:
+                                    python_executable = candidate
+                                    print(f"Found Python with psutil: {candidate}")
+                                    break
+                            except:
+                                continue
+
+                    # Fallback to system Python if none found
+                    if not python_executable:
+                        python_executable = '/usr/bin/python3'
+                        print("Warning: No Python with psutil found, using system Python")
 
                 print(f"Using Python executable: {python_executable}")
 
@@ -2087,197 +2193,10 @@ read -n 1
             print(f"Error auto-starting unified dashboard: {e}")
             # Don't show error to user for auto-start failures
 
-    def show_memory_stats(self, sender):
-        """Show comprehensive memory statistics for debugging"""
-        try:
-            import psutil
-            import gc
-            import os
-            import threading
-            from datetime import datetime
 
-            # Format memory sizes
-            def format_bytes(bytes_val):
-                for unit in ['B', 'KB', 'MB', 'GB']:
-                    if bytes_val < 1024.0:
-                        return f"{bytes_val:.1f} {unit}"
-                    bytes_val /= 1024.0
-                return f"{bytes_val:.1f} TB"
 
-            # Get current process (menu bar app) memory info
-            current_process = psutil.Process()
-            current_memory = current_process.memory_info()
-            current_percent = current_process.memory_percent()
 
-            # Find all clipboard-related processes
-            clipboard_processes = []
-            total_clipboard_memory = 0
 
-            for proc in psutil.process_iter(['pid', 'name', 'cmdline', 'memory_info', 'cpu_percent', 'create_time', 'status']):
-                try:
-                    cmdline = proc.info.get('cmdline', [])
-                    if cmdline:
-                        cmdline_str = ' '.join(cmdline).lower()
-
-                        # Enhanced detection for clipboard processes
-                        is_clipboard_process = any(keyword in cmdline_str for keyword in [
-                            'clipboard', 'menu_bar_app', 'main.py', 'unified_memory_dashboard'
-                        ]) or (
-                            'python' in proc.info['name'].lower() and
-                            any(path_part in cmdline_str for path_part in [
-                                'clipboardmonitor', 'clipboard-monitor', 'clipboard_monitor'
-                            ])
-                        )
-
-                        if is_clipboard_process:
-                            memory_mb = proc.info['memory_info'].rss / 1024 / 1024
-                            total_clipboard_memory += memory_mb
-
-                            # Determine process type
-                            process_type = "unknown"
-                            if 'menu_bar_app.py' in cmdline_str:
-                                process_type = "menu_bar"
-                            elif 'main.py' in cmdline_str and any(path_part in cmdline_str for path_part in [
-                                'clipboard', 'clipboardmonitor', 'clipboard-monitor', 'clipboard_monitor'
-                            ]):
-                                process_type = "main_service"
-                            elif 'unified_memory_dashboard.py' in cmdline_str:
-                                process_type = "dashboard"
-
-                            clipboard_processes.append({
-                                'pid': proc.info['pid'],
-                                'name': proc.info['name'],
-                                'type': process_type,
-                                'memory_mb': memory_mb,
-                                'cpu_percent': proc.info['cpu_percent'] or 0,
-                                'status': proc.info['status'],
-                                'create_time': datetime.fromtimestamp(proc.info['create_time']).strftime('%H:%M:%S'),
-                                'is_current': proc.info['pid'] == current_process.pid
-                            })
-
-                except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
-                    continue
-
-            # Get system memory info
-            system_memory = psutil.virtual_memory()
-            swap_memory = psutil.swap_memory()
-
-            # Get CPU info
-            cpu_count = psutil.cpu_count()
-            cpu_percent = psutil.cpu_percent(interval=1)
-            load_avg = os.getloadavg() if hasattr(os, 'getloadavg') else (0, 0, 0)
-
-            # Force garbage collection and get detailed stats
-            collected = gc.collect()
-            gc_stats = gc.get_stats()
-            gc_counts = gc.get_count()
-            gc_thresholds = gc.get_threshold()
-
-            # Memory tracking stats
-            tracking_status = "Active" if self.memory_tracking_active else "Inactive"
-            tracking_points = len(self.memory_data.get("menubar", []))
-            peak_menubar = self.menubar_peak
-            peak_service = self.service_peak
-
-            # Thread information
-            thread_count = threading.active_count()
-            main_thread = threading.main_thread()
-            current_thread = threading.current_thread()
-
-            # Build comprehensive stats message
-            stats_message = f"""🔍 COMPREHENSIVE MEMORY DIAGNOSTICS
-
-📊 CLIPBOARD PROCESSES ({len(clipboard_processes)} found):"""
-
-            for proc in clipboard_processes:
-                current_marker = " ← CURRENT" if proc['is_current'] else ""
-                stats_message += f"""
-• {proc['type'].upper()}: PID {proc['pid']} ({proc['status']})
-  Memory: {proc['memory_mb']:.1f} MB | CPU: {proc['cpu_percent']:.1f}%
-  Started: {proc['create_time']}{current_marker}"""
-
-            stats_message += f"""
-
-💾 CURRENT PROCESS DETAILS:
-• RSS: {format_bytes(current_memory.rss)} (Physical RAM)
-• VMS: {format_bytes(current_memory.vms)} (Virtual Memory)
-• Percent: {current_percent:.2f}% of system memory
-• PID: {current_process.pid}
-• Threads: {thread_count} active threads
-
-📈 MEMORY TRACKING:
-• Status: {tracking_status}
-• Data Points: {tracking_points}
-• Menu Bar Peak: {peak_menubar:.1f} MB
-• Service Peak: {peak_service:.1f} MB
-• Total Clipboard Memory: {total_clipboard_memory:.1f} MB
-
-🖥️  SYSTEM RESOURCES:
-• RAM Total: {format_bytes(system_memory.total)}
-• RAM Available: {format_bytes(system_memory.available)} ({100-system_memory.percent:.1f}% free)
-• RAM Used: {format_bytes(system_memory.used)} ({system_memory.percent:.1f}%)
-• Swap Total: {format_bytes(swap_memory.total)}
-• Swap Used: {format_bytes(swap_memory.used)} ({swap_memory.percent:.1f}%)
-
-⚡ CPU & PERFORMANCE:
-• CPU Cores: {cpu_count}
-• CPU Usage: {cpu_percent:.1f}%
-• Load Average: {load_avg[0]:.2f}, {load_avg[1]:.2f}, {load_avg[2]:.2f}
-
-🗑️  GARBAGE COLLECTION:
-• Objects Collected: {collected}
-• Gen 0: {gc_counts[0]} objects (threshold: {gc_thresholds[0]})
-• Gen 1: {gc_counts[1]} objects (threshold: {gc_thresholds[1]})
-• Gen 2: {gc_counts[2]} objects (threshold: {gc_thresholds[2]})
-• Collections: G0:{gc_stats[0]['collections']}, G1:{gc_stats[1]['collections']}, G2:{gc_stats[2]['collections']}
-
-🧵 THREADING INFO:
-• Active Threads: {thread_count}
-• Main Thread: {main_thread.name} ({'alive' if main_thread.is_alive() else 'dead'})
-• Current Thread: {current_thread.name}
-
-⏰ TIMESTAMP: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"""
-
-            rumps.alert("Memory Diagnostics", stats_message)
-
-        except Exception as e:
-            import traceback
-            error_details = traceback.format_exc()
-            rumps.alert("Diagnostics Error", f"Failed to get memory diagnostics:\n\n{str(e)}\n\nDetails:\n{error_details[:500]}...")
-
-    def force_memory_cleanup(self, sender):
-        """Force garbage collection and memory cleanup"""
-        try:
-            import gc
-            import psutil
-
-            # Get memory before cleanup
-            process = psutil.Process()
-            memory_before = process.memory_info().rss
-
-            # Force garbage collection
-            collected = gc.collect()
-
-            # Get memory after cleanup
-            memory_after = process.memory_info().rss
-            memory_freed = memory_before - memory_after
-
-            def format_bytes(bytes_val):
-                for unit in ['B', 'KB', 'MB', 'GB']:
-                    if bytes_val < 1024.0:
-                        return f"{bytes_val:.1f} {unit}"
-                    bytes_val /= 1024.0
-                return f"{bytes_val:.1f} TB"
-
-            if memory_freed > 0:
-                message = f"Memory cleanup completed!\n\nObjects collected: {collected}\nMemory freed: {format_bytes(memory_freed)}"
-            else:
-                message = f"Memory cleanup completed!\n\nObjects collected: {collected}\nNo significant memory freed"
-
-            rumps.notification("Memory Cleanup", "Completed", message)
-
-        except Exception as e:
-            rumps.alert("Error", f"Failed to perform memory cleanup: {e}")
 
     def open_memory_visualizer(self, sender):
         """Open the Memory Visualizer in a web browser"""
@@ -2312,130 +2231,131 @@ read -n 1
 
     def update_memory_status(self, _):
         """Update the memory status in the menu."""
-        debug_log_path = safe_expanduser("~/Library/Logs/ClipboardMonitor_memory_debug.log")
-
         try:
+            # First try to get data from unified dashboard API if available
+            try:
+                import urllib.request
+                import json
+
+                with urllib.request.urlopen('http://localhost:8001/api/memory', timeout=2) as response:
+                    data = json.loads(response.read().decode())
+
+                    # Extract data from unified dashboard
+                    processes = data.get('clipboard', {}).get('processes', [])
+                    menubar_process = next((p for p in processes if p.get('process_type') == 'menu_bar'), None)
+                    service_process = next((p for p in processes if p.get('process_type') == 'main_service'), None)
+
+                    if menubar_process and service_process:
+                        menubar_memory = menubar_process.get('memory_mb', 0)
+                        service_memory = service_process.get('memory_mb', 0)
+
+                        # Use dashboard's peak values for consistency
+                        dashboard_menubar_peak = data.get('peak_menubar_memory', 0)
+                        dashboard_service_peak = data.get('peak_service_memory', 0)
+
+                        # Update our peaks to match dashboard (but don't go backwards)
+                        self.menubar_peak = max(self.menubar_peak, dashboard_menubar_peak)
+                        self.service_peak = max(self.service_peak, dashboard_service_peak)
+
+                        # Update history for mini histograms
+                        self.menubar_history.append(menubar_memory)
+                        self.service_history.append(service_memory)
+
+                        if len(self.menubar_history) > 10: self.menubar_history.pop(0)
+                        if len(self.service_history) > 10: self.service_history.pop(0)
+
+                        menubar_histogram = self._generate_mini_histogram(self.menubar_history, self.menubar_peak)
+                        service_histogram = self._generate_mini_histogram(self.service_history, self.service_peak)
+
+                        self.memory_menubar_item.title = f"Menu Bar: {menubar_memory:.1f}MB {menubar_histogram} Peak: {self.menubar_peak:.0f}MB"
+                        self.memory_service_item.title = f"Service: {service_memory:.1f}MB  {service_histogram} Peak: {self.service_peak:.0f}MB"
+                        return  # Successfully used dashboard data
+
+            except Exception:
+                # Dashboard not available, fall back to independent monitoring
+                pass
+
+            # Fallback: Independent monitoring (original code)
             import psutil
-            import datetime
+            menubar_memory = 0
+            service_memory = 0
 
             # Get memory for menu bar app (current process)
-            menubar_process = psutil.Process(os.getpid())
-            menubar_memory = menubar_process.memory_info().rss / 1024 / 1024  # MB
+            current_process = psutil.Process(os.getpid())
+            menubar_memory = current_process.memory_info().rss / 1024 / 1024  # MB
 
-            # Debug logging - log current process info
-            current_cmdline = ' '.join(menubar_process.cmdline()) if menubar_process.cmdline() else 'No cmdline'
-
-            with open(debug_log_path, 'a') as f:
-                f.write(f"[{datetime.datetime.now()}] Memory Status Update\n")
-                f.write(f"  Current process PID: {os.getpid()}\n")
-                f.write(f"  Current process cmdline: {current_cmdline}\n")
-                f.write(f"  Menu bar memory: {menubar_memory:.1f}MB\n")
-
-            # Get memory for clipboard monitor service
-            service_memory = 0
-            service_found = False
-            clipboard_processes = []
-
-            for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
+            # Get memory for clipboard monitor service - use same logic as unified dashboard
+            for proc in psutil.process_iter(['pid', 'name', 'cmdline', 'memory_info']):
                 try:
+                    pid = proc.info['pid']
+                    name = proc.info['name']
                     cmdline = proc.info.get('cmdline', [])
+
+                    # Skip current process (menu bar app)
+                    if pid == os.getpid():
+                        continue
+
+                    # Use the same detection logic as unified dashboard
+                    is_clipboard_process = False
+                    cmdline_str = ""
+
                     if cmdline:
-                        cmdline_str = ' '.join(cmdline) if cmdline else ''
+                        cmdline_str = ' '.join(cmdline).lower()
+                        # More specific detection to avoid false positives
+                        is_clipboard_process = (
+                            'menu_bar_app.py' in cmdline_str or
+                            ('main.py' in cmdline_str and any(path_part in cmdline_str for path_part in [
+                                'clipboard monitor', 'clipboardmonitor', 'clipboard-monitor', 'clipboard_monitor'
+                            ]))
+                        )
 
-                        # Log all clipboard-related processes for debugging
-                        if any(keyword in cmdline_str.lower() for keyword in ['clipboard', 'main.py', 'clipboardmonitor']):
+                    # Also check by process name (for PyInstaller executables)
+                    if not is_clipboard_process and name == 'ClipboardMonitor':
+                        is_clipboard_process = True
+
+                    # If this is a clipboard process, check if it's the main service
+                    if is_clipboard_process:
+                        is_main_service = False
+
+                        if 'main.py' in cmdline_str and any(path_part in cmdline_str for path_part in [
+                            'clipboard', 'clipboardmonitor', 'clipboard-monitor', 'clipboard_monitor'
+                        ]):
+                            is_main_service = True
+                        elif name == 'ClipboardMonitor':
+                            # For PyInstaller executables, use memory heuristic
                             memory_mb = proc.memory_info().rss / 1024 / 1024
-                            clipboard_processes.append({
-                                'pid': proc.info['pid'],
-                                'name': proc.info['name'],
-                                'cmdline': cmdline_str,
-                                'memory_mb': memory_mb,
-                                'is_current': proc.pid == os.getpid()
-                            })
+                            if memory_mb <= 50:  # Main service typically uses less memory
+                                is_main_service = True
 
-                        # Check for PyInstaller-built main service executable
-                        # Enhanced matching for DMG environment
-                        is_service_process = False
-
-                        # Original matching logic
-                        if (('ClipboardMonitor.app/Contents/MacOS/ClipboardMonitor' in cmdline_str and
-                             'MenuBar' not in cmdline_str) or
-                            ('main.py' in cmdline_str and 'menu_bar_app.py' not in cmdline_str)):
-                            is_service_process = True
-
-                        # Additional matching for DMG environment
-                        elif ('ClipboardMonitor' in cmdline_str and
-                              'MenuBar' not in cmdline_str and
-                              proc.pid != os.getpid()):
-                            # Check if this could be the service process
-                            if ('Services/ClipboardMonitor.app' in cmdline_str or
-                                'Resources/Services' in cmdline_str):
-                                is_service_process = True
-
-                        if is_service_process and proc.pid != os.getpid():
+                        if is_main_service:
                             service_memory = proc.memory_info().rss / 1024 / 1024  # MB
-                            service_found = True
-                            with open(debug_log_path, 'a') as f:
-                                f.write(f"  Found service process: PID {proc.pid}, {service_memory:.1f}MB\n")
-                                f.write(f"    Service cmdline: {cmdline_str}\n")
                             break
 
-                except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess, AttributeError) as e:
+                except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
                     continue
-
-            # Log all clipboard processes for debugging
-            with open(debug_log_path, 'a') as f:
-                f.write(f"  All clipboard-related processes found:\n")
-                for proc_info in clipboard_processes:
-                    f.write(f"    PID {proc_info['pid']}: {proc_info['name']} - {proc_info['memory_mb']:.1f}MB {'(CURRENT)' if proc_info['is_current'] else ''}\n")
-                    f.write(f"      cmdline: {proc_info['cmdline']}\n")
-                f.write(f"  Service process found: {service_found}\n")
-                f.write(f"  Service memory: {service_memory:.1f}MB\n")
-                f.write("---\n")
 
             # Update history for mini histograms
             self.menubar_history.append(menubar_memory)
             self.service_history.append(service_memory)
 
-            # Keep only last 10 values
-            if len(self.menubar_history) > 10:
-                self.menubar_history = self.menubar_history[-10:]
-            if len(self.service_history) > 10:
-                self.service_history = self.service_history[-10:]
+            if len(self.menubar_history) > 10: self.menubar_history.pop(0)
+            if len(self.service_history) > 10: self.service_history.pop(0)
 
-            # Update peak values
-            if menubar_memory > self.menubar_peak:
-                self.menubar_peak = menubar_memory
-            if service_memory > self.service_peak:
-                self.service_peak = service_memory
+            self.menubar_peak = max(self.menubar_peak, menubar_memory)
+            self.service_peak = max(self.service_peak, service_memory)
 
-            # Generate mini histograms
             menubar_histogram = self._generate_mini_histogram(self.menubar_history, self.menubar_peak)
             service_histogram = self._generate_mini_histogram(self.service_history, self.service_peak)
 
-            # Memory status removed - consolidated into Memory Monitor menu
-
-            # Update main menu display items (two separate lines)
             self.memory_menubar_item.title = f"Menu Bar: {menubar_memory:.1f}MB {menubar_histogram} Peak: {self.menubar_peak:.0f}MB"
             self.memory_service_item.title = f"Service: {service_memory:.1f}MB  {service_histogram} Peak: {self.service_peak:.0f}MB"
 
-            # Record data if tracking is active
-            if self.memory_tracking_active:
-                self.memory_data["menubar"].append(menubar_memory)
-                self.memory_data["service"].append(service_memory)
-                self.memory_timestamps.append(time.time())
-
-                # Limit data points to prevent excessive memory usage
-                max_points = 1000
-                if len(self.memory_timestamps) > max_points:
-                    self.memory_timestamps = self.memory_timestamps[-max_points:]
-                    self.memory_data["menubar"] = self.memory_data["menubar"][-max_points:]
-                    self.memory_data["service"] = self.memory_data["service"][-max_points:]
-
         except Exception as e:
-            # Enhanced error logging for debugging
+            self.memory_menubar_item.title = "Menu Bar: Error"
+            self.memory_service_item.title = "Service: Error"
             try:
-                with open(debug_log_path, 'a') as f:
+                import datetime
+                with open(self.error_log_path, 'a') as f:
                     f.write(f"[{datetime.datetime.now()}] ERROR in update_memory_status: {str(e)}\n")
                     import traceback
                     f.write(f"  Traceback: {traceback.format_exc()}\n")
@@ -2481,114 +2401,9 @@ read -n 1
         else:
             return "🔴"  # Red - high usage
 
-    def toggle_memory_tracking(self, sender):
-        """Toggle detailed memory tracking for trends."""
-        self.memory_tracking_active = not self.memory_tracking_active
 
-        if self.memory_tracking_active:
-            sender.title = "🛑 Stop Memory Tracking"
-            # Clear previous data
-            self.memory_data = {"menubar": [], "service": []}
-            self.memory_timestamps = []
-            rumps.notification("Memory Tracking", "Started",
-                              "Memory usage is now being recorded for trend analysis.")
-        else:
-            sender.title = "🔄 Start Memory Tracking"
-            rumps.notification("Memory Tracking", "Stopped",
-                              "Memory tracking has been stopped.")
 
-    def show_memory_trends(self, _):
-        """Generate and display memory usage trends."""
-        if not self.memory_data["menubar"] or not self.memory_timestamps:
-            rumps.notification("Memory Trends", "No Data",
-                              "Start memory tracking first to collect data.")
-            return
 
-        try:
-            import tempfile
-
-            # Create a temporary HTML file with the chart
-            with tempfile.NamedTemporaryFile(delete=False, suffix='.html') as f:
-                html_path = f.name
-
-                # Generate timestamps for x-axis
-                timestamps = [time.strftime('%H:%M:%S', time.localtime(ts)) for ts in self.memory_timestamps]
-
-                # Create HTML with embedded chart using Chart.js
-                html_content = f'''
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <title>Clipboard Monitor Memory Usage</title>
-                    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-                    <style>
-                        body {{ font-family: Arial, sans-serif; margin: 20px; }}
-                        .container {{ max-width: 1200px; margin: 0 auto; }}
-                        .chart-container {{ position: relative; height: 400px; margin: 20px 0; }}
-                    </style>
-                </head>
-                <body>
-                    <div class="container">
-                        <h1>Clipboard Monitor Memory Usage Trends</h1>
-                        <div class="chart-container">
-                            <canvas id="memoryChart"></canvas>
-                        </div>
-                    </div>
-                    <script>
-                        const ctx = document.getElementById('memoryChart').getContext('2d');
-                        const chart = new Chart(ctx, {{
-                            type: 'line',
-                            data: {{
-                                labels: {timestamps},
-                                datasets: [{{
-                                    label: 'Menu Bar App (MB)',
-                                    data: {self.memory_data["menubar"]},
-                                    borderColor: 'rgb(75, 192, 192)',
-                                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                                    tension: 0.1
-                                }}, {{
-                                    label: 'Main Service (MB)',
-                                    data: {self.memory_data["service"]},
-                                    borderColor: 'rgb(255, 99, 132)',
-                                    backgroundColor: 'rgba(255, 99, 132, 0.2)',
-                                    tension: 0.1
-                                }}]
-                            }},
-                            options: {{
-                                responsive: true,
-                                maintainAspectRatio: false,
-                                scales: {{
-                                    y: {{
-                                        beginAtZero: true,
-                                        title: {{
-                                            display: true,
-                                            text: 'Memory Usage (MB)'
-                                        }}
-                                    }},
-                                    x: {{
-                                        title: {{
-                                            display: true,
-                                            text: 'Time'
-                                        }}
-                                    }}
-                                }}
-                            }}
-                        }});
-                    </script>
-                </body>
-                </html>
-                '''
-
-                f.write(html_content.encode())
-
-            # Open the HTML file in the default browser
-            webbrowser.open(f'file://{html_path}')
-
-            rumps.notification("Memory Trends", "Chart Generated",
-                              "Memory usage chart opened in your browser.")
-
-        except Exception as e:
-            rumps.alert("Error", f"Failed to generate memory trends: {e}")
 
     def _is_process_running(self, process_name):
         """Check if a monitored process is running (system-wide check)"""
@@ -2822,8 +2637,10 @@ class ClipboardMenuBarApp(ClipboardMonitorMenuBar):
 
     def copy_to_clipboard(self, content):
         """Copy the given content to the clipboard (for test compatibility)."""
-        import pyperclip
-        pyperclip.copy(content)
+        if PYPERCLIP_AVAILABLE:
+            pyperclip.copy(content)
+        else:
+            print("Warning: pyperclip not available in this environment")
 
     def open_gui_viewer(self, _):
         """Open the GUI clipboard history viewer (for test compatibility)."""

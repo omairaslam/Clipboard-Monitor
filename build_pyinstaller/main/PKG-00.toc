@@ -1,6 +1,5 @@
 ('/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair '
- 'VS Code Workspaces/Clipboard '
- 'Monitor/build_pyinstaller/main/ClipboardMonitor.pkg',
+ 'VS Code Workspaces/Clipboard Monitor/build_pyinstaller/main/main.pkg',
  {'BINARY': True,
   'DATA': True,
   'EXECUTABLE': True,
@@ -45,11 +44,6 @@
    '/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair '
    'VS Code Workspaces/Clipboard '
    'Monitor/.venv/lib/python3.9/site-packages/PyInstaller/loader/pyiboot01_bootstrap.py',
-   'PYSOURCE'),
-  ('pyi_rth_pkgutil',
-   '/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair '
-   'VS Code Workspaces/Clipboard '
-   'Monitor/.venv/lib/python3.9/site-packages/PyInstaller/hooks/rthooks/pyi_rth_pkgutil.py',
    'PYSOURCE'),
   ('pyi_rth_inspect',
    '/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair '

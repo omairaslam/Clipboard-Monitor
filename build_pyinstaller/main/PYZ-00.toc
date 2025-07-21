@@ -15,11 +15,6 @@
    'VS Code Workspaces/Clipboard '
    'Monitor/.venv/lib/python3.9/site-packages/AppKit/_nsapp.py',
    'PYMODULE'),
-  ('Cocoa',
-   '/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair '
-   'VS Code Workspaces/Clipboard '
-   'Monitor/.venv/lib/python3.9/site-packages/Cocoa/__init__.py',
-   'PYMODULE'),
   ('CoreFoundation',
    '/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair '
    'VS Code Workspaces/Clipboard '
@@ -34,16 +29,6 @@
    '/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair '
    'VS Code Workspaces/Clipboard '
    'Monitor/.venv/lib/python3.9/site-packages/CoreFoundation/_static.py',
-   'PYMODULE'),
-  ('ExceptionHandling',
-   '/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair '
-   'VS Code Workspaces/Clipboard '
-   'Monitor/.venv/lib/python3.9/site-packages/ExceptionHandling/__init__.py',
-   'PYMODULE'),
-  ('ExceptionHandling._metadata',
-   '/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair '
-   'VS Code Workspaces/Clipboard '
-   'Monitor/.venv/lib/python3.9/site-packages/ExceptionHandling/_metadata.py',
    'PYMODULE'),
   ('Foundation',
    '/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair '
@@ -81,43 +66,16 @@
    'Monitor/.venv/lib/python3.9/site-packages/Foundation/_nsurl.py',
    'PYMODULE'),
   ('PyObjCTools', '-', 'PYMODULE'),
-  ('PyObjCTools.AppHelper',
-   '/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair '
-   'VS Code Workspaces/Clipboard '
-   'Monitor/.venv/lib/python3.9/site-packages/PyObjCTools/AppHelper.py',
-   'PYMODULE'),
-  ('PyObjCTools.Debugging',
-   '/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair '
-   'VS Code Workspaces/Clipboard '
-   'Monitor/.venv/lib/python3.9/site-packages/PyObjCTools/Debugging.py',
-   'PYMODULE'),
   ('PyObjCTools.KeyValueCoding',
    '/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair '
    'VS Code Workspaces/Clipboard '
    'Monitor/.venv/lib/python3.9/site-packages/PyObjCTools/KeyValueCoding.py',
-   'PYMODULE'),
-  ('PyObjCTools.MachSignals',
-   '/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair '
-   'VS Code Workspaces/Clipboard '
-   'Monitor/.venv/lib/python3.9/site-packages/PyObjCTools/MachSignals.py',
-   'PYMODULE'),
-  ('__future__',
-   '/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/__future__.py',
-   'PYMODULE'),
-  ('_aix_support',
-   '/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/_aix_support.py',
-   'PYMODULE'),
-  ('_bootsubprocess',
-   '/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/_bootsubprocess.py',
    'PYMODULE'),
   ('_compat_pickle',
    '/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/_compat_pickle.py',
    'PYMODULE'),
   ('_compression',
    '/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/_compression.py',
-   'PYMODULE'),
-  ('_osx_support',
-   '/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/_osx_support.py',
    'PYMODULE'),
   ('_py_abc',
    '/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/_py_abc.py',
@@ -127,9 +85,6 @@
    'PYMODULE'),
   ('_strptime',
    '/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/_strptime.py',
-   'PYMODULE'),
-  ('_sysconfigdata__darwin_darwin',
-   '/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/_sysconfigdata__darwin_darwin.py',
    'PYMODULE'),
   ('_threading_local',
    '/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/_threading_local.py',
@@ -143,9 +98,6 @@
   ('base64',
    '/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/base64.py',
    'PYMODULE'),
-  ('bdb',
-   '/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/bdb.py',
-   'PYMODULE'),
   ('bisect',
    '/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/bisect.py',
    'PYMODULE'),
@@ -158,15 +110,6 @@
   ('clipboard_reader',
    '/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair '
    'VS Code Workspaces/Clipboard Monitor/clipboard_reader.py',
-   'PYMODULE'),
-  ('cmd',
-   '/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/cmd.py',
-   'PYMODULE'),
-  ('code',
-   '/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/code.py',
-   'PYMODULE'),
-  ('codeop',
-   '/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/codeop.py',
    'PYMODULE'),
   ('config_manager',
    '/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair '
@@ -199,12 +142,6 @@
    'PYMODULE'),
   ('ctypes.wintypes',
    '/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/ctypes/wintypes.py',
-   'PYMODULE'),
-  ('curses',
-   '/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/curses/__init__.py',
-   'PYMODULE'),
-  ('curses.has_key',
-   '/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/curses/has_key.py',
    'PYMODULE'),
   ('datetime',
    '/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/datetime.py',
@@ -293,20 +230,11 @@
   ('gettext',
    '/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/gettext.py',
    'PYMODULE'),
-  ('glob',
-   '/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/glob.py',
-   'PYMODULE'),
   ('gzip',
    '/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/gzip.py',
    'PYMODULE'),
   ('hashlib',
    '/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/hashlib.py',
-   'PYMODULE'),
-  ('html',
-   '/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/html/__init__.py',
-   'PYMODULE'),
-  ('html.entities',
-   '/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/html/entities.py',
    'PYMODULE'),
   ('http',
    '/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/http/__init__.py',
@@ -316,9 +244,6 @@
    'PYMODULE'),
   ('http.cookiejar',
    '/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/http/cookiejar.py',
-   'PYMODULE'),
-  ('http.server',
-   '/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/http/server.py',
    'PYMODULE'),
   ('importlib',
    '/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/importlib/__init__.py',
@@ -350,9 +275,6 @@
   ('inspect',
    '/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/inspect.py',
    'PYMODULE'),
-  ('ipaddress',
-   '/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/ipaddress.py',
-   'PYMODULE'),
   ('json',
    '/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/json/__init__.py',
    'PYMODULE'),
@@ -381,30 +303,6 @@
   ('module_manager',
    '/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair '
    'VS Code Workspaces/Clipboard Monitor/module_manager.py',
-   'PYMODULE'),
-  ('modules',
-   '/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair '
-   'VS Code Workspaces/Clipboard Monitor/modules/__init__.py',
-   'PYMODULE'),
-  ('modules.code_formatter_module',
-   '/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair '
-   'VS Code Workspaces/Clipboard Monitor/modules/code_formatter_module.py',
-   'PYMODULE'),
-  ('modules.drawio_module',
-   '/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair '
-   'VS Code Workspaces/Clipboard Monitor/modules/drawio_module.py',
-   'PYMODULE'),
-  ('modules.history_module',
-   '/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair '
-   'VS Code Workspaces/Clipboard Monitor/modules/history_module.py',
-   'PYMODULE'),
-  ('modules.markdown_module',
-   '/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair '
-   'VS Code Workspaces/Clipboard Monitor/modules/markdown_module.py',
-   'PYMODULE'),
-  ('modules.mermaid_module',
-   '/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair '
-   'VS Code Workspaces/Clipboard Monitor/modules/mermaid_module.py',
    'PYMODULE'),
   ('netrc',
    '/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/netrc.py',
@@ -574,14 +472,8 @@
   ('pathlib',
    '/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/pathlib.py',
    'PYMODULE'),
-  ('pdb',
-   '/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/pdb.py',
-   'PYMODULE'),
   ('pickle',
    '/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/pickle.py',
-   'PYMODULE'),
-  ('pkgutil',
-   '/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/pkgutil.py',
    'PYMODULE'),
   ('platform',
    '/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/platform.py',
@@ -592,37 +484,8 @@
   ('pprint',
    '/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/pprint.py',
    'PYMODULE'),
-  ('psutil',
-   '/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair '
-   'VS Code Workspaces/Clipboard '
-   'Monitor/.venv/lib/python3.9/site-packages/psutil/__init__.py',
-   'PYMODULE'),
-  ('psutil._common',
-   '/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair '
-   'VS Code Workspaces/Clipboard '
-   'Monitor/.venv/lib/python3.9/site-packages/psutil/_common.py',
-   'PYMODULE'),
-  ('psutil._psosx',
-   '/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair '
-   'VS Code Workspaces/Clipboard '
-   'Monitor/.venv/lib/python3.9/site-packages/psutil/_psosx.py',
-   'PYMODULE'),
-  ('psutil._psposix',
-   '/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair '
-   'VS Code Workspaces/Clipboard '
-   'Monitor/.venv/lib/python3.9/site-packages/psutil/_psposix.py',
-   'PYMODULE'),
   ('py_compile',
    '/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/py_compile.py',
-   'PYMODULE'),
-  ('pydoc',
-   '/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/pydoc.py',
-   'PYMODULE'),
-  ('pydoc_data',
-   '/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/pydoc_data/__init__.py',
-   'PYMODULE'),
-  ('pydoc_data.topics',
-   '/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/pydoc_data/topics.py',
    'PYMODULE'),
   ('pyperclip',
    '/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair '
@@ -634,64 +497,6 @@
    'PYMODULE'),
   ('random',
    '/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/random.py',
-   'PYMODULE'),
-  ('rumps',
-   '/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair '
-   'VS Code Workspaces/Clipboard '
-   'Monitor/.venv/lib/python3.9/site-packages/rumps/__init__.py',
-   'PYMODULE'),
-  ('rumps._internal',
-   '/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair '
-   'VS Code Workspaces/Clipboard '
-   'Monitor/.venv/lib/python3.9/site-packages/rumps/_internal.py',
-   'PYMODULE'),
-  ('rumps.compat',
-   '/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair '
-   'VS Code Workspaces/Clipboard '
-   'Monitor/.venv/lib/python3.9/site-packages/rumps/compat.py',
-   'PYMODULE'),
-  ('rumps.events',
-   '/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair '
-   'VS Code Workspaces/Clipboard '
-   'Monitor/.venv/lib/python3.9/site-packages/rumps/events.py',
-   'PYMODULE'),
-  ('rumps.exceptions',
-   '/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair '
-   'VS Code Workspaces/Clipboard '
-   'Monitor/.venv/lib/python3.9/site-packages/rumps/exceptions.py',
-   'PYMODULE'),
-  ('rumps.notifications',
-   '/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair '
-   'VS Code Workspaces/Clipboard '
-   'Monitor/.venv/lib/python3.9/site-packages/rumps/notifications.py',
-   'PYMODULE'),
-  ('rumps.packages',
-   '/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair '
-   'VS Code Workspaces/Clipboard '
-   'Monitor/.venv/lib/python3.9/site-packages/rumps/packages/__init__.py',
-   'PYMODULE'),
-  ('rumps.packages.ordereddict',
-   '/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair '
-   'VS Code Workspaces/Clipboard '
-   'Monitor/.venv/lib/python3.9/site-packages/rumps/packages/ordereddict.py',
-   'PYMODULE'),
-  ('rumps.rumps',
-   '/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair '
-   'VS Code Workspaces/Clipboard '
-   'Monitor/.venv/lib/python3.9/site-packages/rumps/rumps.py',
-   'PYMODULE'),
-  ('rumps.text_field',
-   '/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair '
-   'VS Code Workspaces/Clipboard '
-   'Monitor/.venv/lib/python3.9/site-packages/rumps/text_field.py',
-   'PYMODULE'),
-  ('rumps.utils',
-   '/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair '
-   'VS Code Workspaces/Clipboard '
-   'Monitor/.venv/lib/python3.9/site-packages/rumps/utils.py',
-   'PYMODULE'),
-  ('runpy',
-   '/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py',
    'PYMODULE'),
   ('selectors',
    '/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/selectors.py',
@@ -708,9 +513,6 @@
   ('socket',
    '/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/socket.py',
    'PYMODULE'),
-  ('socketserver',
-   '/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/socketserver.py',
-   'PYMODULE'),
   ('ssl',
    '/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/ssl.py',
    'PYMODULE'),
@@ -725,9 +527,6 @@
    'PYMODULE'),
   ('subprocess',
    '/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/subprocess.py',
-   'PYMODULE'),
-  ('sysconfig',
-   '/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/sysconfig.py',
    'PYMODULE'),
   ('tarfile',
    '/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/tarfile.py',
@@ -749,9 +548,6 @@
    'PYMODULE'),
   ('tracemalloc',
    '/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/tracemalloc.py',
-   'PYMODULE'),
-  ('tty',
-   '/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/tty.py',
    'PYMODULE'),
   ('typing',
    '/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/typing.py',
@@ -777,9 +573,6 @@
    'PYMODULE'),
   ('uu',
    '/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/uu.py',
-   'PYMODULE'),
-  ('webbrowser',
-   '/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/webbrowser.py',
    'PYMODULE'),
   ('xml',
    '/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/xml/__init__.py',
@@ -825,7 +618,4 @@
    'PYMODULE'),
   ('zipfile',
    '/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/zipfile.py',
-   'PYMODULE'),
-  ('zipimport',
-   '/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/zipimport.py',
    'PYMODULE')])

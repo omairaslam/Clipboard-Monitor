@@ -1,1 +1,0 @@
-../Resources/web_history_viewer.py

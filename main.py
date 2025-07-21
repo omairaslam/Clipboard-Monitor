@@ -2,7 +2,13 @@ import os
 import importlib
 import importlib.util # For module loading
 import time
-import pyperclip # Cross-platform clipboard library
+# Optional import for pyperclip (may not be available in PyInstaller bundle)
+try:
+    import pyperclip # Cross-platform clipboard library
+    PYPERCLIP_AVAILABLE = True
+except ImportError:
+    PYPERCLIP_AVAILABLE = False
+    pyperclip = None
 import threading
 import logging
 from pathlib import Path
@@ -366,14 +372,25 @@ def _handle_polling_iteration(monitor, last_clipboard, consecutive_errors, max_c
         time.sleep(config_manager.get_polling_interval())
         return last_clipboard, consecutive_errors, True
 
-    except pyperclip.PyperclipException as e:
-        consecutive_errors += 1
-        logger.error(f"pyperclip error in polling loop (#{consecutive_errors}): {e}")
-        log_error(f"pyperclip error in polling loop (#{consecutive_errors}): {e}")
+    except Exception as e:
+        # Handle pyperclip errors if pyperclip is available
+        if PYPERCLIP_AVAILABLE and 'pyperclip' in str(type(e)):
+            consecutive_errors += 1
+            logger.error(f"pyperclip error in polling loop (#{consecutive_errors}): {e}")
+            log_error(f"pyperclip error in polling loop (#{consecutive_errors}): {e}")
 
-        if consecutive_errors >= max_consecutive_errors:
-            logger.error(f"Too many consecutive pyperclip errors ({consecutive_errors}). Exiting.")
-            log_error(f"Too many consecutive pyperclip errors ({consecutive_errors}). Exiting.")
+            if consecutive_errors >= max_consecutive_errors:
+                logger.error(f"Too many consecutive pyperclip errors ({consecutive_errors}). Exiting.")
+                log_error(f"Too many consecutive pyperclip errors ({consecutive_errors}). Exiting.")
+        else:
+            # Handle other exceptions
+            consecutive_errors += 1
+            logger.error(f"Error in polling loop (#{consecutive_errors}): {e}")
+            log_error(f"Error in polling loop (#{consecutive_errors}): {e}")
+
+            if consecutive_errors >= max_consecutive_errors:
+                logger.error(f"Too many consecutive errors ({consecutive_errors}). Exiting.")
+                log_error(f"Too many consecutive errors ({consecutive_errors}). Exiting.")
             return last_clipboard, consecutive_errors, False
 
         time.sleep(PYPERCLIP_ERROR_DELAY)

@@ -1,1 +1,0 @@
-../Resources/clipboard_reader.py

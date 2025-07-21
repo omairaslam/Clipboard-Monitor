@@ -29,7 +29,7 @@ A powerful, modular clipboard monitoring and processing application for macOS wi
 
 ### 🎯 **Clean, Modular Interface**
 - **Invisible Disabled Modules** - Only see features you actually use
-- **Module Discovery** - Easy enable/disable via "Add Modules" in settings
+- **Module Management** - Easy enable/disable via "Enable/Disable Modules" in settings
 - **Contextual Organization** - Related functionality grouped together
 - **Zero Clutter** - Cleanest possible interface design
 
@@ -39,7 +39,7 @@ A powerful, modular clipboard monitoring and processing application for macOS wi
 Each module can be independently enabled/disabled:
 - Disabled modules are completely invisible (zero clutter)
 - Enabled modules show full functionality and settings
-- Module discovery available via Settings → Add Modules
+- Module management available via Settings → Enable/Disable Modules
 - Dynamic menu rebuilding when modules are toggled
 
 ### **Professional Distribution**
@@ -65,7 +65,7 @@ Each module can be independently enabled/disabled:
 ---
 🧠 Memory Monitor & Dashboard
 ⚙️ Settings
-   ├── ➕ Add Modules (discover disabled modules)
+   ├── 🧩 Enable/Disable Modules (manage all modules)
    ├── Module-specific settings
    └── System configuration
 ---

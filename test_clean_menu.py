@@ -64,10 +64,16 @@ def test_module_detection():
                 print("   └── 🗑️ Clear History")
             elif module == "mermaid_module":
                 print("🧩 Mermaid Diagram Detector >")
-                print("   └── Settings >")
+                print("   ├── ✅ Copy Code")
+                print("   ├── ❌ Copy URL")
+                print("   ├── ✅ Open in Browser")
+                print("   └── 🎨 Editor Theme >")
             elif module == "drawio_module":
                 print("🎨 Draw.io Diagram Detector >")
-                print("   └── Settings >")
+                print("   ├── ✅ Copy Code")
+                print("   ├── ✅ Copy URL")
+                print("   ├── ✅ Open in Browser")
+                print("   └── ⚙️ URL Parameters >")
             elif module == "markdown_module":
                 print("📝 Markdown Processor >")
                 print("   └── ✅ Modify Clipboard Content")
@@ -78,23 +84,33 @@ def test_module_detection():
         print("[No enabled modules - clean interface!]")
     
     print("---")
-    print("🧠 Memory Monitor >")
+
+    # Module Management (moved from Settings)
+    print("🧩 Enable/Disable Modules >")
+
+    # Show all modules with their status
+    all_modules = enabled_modules + disabled_modules
+    module_names = {
+        "history_module": "Clipboard History Tracker",
+        "markdown_module": "Markdown Processor",
+        "mermaid_module": "Mermaid Diagram Detector",
+        "drawio_module": "Draw.io Diagram Detector",
+        "code_formatter_module": "Code Formatter"
+    }
+
+    for module in sorted(all_modules):
+        display_name = module_names.get(module, module)
+        if module in enabled_modules:
+            print(f"   ├── ✅ {display_name} (Click to disable)")
+        else:
+            print(f"   ├── ❌ {display_name} (Click to enable)")
+
+    print("---")
+    print("📊 Unified Dashboard")
     print("---")
     print("⚙️ Settings >")
-    if disabled_modules:
-        print("   ├── ➕ Add Modules >")
-        for module in disabled_modules:
-            module_names = {
-                "history_module": "Clipboard History Tracker",
-                "markdown_module": "Markdown Processor", 
-                "mermaid_module": "Mermaid Diagram Detector",
-                "drawio_module": "Draw.io Diagram Detector",
-                "code_formatter_module": "Code Formatter"
-            }
-            display_name = module_names.get(module, module)
-            print(f"   │   └── {display_name} (Click to enable)")
-    else:
-        print("   ├── ➕ Add Modules > (All modules enabled)")
+
+
     
     print("   ├── 🔧 General >")
     print("   ├── 🚀 Performance >")

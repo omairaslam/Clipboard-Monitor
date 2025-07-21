@@ -2,107 +2,53 @@
     "VsCodeTaskButtons.showCounter": true,
     "VsCodeTaskButtons.tasks": [
         {
-            "label": "Tail Main Output",
+            "label": "📄 Tail Main Output",
             "task": "Tail Main Service Output Log",
             "tooltip": "Tail the main service's output log"
         },
         {
-            "label": "Tail Main Error",
+            "label": "🚨 Tail Main Error",
             "task": "Tail Main Service Error Log",
             "tooltip": "Tail the main service's error log"
         },
         {
-            "label": "Tail Menu Output",
+            "label": "📱 Tail Menu Output",
             "task": "Tail Menu Service Output Log",
             "tooltip": "Tail the menubar application's output log"
         },
         {
-            "label": "Tail Menu Error",
+            "label": "⚠️ Tail Menu Error",
             "task": "Tail Menu Service Error Log",
             "tooltip": "Tail the menubar application's error log"
         },
         {
-            "label": "Restart Main",
-            "task": "Restart Main Service",
-            "tooltip": "Restart the main Clipboard Monitor service",
-            "color": "warning"
-        },
-        {
-            "label": "Restart Menubar",
-            "task": "Restart Menubar Service",
-            "tooltip": "Restart the menubar application",
-            "color": "warning"
-        },
-        {
-            "label": "Dashboard",
-            "task": "Launch Troubleshooting Dashboard",
-            "tooltip": "Open the interactive troubleshooting dashboard",
-            "color": "default"
-        },
-        {
-            "label": "Clear Logs",
+            "label": "🗑️ Clear Logs",
             "task": "Clear All Logs",
             "tooltip": "Clear all log files",
             "color": "error"
         },
         {
-            "label": "Status",
+            "label": "📊 Status",
             "task": "Check Services Status",
             "tooltip": "Check the status of both services",
             "color": "default"
         },
         {
-            "label": "Restart All",
-            "task": "Restart All Services",
-            "tooltip": "Restart both main and menubar services",
-            "color": "warning"
-        },
-        {
-            "label": "Stop All",
-            "task": "Stop All Services",
-            "tooltip": "Stop both main and menubar services",
-            "color": "error"
-        },
-        {
-            "label": "Clear & Restart All",
+            "label": "🔄 Clear & Restart All",
             "task": "Clear Logs & Restart All Services",
             "tooltip": "Clear all logs and restart both services",
             "color": "error"
         },
         {
-            "label": "🚀 Build & Create DMG",
-            "task": "Build & Create DMG",
-            "tooltip": "Build application and create DMG in one step",
-            "color": "default"
-        },
-        {
-            "label": "🧪 Test DMG Installation",
-            "task": "Test DMG Installation",
-            "tooltip": "Full DMG testing workflow with manual plist copying - mount, uninstall, install, and verify",
-            "color": "default"
-        },
-        {
-            "label": "🚀 Build Create Install DMG",
-            "task": "🚀 Build Create Install DMG",
-            "tooltip": "Complete unified workflow: Build → Create DMG → Guided Install (Quiet Mode)",
-            "color": "default"
-        },
-        {
-            "label": "🚀 Build Create Install DMG (Verbose)",
-            "task": "🚀 Build Create Install DMG (Verbose)",
-            "tooltip": "Complete unified workflow with guided install and full verbose output",
-            "color": "default"
-        },
-        {
-            "label": "📦 Build PKG",
+            "label": "📦 Build Create Install PKG",
             "task": "Build Create Install PKG",
-            "tooltip": "Build and create PKG installer",
+            "tooltip": "Build and create PKG installer (Quiet Mode)",
             "color": "default"
         },
         {
-            "label": "🧪 Test PKG",
-            "task": "Test PKG Installation",
-            "tooltip": "Test PKG installer functionality",
+            "label": "🔧 Build Create Install PKG (Verbose)",
+            "task": "Build Create Install PKG (Verbose)",
+            "tooltip": "Build and create PKG installer with full verbose output",
             "color": "default"
         }
     ],

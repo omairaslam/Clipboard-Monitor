@@ -1,1 +1,0 @@
-../Resources/history_viewer.py

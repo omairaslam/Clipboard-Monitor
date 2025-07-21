@@ -1,1 +1,0 @@
-../Resources/module_manager.py

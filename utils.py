@@ -11,7 +11,13 @@ import os
 import pwd
 from pathlib import Path
 import json
-import pyperclip
+# Optional import for pyperclip (may not be available in PyInstaller bundle)
+try:
+    import pyperclip
+    PYPERCLIP_AVAILABLE = True
+except ImportError:
+    PYPERCLIP_AVAILABLE = False
+    pyperclip = None
 
 logger = logging.getLogger("utils")
 
@@ -515,14 +521,17 @@ def get_clipboard_content():
         except (subprocess.SubprocessError, subprocess.TimeoutExpired):
             pass
 
-        # Fallback to pyperclip
-        try:
-            pyperclip_content = pyperclip.paste()
-            if pyperclip_content and pyperclip_content.strip():
-                logger.debug("Found content via pyperclip")
-                return pyperclip_content
-        except pyperclip.PyperclipException:
-            pass
+        # Fallback to pyperclip (if available)
+        if PYPERCLIP_AVAILABLE:
+            try:
+                pyperclip_content = pyperclip.paste()
+                if pyperclip_content and pyperclip_content.strip():
+                    logger.debug("Found content via pyperclip")
+                    return pyperclip_content
+            except pyperclip.PyperclipException:
+                pass
+        else:
+            logger.debug("pyperclip not available in this environment")
 
         logger.debug("No clipboard content found")
         return None

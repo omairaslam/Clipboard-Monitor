@@ -1,6 +1,6 @@
 ('/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair '
- 'VS Code Workspaces/Clipboard Monitor/build_pyinstaller/main/ClipboardMonitor',
- False,
+ 'VS Code Workspaces/Clipboard Monitor/build_pyinstaller/main/main',
+ True,
  False,
  True,
  None,
@@ -14,8 +14,7 @@
  None,
  None,
  '/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair '
- 'VS Code Workspaces/Clipboard '
- 'Monitor/build_pyinstaller/main/ClipboardMonitor.pkg',
+ 'VS Code Workspaces/Clipboard Monitor/build_pyinstaller/main/main.pkg',
  [('pyi-contents-directory _internal', '', 'OPTION'),
   ('PYZ-00.pyz',
    '/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair '
@@ -52,11 +51,6 @@
    'VS Code Workspaces/Clipboard '
    'Monitor/.venv/lib/python3.9/site-packages/PyInstaller/loader/pyiboot01_bootstrap.py',
    'PYSOURCE'),
-  ('pyi_rth_pkgutil',
-   '/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair '
-   'VS Code Workspaces/Clipboard '
-   'Monitor/.venv/lib/python3.9/site-packages/PyInstaller/hooks/rthooks/pyi_rth_pkgutil.py',
-   'PYSOURCE'),
   ('pyi_rth_inspect',
    '/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair '
    'VS Code Workspaces/Clipboard '
@@ -69,10 +63,10 @@
  [],
  False,
  False,
- 1752953404,
- [('runw',
+ 1753122126,
+ [('run',
    '/Users/omair.aslam/Library/CloudStorage/OneDrive-TRGCustomerSolutions,Inc.dbaIBEXGlobalSolutions,aDelawareCorporation/Omair '
    'VS Code Workspaces/Clipboard '
-   'Monitor/.venv/lib/python3.9/site-packages/PyInstaller/bootloader/Darwin-64bit/runw',
+   'Monitor/.venv/lib/python3.9/site-packages/PyInstaller/bootloader/Darwin-64bit/run',
    'EXECUTABLE')],
  '/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/Python3')
