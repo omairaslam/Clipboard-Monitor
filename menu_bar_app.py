@@ -68,8 +68,13 @@ class ClipboardMonitorMenuBar(rumps.App):
         self._init_submenus()
         self._init_preferences_menu()
 
-        # Initialize theme menu item storage
+        # Initialize menu item storage for all radio-button style menus
         self.mermaid_theme_items = {}
+        self.drawio_edit_mode_items = {}
+        self.drawio_appearance_items = {}
+        self.drawio_link_behavior_items = {}
+        self.enhanced_interval_items = {}
+        self.polling_interval_items = {}
 
         # Build the main menu structure
         self._build_main_menu()
@@ -214,53 +219,71 @@ class ClipboardMonitorMenuBar(rumps.App):
 
     def set_drawio_edit_mode(self, sender):
         """Set Draw.io edit mode."""
-        # Update all menu items
-        for item in sender.parent.itervalues():
-            if isinstance(item, rumps.MenuItem):
-                item.state = (item.title == sender.title)
+        print(f"DEBUG: Setting Draw.io edit mode to {sender.title}")
+
+        # Update all menu item states using stored references
+        for item_name, item in self.drawio_edit_mode_items.items():
+            old_state = item.state
+            item.state = (item_name == sender.title)
+            print(f"DEBUG: Draw.io edit mode '{item_name}' state: {old_state} -> {item.state}")
 
         mode_map = {"New Tab": "_blank", "Same Tab": "_self"}
         new_mode = mode_map[sender.title]
+        print(f"DEBUG: Mapped edit mode: {new_mode}")
 
         if self.set_config_and_reload('modules', 'drawio_edit_mode', new_mode):
+            print(f"DEBUG: Successfully saved Draw.io edit mode {new_mode}")
             rumps.notification("Clipboard Monitor", "Draw.io Edit Mode",
                               f"Edit mode set to {sender.title}")
             self.restart_service(None)
         else:
+            print(f"DEBUG: Failed to save Draw.io edit mode {new_mode}")
             rumps.notification("Error", "Failed to update Draw.io edit mode", "Could not save configuration")
 
     def set_drawio_appearance(self, sender):
         """Set Draw.io appearance."""
-        # Update all menu items
-        for item in sender.parent.itervalues():
-            if isinstance(item, rumps.MenuItem):
-                item.state = (item.title == sender.title)
+        print(f"DEBUG: Setting Draw.io appearance to {sender.title}")
+
+        # Update all menu item states using stored references
+        for item_name, item in self.drawio_appearance_items.items():
+            old_state = item.state
+            item.state = (item_name == sender.title)
+            print(f"DEBUG: Draw.io appearance '{item_name}' state: {old_state} -> {item.state}")
 
         appearance_map = {"Auto": "auto", "Light": "light", "Dark": "dark"}
         new_appearance = appearance_map[sender.title]
+        print(f"DEBUG: Mapped appearance: {new_appearance}")
 
         if self.set_config_and_reload('modules', 'drawio_appearance', new_appearance):
+            print(f"DEBUG: Successfully saved Draw.io appearance {new_appearance}")
             rumps.notification("Clipboard Monitor", "Draw.io Appearance",
                               f"Appearance set to {sender.title}")
             self.restart_service(None)
         else:
+            print(f"DEBUG: Failed to save Draw.io appearance {new_appearance}")
             rumps.notification("Error", "Failed to update Draw.io appearance", "Could not save configuration")
 
     def set_drawio_link_behavior(self, sender):
         """Set Draw.io link behavior."""
-        # Update all menu items
-        for item in sender.parent.itervalues():
-            if isinstance(item, rumps.MenuItem):
-                item.state = (item.title == sender.title)
+        print(f"DEBUG: Setting Draw.io link behavior to {sender.title}")
+
+        # Update all menu item states using stored references
+        for item_name, item in self.drawio_link_behavior_items.items():
+            old_state = item.state
+            item.state = (item_name == sender.title)
+            print(f"DEBUG: Draw.io link behavior '{item_name}' state: {old_state} -> {item.state}")
 
         behavior_map = {"Auto": "auto", "New Tab": "blank", "Same Tab": "self"}
         new_behavior = behavior_map[sender.title]
+        print(f"DEBUG: Mapped link behavior: {new_behavior}")
 
-        if set_config_value('modules', 'drawio_links', new_behavior):
+        if self.set_config_and_reload('modules', 'drawio_links', new_behavior):
+            print(f"DEBUG: Successfully saved Draw.io link behavior {new_behavior}")
             rumps.notification("Clipboard Monitor", "Draw.io Link Behavior",
                               f"Link behavior set to {sender.title}")
             self.restart_service(None)
         else:
+            print(f"DEBUG: Failed to save Draw.io link behavior {new_behavior}")
             rumps.notification("Error", "Failed to update Draw.io link behavior", "Could not save configuration")
 
     def set_drawio_border_color(self, _):
@@ -299,20 +322,42 @@ class ClipboardMonitorMenuBar(rumps.App):
         """Create the 'Polling Interval' submenu."""
         polling_menu = rumps.MenuItem("Polling Interval")
         current_polling = self.config_manager.get_config_value('general', 'polling_interval', 1.0)
+        print(f"DEBUG: Creating polling interval menu, current interval: {current_polling}")
+
+        # Clear previous polling interval items
+        self.polling_interval_items = {}
+
         for name, value in self.polling_options.items():
             item = rumps.MenuItem(name, callback=self.set_polling_interval)
             item.state = (value == current_polling)
             polling_menu.add(item)
+
+            # Store reference to the item for later state updates
+            self.polling_interval_items[name] = item
+
+            print(f"DEBUG: Added polling interval item '{name}' (value: {value}), state: {item.state}")
+
         return polling_menu
 
     def _create_enhanced_interval_menu(self):
         """Create the 'Enhanced Check Interval' submenu."""
         enhanced_menu = rumps.MenuItem("Enhanced Check Interval")
         current_enhanced = self.config_manager.get_config_value('general', 'enhanced_check_interval', 0.1)
+        print(f"DEBUG: Creating enhanced check interval menu, current interval: {current_enhanced}")
+
+        # Clear previous enhanced interval items
+        self.enhanced_interval_items = {}
+
         for name, value in self.enhanced_options.items():
             item = rumps.MenuItem(name, callback=self.set_enhanced_interval)
             item.state = (value == current_enhanced)
             enhanced_menu.add(item)
+
+            # Store reference to the item for later state updates
+            self.enhanced_interval_items[name] = item
+
+            print(f"DEBUG: Added enhanced interval item '{name}' (value: {value}), state: {item.state}")
+
         return enhanced_menu
 
     def _create_general_settings_menu(self):
@@ -435,6 +480,10 @@ class ClipboardMonitorMenuBar(rumps.App):
         """Create the 'Edit Mode' submenu for Draw.io."""
         edit_mode_menu = rumps.MenuItem("Edit Mode")
         current_mode = self.config_manager.get_config_value('modules', 'drawio_edit_mode', '_blank')
+        print(f"DEBUG: Creating Draw.io edit mode menu, current mode: {current_mode}")
+
+        # Clear previous edit mode items
+        self.drawio_edit_mode_items = {}
 
         modes = [("New Tab", "_blank"), ("Same Tab", "_self")]
         for name, value in modes:
@@ -442,12 +491,21 @@ class ClipboardMonitorMenuBar(rumps.App):
             item.state = (value == current_mode)
             edit_mode_menu.add(item)
 
+            # Store reference to the item for later state updates
+            self.drawio_edit_mode_items[name] = item
+
+            print(f"DEBUG: Added Draw.io edit mode item '{name}' (value: {value}), state: {item.state}")
+
         return edit_mode_menu
 
     def _create_drawio_appearance_menu(self):
         """Create the 'Appearance' submenu for Draw.io."""
         appearance_menu = rumps.MenuItem("Appearance")
         current_appearance = self.config_manager.get_config_value('modules', 'drawio_appearance', 'auto')
+        print(f"DEBUG: Creating Draw.io appearance menu, current appearance: {current_appearance}")
+
+        # Clear previous appearance items
+        self.drawio_appearance_items = {}
 
         appearances = [("Auto", "auto"), ("Light", "light"), ("Dark", "dark")]
         for name, value in appearances:
@@ -455,18 +513,32 @@ class ClipboardMonitorMenuBar(rumps.App):
             item.state = (value == current_appearance)
             appearance_menu.add(item)
 
+            # Store reference to the item for later state updates
+            self.drawio_appearance_items[name] = item
+
+            print(f"DEBUG: Added Draw.io appearance item '{name}' (value: {value}), state: {item.state}")
+
         return appearance_menu
 
     def _create_drawio_link_behavior_menu(self):
         """Create the 'Link Behavior' submenu for Draw.io."""
         link_menu = rumps.MenuItem("Link Behavior")
         current_behavior = self.config_manager.get_config_value('modules', 'drawio_links', 'auto')
+        print(f"DEBUG: Creating Draw.io link behavior menu, current behavior: {current_behavior}")
+
+        # Clear previous link behavior items
+        self.drawio_link_behavior_items = {}
 
         behaviors = [("Auto", "auto"), ("New Tab", "blank"), ("Same Tab", "self")]
         for name, value in behaviors:
             item = rumps.MenuItem(name, callback=self.set_drawio_link_behavior)
             item.state = (value == current_behavior)
             link_menu.add(item)
+
+            # Store reference to the item for later state updates
+            self.drawio_link_behavior_items[name] = item
+
+            print(f"DEBUG: Added Draw.io link behavior item '{name}' (value: {value}), state: {item.state}")
 
         return link_menu
 
@@ -1147,19 +1219,25 @@ class ClipboardMonitorMenuBar(rumps.App):
 
     def set_enhanced_interval(self, sender):
         """Set the enhanced check interval"""
-        # Update all menu items
-        for item in sender.parent.itervalues():
-            if isinstance(item, rumps.MenuItem):
-                item.state = (item.title == sender.title)
+        print(f"DEBUG: Setting enhanced check interval to {sender.title}")
+
+        # Update all menu item states using stored references
+        for item_name, item in self.enhanced_interval_items.items():
+            old_state = item.state
+            item.state = (item_name == sender.title)
+            print(f"DEBUG: Enhanced interval '{item_name}' state: {old_state} -> {item.state}")
 
         # Get the new interval value
         new_interval = self.enhanced_options[sender.title]
+        print(f"DEBUG: Mapped enhanced interval: {new_interval}")
 
-        if set_config_value('general', 'enhanced_check_interval', new_interval):
+        if self.set_config_and_reload('general', 'enhanced_check_interval', new_interval):
+            print(f"DEBUG: Successfully saved enhanced check interval {new_interval}")
             rumps.notification("Clipboard Monitor", "Enhanced Check Interval",
                               f"Enhanced check interval set to {new_interval} seconds")
             self.restart_service(None)
         else:
+            print(f"DEBUG: Failed to save enhanced check interval {new_interval}")
             rumps.notification("Error", "Failed to update enhanced check interval", "Could not save configuration")
 
     def toggle_performance_setting(self, sender):
@@ -1231,19 +1309,25 @@ class ClipboardMonitorMenuBar(rumps.App):
     
     def set_polling_interval(self, sender):
         """Set the polling interval"""
-        # Update all menu items
-        for item in sender.parent.itervalues():
-            if isinstance(item, rumps.MenuItem):
-                item.state = (item.title == sender.title)
+        print(f"DEBUG: Setting polling interval to {sender.title}")
+
+        # Update all menu item states using stored references
+        for item_name, item in self.polling_interval_items.items():
+            old_state = item.state
+            item.state = (item_name == sender.title)
+            print(f"DEBUG: Polling interval '{item_name}' state: {old_state} -> {item.state}")
 
         # Get the new interval value
         new_interval = self.polling_options[sender.title]
+        print(f"DEBUG: Mapped polling interval: {new_interval}")
 
-        if set_config_value('general', 'polling_interval', new_interval):
+        if self.set_config_and_reload('general', 'polling_interval', new_interval):
+            print(f"DEBUG: Successfully saved polling interval {new_interval}")
             rumps.notification("Clipboard Monitor", "Polling Interval",
                               f"Polling interval set to {new_interval} seconds")
             self.restart_service(None)
         else:
+            print(f"DEBUG: Failed to save polling interval {new_interval}")
             rumps.notification("Error", "Failed to update polling interval", "Could not save configuration")
 
     def set_max_history_items(self, _):
