@@ -50,6 +50,36 @@
             "task": "Build Create Install PKG (Verbose)",
             "tooltip": "Build and create PKG installer with full verbose output",
             "color": "default"
+        },
+        {
+            "label": "🔍 Memory Debug Log",
+            "task": "🔍 Tail Memory Debug Log",
+            "tooltip": "Tail the memory leak debug log in real-time",
+            "color": "warning"
+        },
+        {
+            "label": "📊 Memory Monitor (30m)",
+            "task": "📊 Start Memory Monitor (30 min)",
+            "tooltip": "Start memory monitoring for 30 minutes",
+            "color": "info"
+        },
+        {
+            "label": "📊 Memory Monitor (1h)",
+            "task": "📊 Start Memory Monitor (1 hour)",
+            "tooltip": "Start memory monitoring for 1 hour",
+            "color": "info"
+        },
+        {
+            "label": "📋 View Memory Log",
+            "task": "📋 View Memory Debug Log",
+            "tooltip": "View the complete memory debug log",
+            "color": "default"
+        },
+        {
+            "label": "🗑️ Clear Memory Log",
+            "task": "🗑️ Clear Memory Debug Log",
+            "tooltip": "Clear the memory debug log file",
+            "color": "error"
         }
     ],
     "trae.tab.enableRename": true,

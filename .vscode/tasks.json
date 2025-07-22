@@ -298,6 +298,102 @@
                 "kind": "build",
                 "isDefault": false
             }
+        },
+        {
+            "label": "🔍 Tail Memory Debug Log",
+            "type": "shell",
+            "command": "tail -f memory_leak_debug.log",
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "new",
+                "focus": true,
+                "clear": true
+            },
+            "group": {
+                "kind": "test",
+                "isDefault": false
+            }
+        },
+        {
+            "label": "📊 Start Memory Monitor (1 hour)",
+            "type": "shell",
+            "command": "cd memory_debugging && python3 quick_monitor.py 1 60",
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "new",
+                "focus": true,
+                "clear": true
+            },
+            "group": {
+                "kind": "test",
+                "isDefault": false
+            }
+        },
+        {
+            "label": "📊 Start Memory Monitor (3 hours)",
+            "type": "shell",
+            "command": "cd memory_debugging && python3 quick_monitor.py 3 30",
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "new",
+                "focus": true,
+                "clear": true
+            },
+            "group": {
+                "kind": "test",
+                "isDefault": false
+            }
+        },
+        {
+            "label": "📊 Start Memory Monitor (30 min)",
+            "type": "shell",
+            "command": "cd memory_debugging && python3 quick_monitor.py 0.5 30",
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "new",
+                "focus": true,
+                "clear": true
+            },
+            "group": {
+                "kind": "test",
+                "isDefault": false
+            }
+        },
+        {
+            "label": "📋 View Memory Debug Log",
+            "type": "shell",
+            "command": "cat memory_leak_debug.log",
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "new",
+                "focus": true,
+                "clear": true
+            },
+            "group": {
+                "kind": "test",
+                "isDefault": false
+            }
+        },
+        {
+            "label": "🗑️ Clear Memory Debug Log",
+            "type": "shell",
+            "command": "rm -f memory_leak_debug.log && echo 'Memory debug log cleared'",
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "new",
+                "focus": true,
+                "clear": true
+            },
+            "group": {
+                "kind": "test",
+                "isDefault": false
+            }
         }
     ]
 }
