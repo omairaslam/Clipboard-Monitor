@@ -28,7 +28,7 @@ check_service() {
         pid=$(echo "$output" | awk '{print $1}')
         if [[ "$pid" =~ ^[0-9]+$ ]]; then
             # Service is running with a PID. Check for pause flag, only for the main service.
-            if [ -f "$PAUSE_FLAG_PATH" ] && [ "$label" == "$PLIST_BACKGROUND_LABEL" ]; then
+            if [ -f "$PAUSE_FLAG_PATH" ] && [ "$label" == "${PLIST_BACKGROUND%.plist}" ]; then
                  echo -e "  ${ICON_PAUSED} ${YELLOW}Paused:${NC}\t $name (PID: $pid)"
             else
                  echo -e "  ${ICON_RUNNING} ${GREEN}Running:${NC}\t $name (PID: $pid)"
@@ -48,7 +48,7 @@ main_service_running=false
 menubar_service_running=false
 
 # Check main service
-output=$(launchctl list | grep -E "${PLIST_BACKGROUND_LABEL}$")
+output=$(launchctl list | grep -E "${PLIST_BACKGROUND%.plist}$")
 if [ -n "$output" ]; then
     pid=$(echo "$output" | awk '{print $1}')
     if [[ "$pid" =~ ^[0-9]+$ ]]; then
@@ -57,7 +57,7 @@ if [ -n "$output" ]; then
 fi
 
 # Check menu bar service
-output=$(launchctl list | grep -E "${PLIST_MENUBAR_LABEL}$")
+output=$(launchctl list | grep -E "${PLIST_MENUBAR%.plist}$")
 if [ -n "$output" ]; then
     pid=$(echo "$output" | awk '{print $1}')
     if [[ "$pid" =~ ^[0-9]+$ ]]; then
@@ -65,8 +65,8 @@ if [ -n "$output" ]; then
     fi
 fi
 
-check_service "$PLIST_BACKGROUND_LABEL" "Main Service"
-check_service "$PLIST_MENUBAR_LABEL" "Menu Bar App"
+check_service "${PLIST_BACKGROUND%.plist}" "Main Service"
+check_service "${PLIST_MENUBAR%.plist}" "Menu Bar App"
 
 echo "--------------------------------------------------"
 

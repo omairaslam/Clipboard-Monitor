@@ -5,17 +5,20 @@
 
 set -e
 
+# Source the shared configuration
+source "$(dirname "$0")/_config.sh"
+
 echo "🗑️  Uninstalling ClipboardMonitor Development Services..."
 
 # Stop and unload development services (both from LaunchAgents)
 echo "🛑 Stopping development services..."
-launchctl unload ~/Library/LaunchAgents/com.clipboardmonitor.service.dev.plist 2>/dev/null || true
-launchctl unload ~/Library/LaunchAgents/com.clipboardmonitor.menubar.dev.plist 2>/dev/null || true
+launchctl unload "$LAUNCH_AGENTS_DIR/$PLIST_BACKGROUND" 2>/dev/null || true
+launchctl unload "$LAUNCH_AGENTS_DIR/$PLIST_MENUBAR" 2>/dev/null || true
 
 # Remove plist files
 echo "📦 Removing plist files..."
-rm -f ~/Library/LaunchAgents/com.clipboardmonitor.service.dev.plist
-rm -f ~/Library/LaunchAgents/com.clipboardmonitor.menubar.dev.plist
+rm -f "$LAUNCH_AGENTS_DIR/$PLIST_BACKGROUND"
+rm -f "$LAUNCH_AGENTS_DIR/$PLIST_MENUBAR"
 
 # Kill any remaining Python processes
 echo "🔪 Killing any remaining Python processes..."

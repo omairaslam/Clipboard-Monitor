@@ -71,7 +71,7 @@ def create_mermaid_url(mermaid_code, theme="default"):
 def launch_mermaid_chart(mermaid_code, config=None):
     """Launch Mermaid diagram in browser and handle clipboard content"""
     try:
-        mermaid_theme = config.get('mermaid_theme', "default") if config else "default"
+        mermaid_theme = config.get('mermaid_editor_theme', "default") if config else "default"
         url = create_mermaid_url(mermaid_code, theme=mermaid_theme)
         if not url:
             return None

@@ -571,7 +571,7 @@ launchctl load ~/Library/LaunchAgents/com.clipboardmonitor.menubar.plist
     "mermaid_copy_code": true,
     "mermaid_copy_url": false,
     "mermaid_open_in_browser": true,
-    "mermaid_theme": "default",
+    "mermaid_editor_theme": "default",
     "drawio_copy_code": true,
     "drawio_copy_url": true,
     "drawio_open_in_browser": true,

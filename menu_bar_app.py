@@ -58,6 +58,8 @@ class ClipboardMonitorMenuBar(rumps.App):
             "history_module": "Clipboard History Tracker",
             "code_formatter_module": "Code Formatter"
         }
+
+        # Initialize polling options
         self.polling_options = POLLING_INTERVALS
         self.enhanced_options = ENHANCED_CHECK_INTERVALS
 
@@ -66,9 +68,12 @@ class ClipboardMonitorMenuBar(rumps.App):
         self._init_submenus()
         self._init_preferences_menu()
 
+        # Initialize theme menu item storage
+        self.mermaid_theme_items = {}
+
         # Build the main menu structure
         self._build_main_menu()
-        
+
         # Schedule initial history update and periodic status checks
         rumps.Timer(self.initial_history_update, 3).start()
         self.timer = threading.Thread(target=self.update_status_periodically)
@@ -78,6 +83,13 @@ class ClipboardMonitorMenuBar(rumps.App):
         # Start memory monitoring
         self.memory_timer = rumps.Timer(self.update_memory_status, 5)
         self.memory_timer.start()
+
+    def set_config_and_reload(self, section, key, value):
+        """Set a configuration value and reload the config manager to pick up changes."""
+        success = set_config_value(section, key, value)
+        if success:
+            self.config_manager.reload()
+        return success
 
     def _init_menu_items(self):
         """Initialize individual menu items."""
@@ -210,7 +222,7 @@ class ClipboardMonitorMenuBar(rumps.App):
         mode_map = {"New Tab": "_blank", "Same Tab": "_self"}
         new_mode = mode_map[sender.title]
 
-        if set_config_value('modules', 'drawio_edit_mode', new_mode):
+        if self.set_config_and_reload('modules', 'drawio_edit_mode', new_mode):
             rumps.notification("Clipboard Monitor", "Draw.io Edit Mode",
                               f"Edit mode set to {sender.title}")
             self.restart_service(None)
@@ -227,7 +239,7 @@ class ClipboardMonitorMenuBar(rumps.App):
         appearance_map = {"Auto": "auto", "Light": "light", "Dark": "dark"}
         new_appearance = appearance_map[sender.title]
 
-        if set_config_value('modules', 'drawio_appearance', new_appearance):
+        if self.set_config_and_reload('modules', 'drawio_appearance', new_appearance):
             rumps.notification("Clipboard Monitor", "Draw.io Appearance",
                               f"Appearance set to {sender.title}")
             self.restart_service(None)
@@ -515,12 +527,21 @@ class ClipboardMonitorMenuBar(rumps.App):
         """Create the 'Editor Theme' submenu for Mermaid."""
         theme_menu = rumps.MenuItem("Editor Theme")
         current_theme = self.config_manager.get_config_value('modules', 'mermaid_editor_theme', 'default')
+        print(f"DEBUG: Creating theme menu, current theme: {current_theme}")
+
+        # Clear previous theme items
+        self.mermaid_theme_items = {}
 
         themes = [("Default", "default"), ("Dark", "dark"), ("Forest", "forest"), ("Neutral", "neutral")]
         for name, value in themes:
             item = rumps.MenuItem(name, callback=self.set_mermaid_editor_theme)
             item.state = (value == current_theme)
             theme_menu.add(item)
+
+            # Store reference to the item for later state updates
+            self.mermaid_theme_items[name] = item
+
+            print(f"DEBUG: Added theme item '{name}' (value: {value}), state: {item.state}, callback: {item.callback}")
 
         return theme_menu
 
@@ -642,19 +663,25 @@ class ClipboardMonitorMenuBar(rumps.App):
 
     def set_mermaid_editor_theme(self, sender):
         """Set Mermaid editor theme."""
-        # Update all menu items
-        for item in sender.parent.itervalues():
-            if isinstance(item, rumps.MenuItem):
-                item.state = (item.title == sender.title)
+        print(f"DEBUG: Setting theme to {sender.title}")
+
+        # Update all theme menu item states using stored references
+        for item_name, item in self.mermaid_theme_items.items():
+            old_state = item.state
+            item.state = (item_name == sender.title)
+            print(f"DEBUG: Menu item '{item_name}' state: {old_state} -> {item.state}")
 
         theme_map = {"Default": "default", "Dark": "dark", "Forest": "forest", "Neutral": "neutral"}
         new_theme = theme_map[sender.title]
+        print(f"DEBUG: Mapped theme: {new_theme}")
 
-        if set_config_value('modules', 'mermaid_editor_theme', new_theme):
+        if self.set_config_and_reload('modules', 'mermaid_editor_theme', new_theme):
+            print(f"DEBUG: Successfully saved theme {new_theme}")
             rumps.notification("Clipboard Monitor", "Mermaid Editor Theme",
                               f"Editor theme set to {sender.title}")
             self.restart_service(None)
         else:
+            print(f"DEBUG: Failed to save theme {new_theme}")
             rumps.notification("Error", "Failed to update Mermaid editor theme", "Could not save configuration")
 
     def _build_main_menu(self):

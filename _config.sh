@@ -6,12 +6,11 @@
 
 # --- Service Configuration ---
 LAUNCH_AGENTS_DIR="$HOME/Library/LaunchAgents"
-PLIST_BACKGROUND="com.clipboardmonitor.plist"
-PLIST_MENUBAR="com.clipboardmonitor.menubar.plist"
+PLIST_BACKGROUND="com.clipboardmonitor.service.dev.plist"
+PLIST_MENUBAR="com.clipboardmonitor.menubar.dev.plist"
 
-# --- Service Labels (for launchctl list) ---
-PLIST_BACKGROUND_LABEL="com.clipboardmonitor"
-PLIST_MENUBAR_LABEL="com.clipboardmonitor.menubar"
+# Note: Service labels for launchctl list are derived from filenames by removing .plist extension
+# Use ${PLIST_BACKGROUND%.plist} and ${PLIST_MENUBAR%.plist} when labels are needed
 
 # --- Log Configuration ---
 LOG_DIR="$HOME/Library/Logs"

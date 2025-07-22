@@ -442,6 +442,8 @@ def get_config(section=None, key=None, default=None):
     # Always create a new instance to ensure it loads the latest config,
     # especially important in tests where the config file is frequently changed.
     config_manager = ConfigManager()
+    # NOTE: Removed automatic reload() call here as it was causing severe performance issues
+    # The menu bar app will handle reloading explicitly when needed via set_config_and_reload()
     if section is None:
         return config_manager.config
     if key is None:

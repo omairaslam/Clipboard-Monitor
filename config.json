@@ -23,7 +23,8 @@
     "code_formatter_modify_clipboard": false,
     "drawio_copy_url": true,
     "drawio_open_in_browser": true,
-    "mermaid_copy_url": 1
+    "mermaid_copy_url": 1,
+    "mermaid_editor_theme": "default"
   },
   "history": {
     "max_items": 100,
