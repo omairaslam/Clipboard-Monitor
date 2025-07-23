@@ -24,7 +24,35 @@ The menu bar app has a **critical memory leak**:
 
 ## 🚀 Quick Start
 
-### **Option 1: Automated Integration (Recommended)**
+### **📍 Method 1: VS Code Interface (Recommended)**
+1. **Open VS Code** in the Clipboard Monitor project
+2. **Click Memory Monitoring Buttons:**
+   - **🔍 Memory Debug Log** - Real-time monitoring
+   - **📊 Memory Monitor (30m/1h/3h)** - Timed analysis
+   - **📋 View Memory Log** - Historical data
+   - **🗑️ Clear Memory Log** - Fresh start
+
+### **📍 Method 2: Terminal Commands**
+```bash
+# Check current monitoring status
+python3 memory_debugging/check_monitoring_status.py
+
+# Real-time monitoring
+tail -f memory_leak_debug.log
+
+# Quick 30-minute analysis
+cd memory_debugging && python3 quick_monitor.py 0.5 30
+
+# 1-hour detailed monitoring
+cd memory_debugging && python3 quick_monitor.py 1 60
+```
+
+### **📍 Method 3: Background Monitoring**
+- Monitoring runs automatically with the menu bar app
+- Check `memory_leak_debug.log` for continuous updates
+- Built-in leak detection with automatic alerts
+
+### **📍 Method 4: Advanced Integration (If Needed)**
 
 ```bash
 # Navigate to the memory debugging folder
