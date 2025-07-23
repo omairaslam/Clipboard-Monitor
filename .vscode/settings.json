@@ -57,18 +57,7 @@
             "tooltip": "Tail the memory leak debug log in real-time",
             "color": "warning"
         },
-        {
-            "label": "📊 Memory Monitor (30m)",
-            "task": "📊 Start Memory Monitor (30 min)",
-            "tooltip": "Start memory monitoring for 30 minutes",
-            "color": "info"
-        },
-        {
-            "label": "📊 Memory Monitor (1h)",
-            "task": "📊 Start Memory Monitor (1 hour)",
-            "tooltip": "Start memory monitoring for 1 hour",
-            "color": "info"
-        },
+
         {
             "label": "📋 View Memory Log",
             "task": "📋 View Memory Debug Log",
@@ -76,10 +65,60 @@
             "color": "default"
         },
         {
-            "label": "🗑️ Clear Memory Log",
+            "label": "🧹",
             "task": "🗑️ Clear Memory Debug Log",
             "tooltip": "Clear the memory debug log file",
             "color": "error"
+        },
+        {
+            "label": "🔍",
+            "task": "🔍 External Memory Monitor (30min)",
+            "tooltip": "Monitor menu bar app memory usage externally for 30 minutes (safe, non-intrusive)",
+            "color": "info"
+        },
+        {
+            "label": "🔍⏱️",
+            "task": "🔍 External Memory Monitor (1hour)",
+            "tooltip": "Monitor menu bar app memory usage externally for 1 hour (safe, non-intrusive)",
+            "color": "info"
+        },
+        {
+            "label": "⚡",
+            "task": "⚡ Quick Memory Check (5min)",
+            "tooltip": "Quick 5-minute external memory check (safe, non-intrusive)",
+            "color": "success"
+        },
+
+        {
+            "label": "🔬",
+            "task": "🔬 Memory Leak Analyzer",
+            "tooltip": "Analyze memory leak debug log for patterns and issues",
+            "color": "info"
+        },
+        {
+            "label": "📈",
+            "task": "📈 Live Memory Analysis",
+            "tooltip": "Start live memory analysis and monitoring",
+            "color": "info"
+        },
+
+        {
+            "label": "📋",
+            "task": "📋 External Monitoring Guide",
+            "tooltip": "View the complete external monitoring guide and documentation",
+            "color": "default"
+        },
+        {
+            "label": "💾",
+            "task": "💾 Create Clean Backup",
+            "tooltip": "Create a timestamped backup of the current clean menu bar app",
+            "color": "default"
+        },
+        {
+            "label": "📂",
+            "task": "🔍 List Memory Backups",
+            "tooltip": "List all available memory debugging backup files",
+            "color": "default"
         }
     ],
     "trae.tab.enableRename": true,

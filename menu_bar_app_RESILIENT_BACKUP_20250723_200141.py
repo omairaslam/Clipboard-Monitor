@@ -28,6 +28,235 @@ try:
 except Exception:
     pass
 
+# Simple memory debugging
+import psutil
+import threading
+import time
+from datetime import datetime
+
+MEMORY_DEBUG_AVAILABLE = True
+
+# Additional memory debugging imports for integration
+try:
+    from memory_debugging import (
+        debug_timer_memory,
+        monitor_history,
+        add_checkpoint,
+        debug_memory_usage,
+        check_increase,
+        activate_memory_debugging
+    )
+    print("✅ Enhanced memory debugging enabled")
+except ImportError as e:
+    print(f"⚠️  Enhanced memory debugging not available: {e}")
+
+    # Define dummy functions for when enhanced memory debugging is not available
+    def debug_timer_memory(name):
+        def decorator(func):
+            return func
+        return decorator
+
+    def debug_memory_usage(name):
+        def decorator(func):
+            return func
+        return decorator
+
+    def monitor_history(func):
+        return func
+
+    def add_checkpoint(name, func_name=None):
+        pass
+
+    def check_increase(threshold_mb=10):
+        return False
+
+    def activate_memory_debugging():
+        pass
+
+def memory_profile_function(func):
+    """Decorator to profile memory usage of functions."""
+    def wrapper(*args, **kwargs):
+        if not MEMORY_DEBUG_AVAILABLE:
+            return func(*args, **kwargs)
+
+        try:
+            # Get memory before function execution
+            process = psutil.Process()
+            memory_before = process.memory_info().rss / 1024 / 1024
+            start_time = time.time()
+
+            # Execute the function
+            result = func(*args, **kwargs)
+
+            # Get memory after function execution
+            memory_after = process.memory_info().rss / 1024 / 1024
+            execution_time = time.time() - start_time
+            memory_delta = memory_after - memory_before
+
+            # ALWAYS log profiled functions for debugging (no thresholds)
+            log_memory(
+                f"Execution time: {execution_time:.3f}s",
+                level="INFO" if abs(memory_delta) < 2 else "WARNING",
+                function_name=func.__name__,
+                memory_delta=memory_delta
+            )
+
+            return result
+
+        except Exception as e:
+            log_memory(f"Error profiling function {func.__name__}: {e}", "ERROR")
+            return func(*args, **kwargs)
+
+    return wrapper
+
+def log_memory(message, level="INFO", function_name=None, memory_delta=None):
+    """Enhanced memory logging function with detailed debugging."""
+    try:
+        import gc
+        import threading
+
+        process = psutil.Process()
+        memory_info = process.memory_info()
+        memory_mb = memory_info.rss / 1024 / 1024
+        vms_mb = memory_info.vms / 1024 / 1024
+
+        # Get additional system info
+        cpu_percent = process.cpu_percent()
+        thread_count = threading.active_count()
+        gc_objects = len(gc.get_objects())
+
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        # Build comprehensive log entry
+        log_parts = [
+            f"[{timestamp}] [{level}]",
+            f"RSS: {memory_mb:.1f}MB",
+            f"VMS: {vms_mb:.1f}MB",
+            f"CPU: {cpu_percent:.1f}%",
+            f"Threads: {thread_count}",
+            f"Objects: {gc_objects}"
+        ]
+
+        if function_name:
+            log_parts.append(f"Function: {function_name}")
+
+        if memory_delta is not None:
+            log_parts.append(f"Delta: {memory_delta:+.2f}MB")
+
+        log_parts.append(f"| {message}")
+
+        log_entry = " ".join(log_parts)
+
+        with open("memory_leak_debug.log", "a") as f:
+            f.write(log_entry + "\n")
+
+        if level in ["WARNING", "ERROR"] or (memory_delta and abs(memory_delta) > 5):
+            print(log_entry)
+
+    except Exception as e:
+        # Fallback to simple logging if enhanced logging fails
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        simple_entry = f"[{timestamp}] [ERROR] Memory logging failed: {e} | {message}"
+        try:
+            with open("memory_leak_debug.log", "a") as f:
+                f.write(simple_entry + "\n")
+        except:
+            pass
+
+def start_memory_monitoring():
+    """Start enhanced memory monitoring with detailed analysis."""
+    def monitor_loop():
+        import gc
+        baseline = None
+        loop_count = 0
+        previous_memory = None
+        memory_samples = []
+
+        while True:
+            try:
+                loop_count += 1
+                process = psutil.Process()
+                memory_info = process.memory_info()
+                current_memory = memory_info.rss / 1024 / 1024
+
+                # Collect garbage and get object counts
+                gc.collect()
+                object_count = len(gc.get_objects())
+
+                if baseline is None:
+                    baseline = current_memory
+                    previous_memory = current_memory
+                    log_memory(f"Baseline established", function_name="monitor_loop")
+
+                increase_from_baseline = current_memory - baseline
+                increase_from_previous = current_memory - previous_memory if previous_memory else 0
+
+                # Store sample for trend analysis
+                memory_samples.append({
+                    'memory': current_memory,
+                    'timestamp': time.time(),
+                    'objects': object_count
+                })
+
+                # Keep only last 12 samples (1 hour of data)
+                if len(memory_samples) > 12:
+                    memory_samples.pop(0)
+
+                # Calculate trend if we have enough samples
+                trend_info = ""
+                if len(memory_samples) >= 3:
+                    recent_growth = memory_samples[-1]['memory'] - memory_samples[-3]['memory']
+                    time_span = memory_samples[-1]['timestamp'] - memory_samples[-3]['timestamp']
+                    if time_span > 0:
+                        growth_rate = (recent_growth / (time_span / 3600))  # MB per hour
+                        trend_info = f" Trend: {growth_rate:+.1f}MB/h"
+
+                # Determine log level based on memory increase
+                if increase_from_baseline > 100:
+                    level = "ERROR"
+                elif increase_from_baseline > 50:
+                    level = "WARNING"
+                elif abs(increase_from_previous) > 10:
+                    level = "WARNING"
+                else:
+                    level = "INFO"
+
+                # Log comprehensive memory status
+                log_memory(
+                    f"Check #{loop_count}: +{increase_from_baseline:+.1f}MB from baseline, "
+                    f"{increase_from_previous:+.1f}MB from previous{trend_info}",
+                    level=level,
+                    function_name="monitor_loop"
+                )
+
+                # Additional analysis every 6 checks (30 minutes)
+                if loop_count % 6 == 0 and len(memory_samples) >= 6:
+                    oldest_sample = memory_samples[0]
+                    newest_sample = memory_samples[-1]
+                    total_growth = newest_sample['memory'] - oldest_sample['memory']
+                    object_growth = newest_sample['objects'] - oldest_sample['objects']
+                    time_span = newest_sample['timestamp'] - oldest_sample['timestamp']
+
+                    if time_span > 0:
+                        hourly_growth = (total_growth / (time_span / 3600))
+                        log_memory(
+                            f"30min analysis: {total_growth:+.1f}MB growth, "
+                            f"{object_growth:+d} objects, rate: {hourly_growth:+.1f}MB/h",
+                            level="WARNING" if hourly_growth > 20 else "INFO",
+                            function_name="monitor_analysis"
+                        )
+
+                previous_memory = current_memory
+
+            except Exception as e:
+                log_memory(f"Error in monitoring loop #{loop_count}: {e}", "ERROR")
+
+            time.sleep(300)  # Check every 5 minutes
+
+    monitor_thread = threading.Thread(target=monitor_loop, daemon=True)
+    monitor_thread.start()
+    log_memory("Enhanced memory monitoring started", function_name="start_memory_monitoring")
+
 
 
 
@@ -80,7 +309,17 @@ class ClipboardMonitorMenuBar(rumps.App):
         self._build_main_menu()
 
         # Schedule initial history update and periodic status checks
-        rumps.Timer(self.initial_history_update, 3).start()
+        # Use a threading timer for one-time initial history update
+        def delayed_history_setup():
+            time.sleep(3)
+            self.update_recent_history_menu()
+            # Set up periodic updates using rumps Timer (runs on main thread)
+            self.history_timer = rumps.Timer(self.periodic_history_update, 30)
+            self.history_timer.start()
+            log_memory("History timer started", "INFO")
+
+        history_setup_thread = threading.Thread(target=delayed_history_setup, daemon=True)
+        history_setup_thread.start()
         self.timer = threading.Thread(target=self.update_status_periodically)
         self.timer.daemon = True
         self.timer.start()
@@ -88,6 +327,11 @@ class ClipboardMonitorMenuBar(rumps.App):
         # Start memory monitoring
         self.memory_timer = rumps.Timer(self.update_memory_status, 5)
         self.memory_timer.start()
+
+        # Activate memory debugging
+        if MEMORY_DEBUG_AVAILABLE:
+            start_memory_monitoring()
+            log_memory("Menu bar app initialized with memory debugging")
 
     def set_config_and_reload(self, section, key, value):
         """Set a configuration value and reload the config manager to pick up changes."""
@@ -947,28 +1191,26 @@ class ClipboardMonitorMenuBar(rumps.App):
             # Default to empty dict, modules will be enabled by default
             self.module_status = {}
     
+    @debug_timer_memory("status_periodic")
     def update_status_periodically(self):
         """Update the service status every 5 seconds"""
         while True:
-            try:
-                self.update_status()
-            except Exception as e:
-                # Log the error but don't let it break the loop
-                print(f"Error in update_status: {e}")
-                try:
-                    # Try to log to file if possible
-                    import datetime
-                    with open(self.error_log_path, 'a') as f:
-                        f.write(f"[{datetime.datetime.now()}] ERROR in update_status_periodically: {str(e)}\n")
-                except:
-                    pass  # If logging fails, just continue
-
-            # Always sleep, even if there was an error
+            self.update_status()
             time.sleep(5)
     
+    @memory_profile_function
+    @debug_timer_memory("status_update")
     def update_status(self):
         """Check if the service is running and update the status menu item"""
         try:
+            # Debug: Log function entry (but not too frequently)
+            if hasattr(self, '_status_debug_counter'):
+                self._status_debug_counter += 1
+            else:
+                self._status_debug_counter = 1
+
+            if self._status_debug_counter % 12 == 0:  # Log every 12th call (every minute)
+                log_memory(f"update_status called {self._status_debug_counter} times", "INFO")
             # Check if the process is running using launchctl
             # Try development service first, then production service
             service_names = ["com.clipboardmonitor.service.dev", "com.clipboardmonitor"]
@@ -1179,7 +1421,10 @@ class ClipboardMonitorMenuBar(rumps.App):
         rumps.notification("Clipboard Monitor", "Code Formatter Settings",
                           f"Modify clipboard is now {'enabled' if sender.state else 'disabled'}")
 
+    @debug_memory_usage("rebuild_menu")
     def _rebuild_menu(self):
+        if MEMORY_DEBUG_AVAILABLE:
+            add_checkpoint("before_menu_rebuild", "_rebuild_menu")
         """Rebuild the entire menu structure."""
         # Clear the current menu
         self.menu.clear()
@@ -1200,6 +1445,8 @@ class ClipboardMonitorMenuBar(rumps.App):
             # Start new timer
             self.initial_history_update(None)
     
+        if MEMORY_DEBUG_AVAILABLE:
+            check_increase("before_menu_rebuild", threshold_mb=2.0)
     def toggle_debug(self, sender):
         """Toggle debug mode"""
         sender.state = not sender.state
@@ -1716,17 +1963,23 @@ read -n 1
         except Exception as e:
             rumps.notification("Error", "Failed to open CLI history viewer", str(e))
 
-    def initial_history_update(self, _):
-        """Initial history menu update - called once on startup"""
-        self.update_recent_history_menu()
-        # Set up periodic updates using rumps Timer (runs on main thread)
-        self.history_timer = rumps.Timer(self.periodic_history_update, 30)
-        self.history_timer.start()
+    # Removed initial_history_update - now handled inline during initialization
 
+    @memory_profile_function
     def periodic_history_update(self, _):
         """Periodic history menu update - called every 30 seconds on main thread"""
+        # Debug: Log periodic history updates
+        if hasattr(self, '_history_debug_counter'):
+            self._history_debug_counter += 1
+        else:
+            self._history_debug_counter = 1
+
+        if self._history_debug_counter % 10 == 0:  # Log every 10th call (every 5 minutes)
+            log_memory(f"periodic_history_update called {self._history_debug_counter} times", "INFO")
+
         self.update_recent_history_menu()
 
+    @memory_profile_function
     def update_recent_history_menu(self):
         """Update the recent history menu, limiting items and clearing references."""
         import gc
@@ -1800,7 +2053,10 @@ read -n 1
             self.recent_history_menu.add(placeholder)
             gc.collect()
 
+    @debug_memory_usage("copy_history")
     def copy_history_item(self, sender):
+        if MEMORY_DEBUG_AVAILABLE:
+            add_checkpoint("before_copy_history", "copy_history_item")
         """Copy a history item to clipboard by identifier"""
         try:
             history_identifier = getattr(sender, '_history_identifier', None)
@@ -1829,6 +2085,8 @@ read -n 1
         except Exception as e:
             show_notification("Error", "Copy Failed", str(e), self.log_path, self.error_log_path)
 
+        if MEMORY_DEBUG_AVAILABLE:
+            check_increase("before_copy_history", threshold_mb=1.0)
     def refresh_history_menu(self, _):
         """Refresh the history menu - called from menu click (already on main thread)"""
         self.update_recent_history_menu()
@@ -2353,6 +2611,8 @@ read -n 1
         except Exception as e:
             rumps.alert("Error", f"Failed to start Memory Visualizer: {e}")
 
+    @memory_profile_function
+    @debug_timer_memory("memory_status")
     def update_memory_status(self, _):
         """Update the memory status in the menu."""
         try:
@@ -2770,15 +3030,8 @@ class ClipboardMenuBarApp(ClipboardMonitorMenuBar):
         """Open the GUI clipboard history viewer (for test compatibility)."""
         import subprocess
         from utils import get_app_paths
-        paths = get_app_paths()
-        history_file = paths.get("history_file")
-        # For test, just open the history file in the default app
-        if history_file and os.path.exists(history_file):
-            subprocess.Popen(["open", history_file])
-        else:
-            subprocess.Popen(["open", os.path.expanduser("~/")])
 
-ClipboardMenuBarApp = ClipboardMenuBarApp
+# Memory debugging imports moved to top of file
 
 if __name__ == "__main__":
     ClipboardMonitorMenuBar().run()

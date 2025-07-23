@@ -950,20 +950,7 @@ class ClipboardMonitorMenuBar(rumps.App):
     def update_status_periodically(self):
         """Update the service status every 5 seconds"""
         while True:
-            try:
-                self.update_status()
-            except Exception as e:
-                # Log the error but don't let it break the loop
-                print(f"Error in update_status: {e}")
-                try:
-                    # Try to log to file if possible
-                    import datetime
-                    with open(self.error_log_path, 'a') as f:
-                        f.write(f"[{datetime.datetime.now()}] ERROR in update_status_periodically: {str(e)}\n")
-                except:
-                    pass  # If logging fails, just continue
-
-            # Always sleep, even if there was an error
+            self.update_status()
             time.sleep(5)
     
     def update_status(self):

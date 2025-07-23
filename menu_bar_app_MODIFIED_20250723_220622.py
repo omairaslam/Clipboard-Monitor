@@ -947,25 +947,14 @@ class ClipboardMonitorMenuBar(rumps.App):
             # Default to empty dict, modules will be enabled by default
             self.module_status = {}
     
+    @debug_timer_memory("status_periodic")
     def update_status_periodically(self):
         """Update the service status every 5 seconds"""
         while True:
-            try:
-                self.update_status()
-            except Exception as e:
-                # Log the error but don't let it break the loop
-                print(f"Error in update_status: {e}")
-                try:
-                    # Try to log to file if possible
-                    import datetime
-                    with open(self.error_log_path, 'a') as f:
-                        f.write(f"[{datetime.datetime.now()}] ERROR in update_status_periodically: {str(e)}\n")
-                except:
-                    pass  # If logging fails, just continue
-
-            # Always sleep, even if there was an error
+            self.update_status()
             time.sleep(5)
     
+    @debug_timer_memory("status_update")
     def update_status(self):
         """Check if the service is running and update the status menu item"""
         try:
@@ -1179,7 +1168,10 @@ class ClipboardMonitorMenuBar(rumps.App):
         rumps.notification("Clipboard Monitor", "Code Formatter Settings",
                           f"Modify clipboard is now {'enabled' if sender.state else 'disabled'}")
 
+    @debug_memory_usage("rebuild_menu")
     def _rebuild_menu(self):
+        if MEMORY_DEBUG_AVAILABLE:
+            add_checkpoint("before_menu_rebuild", "_rebuild_menu")
         """Rebuild the entire menu structure."""
         # Clear the current menu
         self.menu.clear()
@@ -1200,6 +1192,8 @@ class ClipboardMonitorMenuBar(rumps.App):
             # Start new timer
             self.initial_history_update(None)
     
+        if MEMORY_DEBUG_AVAILABLE:
+            check_increase("before_menu_rebuild", threshold_mb=2.0)
     def toggle_debug(self, sender):
         """Toggle debug mode"""
         sender.state = not sender.state
@@ -1716,6 +1710,7 @@ read -n 1
         except Exception as e:
             rumps.notification("Error", "Failed to open CLI history viewer", str(e))
 
+    @debug_memory_usage("initial_history")
     def initial_history_update(self, _):
         """Initial history menu update - called once on startup"""
         self.update_recent_history_menu()
@@ -1800,7 +1795,10 @@ read -n 1
             self.recent_history_menu.add(placeholder)
             gc.collect()
 
+    @debug_memory_usage("copy_history")
     def copy_history_item(self, sender):
+        if MEMORY_DEBUG_AVAILABLE:
+            add_checkpoint("before_copy_history", "copy_history_item")
         """Copy a history item to clipboard by identifier"""
         try:
             history_identifier = getattr(sender, '_history_identifier', None)
@@ -1829,6 +1827,8 @@ read -n 1
         except Exception as e:
             show_notification("Error", "Copy Failed", str(e), self.log_path, self.error_log_path)
 
+        if MEMORY_DEBUG_AVAILABLE:
+            check_increase("before_copy_history", threshold_mb=1.0)
     def refresh_history_menu(self, _):
         """Refresh the history menu - called from menu click (already on main thread)"""
         self.update_recent_history_menu()
@@ -2353,6 +2353,7 @@ read -n 1
         except Exception as e:
             rumps.alert("Error", f"Failed to start Memory Visualizer: {e}")
 
+    @debug_timer_memory("memory_status")
     def update_memory_status(self, _):
         """Update the memory status in the menu."""
         try:
@@ -2770,6 +2771,25 @@ class ClipboardMenuBarApp(ClipboardMonitorMenuBar):
         """Open the GUI clipboard history viewer (for test compatibility)."""
         import subprocess
         from utils import get_app_paths
+
+# Memory debugging imports
+try:
+    from memory_debugging import (
+        memory_profile,
+        log_memory,
+        activate_memory_debugging,
+        debug_timer_memory,
+        monitor_history,
+        add_checkpoint,
+        debug_memory_usage,
+        check_increase
+    )
+    MEMORY_DEBUG_AVAILABLE = True
+    print("Memory debugging enabled")
+except ImportError as e:
+    MEMORY_DEBUG_AVAILABLE = False
+    print(f"Memory debugging not available: {e}")
+
         paths = get_app_paths()
         history_file = paths.get("history_file")
         # For test, just open the history file in the default app

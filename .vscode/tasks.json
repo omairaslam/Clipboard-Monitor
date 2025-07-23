@@ -315,54 +315,7 @@
                 "isDefault": false
             }
         },
-        {
-            "label": "📊 Start Memory Monitor (1 hour)",
-            "type": "shell",
-            "command": "cd memory_debugging && python3 quick_monitor.py 1 60",
-            "problemMatcher": [],
-            "presentation": {
-                "reveal": "always",
-                "panel": "new",
-                "focus": true,
-                "clear": true
-            },
-            "group": {
-                "kind": "test",
-                "isDefault": false
-            }
-        },
-        {
-            "label": "📊 Start Memory Monitor (3 hours)",
-            "type": "shell",
-            "command": "cd memory_debugging && python3 quick_monitor.py 3 30",
-            "problemMatcher": [],
-            "presentation": {
-                "reveal": "always",
-                "panel": "new",
-                "focus": true,
-                "clear": true
-            },
-            "group": {
-                "kind": "test",
-                "isDefault": false
-            }
-        },
-        {
-            "label": "📊 Start Memory Monitor (30 min)",
-            "type": "shell",
-            "command": "cd memory_debugging && python3 quick_monitor.py 0.5 30",
-            "problemMatcher": [],
-            "presentation": {
-                "reveal": "always",
-                "panel": "new",
-                "focus": true,
-                "clear": true
-            },
-            "group": {
-                "kind": "test",
-                "isDefault": false
-            }
-        },
+
         {
             "label": "📋 View Memory Debug Log",
             "type": "shell",
@@ -383,6 +336,136 @@
             "label": "🗑️ Clear Memory Debug Log",
             "type": "shell",
             "command": "rm -f memory_leak_debug.log && echo 'Memory debug log cleared'",
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "new",
+                "focus": true,
+                "clear": true
+            },
+            "group": {
+                "kind": "test",
+                "isDefault": false
+            }
+        },
+        {
+            "label": "🔍 External Memory Monitor (30min)",
+            "type": "shell",
+            "command": "cd memory_debugging && python3 external_memory_monitor.py --duration 30 --interval 5",
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "new",
+                "focus": true,
+                "clear": true
+            },
+            "group": {
+                "kind": "test",
+                "isDefault": false
+            }
+        },
+        {
+            "label": "🔍 External Memory Monitor (1hour)",
+            "type": "shell",
+            "command": "cd memory_debugging && python3 external_memory_monitor.py --duration 60 --interval 10",
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "new",
+                "focus": true,
+                "clear": true
+            },
+            "group": {
+                "kind": "test",
+                "isDefault": false
+            }
+        },
+        {
+            "label": "⚡ Quick Memory Check (5min)",
+            "type": "shell",
+            "command": "cd memory_debugging && python3 external_memory_monitor.py --duration 5 --interval 2",
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "new",
+                "focus": true,
+                "clear": true
+            },
+            "group": {
+                "kind": "test",
+                "isDefault": false
+            }
+        },
+
+        {
+            "label": "🔬 Memory Leak Analyzer",
+            "type": "shell",
+            "command": "cd memory_debugging && python3 memory_leak_analyzer.py --analyze",
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "new",
+                "focus": true,
+                "clear": true
+            },
+            "group": {
+                "kind": "test",
+                "isDefault": false
+            }
+        },
+        {
+            "label": "📈 Live Memory Analysis",
+            "type": "shell",
+            "command": "cd memory_debugging && python3 memory_leak_analyzer.py --live",
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "new",
+                "focus": true,
+                "clear": true
+            },
+            "group": {
+                "kind": "test",
+                "isDefault": false
+            }
+        },
+
+        {
+            "label": "📋 External Monitoring Guide",
+            "type": "shell",
+            "command": "cd memory_debugging && cat EXTERNAL_MONITORING_GUIDE.md",
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "new",
+                "focus": true,
+                "clear": true
+            },
+            "group": {
+                "kind": "test",
+                "isDefault": false
+            }
+        },
+        {
+            "label": "💾 Create Clean Backup",
+            "type": "shell",
+            "command": "cp menu_bar_app.py menu_bar_app_CLEAN_BACKUP_$(date +%Y%m%d_%H%M%S).py && echo 'Clean backup created'",
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "new",
+                "focus": true,
+                "clear": true
+            },
+            "group": {
+                "kind": "test",
+                "isDefault": false
+            }
+        },
+        {
+            "label": "🔍 List Memory Backups",
+            "type": "shell",
+            "command": "ls -la *backup*.py *BACKUP*.py | head -20",
             "problemMatcher": [],
             "presentation": {
                 "reveal": "always",

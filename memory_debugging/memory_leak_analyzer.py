@@ -7,6 +7,8 @@ in the menu bar application. It provides detailed analysis and recommendations.
 
 Usage:
     python3 memory_leak_analyzer.py [--live] [--analyze-logs] [--duration=3600]
+
+Note: matplotlib is optional - graphing features will be disabled if not available
 """
 
 import psutil
@@ -19,8 +21,15 @@ import json
 import re
 from collections import defaultdict, Counter
 from datetime import datetime, timedelta
-import matplotlib.pyplot as plt
 import tracemalloc
+
+# Optional matplotlib import
+try:
+    import matplotlib.pyplot as plt
+    HAS_MATPLOTLIB = True
+except ImportError:
+    HAS_MATPLOTLIB = False
+    print("Note: matplotlib not available - graphing features disabled")
 
 class MemoryLeakAnalyzer:
     def __init__(self):
@@ -405,7 +414,7 @@ def main():
     parser.add_argument('--analyze-logs', action='store_true', help='Analyze existing log files')
     parser.add_argument('--duration', type=int, default=3600, help='Monitoring duration in seconds (default: 3600)')
     parser.add_argument('--interval', type=int, default=30, help='Sample interval in seconds (default: 30)')
-    parser.add_argument('--graph', action='store_true', help='Generate memory usage graph')
+    parser.add_argument('--graph', action='store_true', help='Generate memory usage graph (requires matplotlib)')
     
     args = parser.parse_args()
     
