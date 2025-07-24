@@ -385,7 +385,7 @@
         {
             "label": "🔬 Memory Leak Analyzer",
             "type": "shell",
-            "command": "cd memory_debugging && python3 memory_leak_analyzer.py --analyze",
+            "command": "cd memory_debugging && python3 memory_leak_analyzer.py --analyze-logs",
             "problemMatcher": [],
             "presentation": {
                 "reveal": "always",

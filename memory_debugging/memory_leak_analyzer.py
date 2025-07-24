@@ -320,8 +320,8 @@ class MemoryLeakAnalyzer:
             try:
                 with open(log_file, 'r') as f:
                     for line in f:
-                        # Parse memory information from log lines
-                        match = re.search(r'Memory: ([\d.]+)MB', line)
+                        # Parse memory information from log lines (support both formats)
+                        match = re.search(r'(?:Memory|RSS): ([\d.]+)MB', line)
                         if match:
                             memory_mb = float(match.group(1))
                             timestamp_match = re.search(r'\[([\d-]+ [\d:]+)\]', line)
