@@ -302,7 +302,7 @@
         {
             "label": "🔍 Tail Memory Debug Log",
             "type": "shell",
-            "command": "tail -f memory_leak_debug.log",
+            "command": "cd memory_debugging && tail -f memory_leak_debug.log",
             "problemMatcher": [],
             "presentation": {
                 "reveal": "always",
@@ -319,7 +319,7 @@
         {
             "label": "📋 View Memory Debug Log",
             "type": "shell",
-            "command": "cat memory_leak_debug.log",
+            "command": "cd memory_debugging && cat memory_leak_debug.log",
             "problemMatcher": [],
             "presentation": {
                 "reveal": "always",
@@ -335,7 +335,7 @@
         {
             "label": "🗑️ Clear Memory Debug Log",
             "type": "shell",
-            "command": "rm -f memory_leak_debug.log && echo 'Memory debug log cleared'",
+            "command": "cd memory_debugging && rm -f memory_leak_debug.log && echo 'Memory debug log cleared'",
             "problemMatcher": [],
             "presentation": {
                 "reveal": "always",
