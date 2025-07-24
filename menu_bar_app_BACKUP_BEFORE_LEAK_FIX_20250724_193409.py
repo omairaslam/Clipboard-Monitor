@@ -85,8 +85,8 @@ class ClipboardMonitorMenuBar(rumps.App):
         self.timer.daemon = True
         self.timer.start()
 
-        # Start memory monitoring (reduced frequency for performance)
-        self.memory_timer = rumps.Timer(self.update_memory_status, 15)
+        # Start memory monitoring
+        self.memory_timer = rumps.Timer(self.update_memory_status, 5)
         self.memory_timer.start()
 
     def set_config_and_reload(self, section, key, value):
@@ -132,12 +132,6 @@ class ClipboardMonitorMenuBar(rumps.App):
         self.service_history = []
         self.menubar_peak = 0
         self.service_peak = 0
-
-        # Process caching for performance optimization
-        self.cached_service_pid = None
-        self.cache_last_updated = 0
-        self.cache_validity_seconds = 60  # Refresh cache every minute
-        self._cleanup_counter = 0  # For periodic cleanup
 
 
 
@@ -2069,35 +2063,19 @@ read -n 1
                 except Exception as e:
                     print(f"Warning: Could not test dashboard import: {e}")
 
-                # Kill any existing dashboard processes first (optimized cleanup)
+                # Kill any existing dashboard processes first (more thorough cleanup)
                 try:
                     import psutil
-                    import subprocess
-                    # Use pgrep for faster process finding on macOS
-                    try:
-                        result = subprocess.run(['pgrep', '-f', 'unified_memory_dashboard.py'],
-                                              capture_output=True, text=True, timeout=2)
-                        if result.returncode == 0:
-                            pids = result.stdout.strip().split('\n')
-                            for pid_str in pids:
-                                if pid_str:
-                                    try:
-                                        pid = int(pid_str)
-                                        proc = psutil.Process(pid)
-                                        proc.terminate()
-                                        print(f"Killing existing dashboard process: {pid}")
-                                    except (psutil.NoSuchProcess, psutil.AccessDenied, ValueError):
-                                        continue
-                    except (subprocess.TimeoutExpired, FileNotFoundError):
-                        # Fallback to slower method only if pgrep fails
-                        for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
-                            try:
-                                cmdline = proc.info.get('cmdline', [])
-                                if cmdline and 'unified_memory_dashboard.py' in ' '.join(cmdline):
+                    for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
+                        try:
+                            cmdline = proc.info.get('cmdline', [])
+                            if cmdline:
+                                cmdline_str = ' '.join(cmdline)
+                                if 'unified_memory_dashboard.py' in cmdline_str:
                                     print(f"Killing existing dashboard process: {proc.info['pid']}")
                                     proc.terminate()
-                            except:
-                                continue
+                        except:
+                            continue
                     time.sleep(1)  # Give processes time to terminate
                 except:
                     pass
@@ -2375,99 +2353,15 @@ read -n 1
         except Exception as e:
             rumps.alert("Error", f"Failed to start Memory Visualizer: {e}")
 
-    def find_service_process_cached(self):
-        """Find service process using intelligent caching to avoid expensive process scanning."""
-        import time
-        current_time = time.time()
-
-        # Use cache if valid and PID still exists
-        if (self.cached_service_pid and
-            current_time - self.cache_last_updated < self.cache_validity_seconds):
-            try:
-                if psutil.pid_exists(self.cached_service_pid):
-                    return psutil.Process(self.cached_service_pid)
-            except (psutil.NoSuchProcess, psutil.AccessDenied):
-                pass
-
-        # Cache is invalid, need to scan (but do it efficiently)
-        return self._scan_for_service_process()
-
-    def _scan_for_service_process(self):
-        """Efficiently scan for service process and update cache."""
-        import time
-
-        try:
-            # Only scan processes that could be clipboard monitor
-            for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
-                try:
-                    pid = proc.info['pid']
-                    name = proc.info['name']
-                    cmdline = proc.info.get('cmdline', [])
-
-                    # Skip current process (menu bar app)
-                    if pid == os.getpid():
-                        continue
-
-                    # Quick name-based detection first (fastest)
-                    if name == 'ClipboardMonitor':
-                        self.cached_service_pid = pid
-                        self.cache_last_updated = time.time()
-                        return proc
-
-                    # Command line detection (slower, but necessary)
-                    if cmdline:
-                        cmdline_str = ' '.join(cmdline).lower()
-                        if ('main.py' in cmdline_str and
-                            any(part in cmdline_str for part in ['clipboard', 'clipboardmonitor'])):
-                            self.cached_service_pid = pid
-                            self.cache_last_updated = time.time()
-                            return proc
-
-                except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
-                    continue
-
-        except Exception as e:
-            # Log error but don't crash
-            try:
-                with open(self.error_log_path, 'a') as f:
-                    f.write(f"[{time.time()}] ERROR in _scan_for_service_process: {str(e)}\n")
-            except:
-                pass
-
-        # No service found
-        self.cached_service_pid = None
-        self.cache_last_updated = time.time()
-        return None
-
-    def get_service_memory_cached(self):
-        """Get service memory using cached PID for performance."""
-        try:
-            service_proc = self.find_service_process_cached()
-            if service_proc:
-                return service_proc.memory_info().rss / 1024 / 1024  # MB
-        except Exception:
-            pass
-        return 0
-
     def update_memory_status(self, _):
-        """Update the memory status in the menu - OPTIMIZED VERSION."""
-        import time
-        start_time = time.time()
-
+        """Update the memory status in the menu."""
         try:
-            # Increment cleanup counter for periodic maintenance
-            self._cleanup_counter += 1
-
-            # First try to get data from unified dashboard API if available (with shorter timeout)
-            menubar_memory = 0
-            service_memory = 0
-            dashboard_success = False
-
+            # First try to get data from unified dashboard API if available
             try:
                 import urllib.request
                 import json
 
-                with urllib.request.urlopen('http://localhost:8001/api/memory', timeout=1) as response:
+                with urllib.request.urlopen('http://localhost:8001/api/memory', timeout=2) as response:
                     data = json.loads(response.read().decode())
 
                     # Extract data from unified dashboard
@@ -2478,7 +2372,6 @@ read -n 1
                     if menubar_process and service_process:
                         menubar_memory = menubar_process.get('memory_mb', 0)
                         service_memory = service_process.get('memory_mb', 0)
-                        dashboard_success = True
 
                         # Use dashboard's peak values for consistency
                         dashboard_menubar_peak = data.get('peak_menubar_memory', 0)
@@ -2488,73 +2381,102 @@ read -n 1
                         self.menubar_peak = max(self.menubar_peak, dashboard_menubar_peak)
                         self.service_peak = max(self.service_peak, dashboard_service_peak)
 
+                        # Update history for mini histograms
+                        self.menubar_history.append(menubar_memory)
+                        self.service_history.append(service_memory)
+
+                        if len(self.menubar_history) > 10: self.menubar_history.pop(0)
+                        if len(self.service_history) > 10: self.service_history.pop(0)
+
+                        menubar_histogram = self._generate_mini_histogram(self.menubar_history, self.menubar_peak)
+                        service_histogram = self._generate_mini_histogram(self.service_history, self.service_peak)
+
+                        self.memory_menubar_item.title = f"Menu Bar: {menubar_memory:.1f}MB {menubar_histogram} Peak: {self.menubar_peak:.0f}MB"
+                        self.memory_service_item.title = f"Service: {service_memory:.1f}MB  {service_histogram} Peak: {self.service_peak:.0f}MB"
+                        return  # Successfully used dashboard data
+
             except Exception:
-                # Dashboard not available, fall back to optimized independent monitoring
-                dashboard_success = False
+                # Dashboard not available, fall back to independent monitoring
+                pass
 
-            # Fallback: Optimized independent monitoring (NO expensive process scanning)
-            if not dashboard_success:
-                import psutil
+            # Fallback: Independent monitoring (original code)
+            import psutil
+            menubar_memory = 0
+            service_memory = 0
 
-                # Get memory for menu bar app (current process) - always fast
+            # Get memory for menu bar app (current process)
+            current_process = psutil.Process(os.getpid())
+            menubar_memory = current_process.memory_info().rss / 1024 / 1024  # MB
+
+            # Get memory for clipboard monitor service - use same logic as unified dashboard
+            for proc in psutil.process_iter(['pid', 'name', 'cmdline', 'memory_info']):
                 try:
-                    current_process = psutil.Process(os.getpid())
-                    menubar_memory = current_process.memory_info().rss / 1024 / 1024  # MB
-                except Exception:
-                    menubar_memory = 0
+                    pid = proc.info['pid']
+                    name = proc.info['name']
+                    cmdline = proc.info.get('cmdline', [])
 
-                # Get service memory using cached PID - much faster than scanning all processes
-                service_memory = self.get_service_memory_cached()
+                    # Skip current process (menu bar app)
+                    if pid == os.getpid():
+                        continue
 
-            # Update history for mini histograms (with cleanup)
+                    # Use the same detection logic as unified dashboard
+                    is_clipboard_process = False
+                    cmdline_str = ""
+
+                    if cmdline:
+                        cmdline_str = ' '.join(cmdline).lower()
+                        # More specific detection to avoid false positives
+                        is_clipboard_process = (
+                            'menu_bar_app.py' in cmdline_str or
+                            ('main.py' in cmdline_str and any(path_part in cmdline_str for path_part in [
+                                'clipboard monitor', 'clipboardmonitor', 'clipboard-monitor', 'clipboard_monitor'
+                            ]))
+                        )
+
+                    # Also check by process name (for PyInstaller executables)
+                    if not is_clipboard_process and name == 'ClipboardMonitor':
+                        is_clipboard_process = True
+
+                    # If this is a clipboard process, check if it's the main service
+                    if is_clipboard_process:
+                        is_main_service = False
+
+                        if 'main.py' in cmdline_str and any(path_part in cmdline_str for path_part in [
+                            'clipboard', 'clipboardmonitor', 'clipboard-monitor', 'clipboard_monitor'
+                        ]):
+                            is_main_service = True
+                        elif name == 'ClipboardMonitor':
+                            # For PyInstaller executables, use memory heuristic
+                            memory_mb = proc.memory_info().rss / 1024 / 1024
+                            if memory_mb <= 50:  # Main service typically uses less memory
+                                is_main_service = True
+
+                        if is_main_service:
+                            service_memory = proc.memory_info().rss / 1024 / 1024  # MB
+                            break
+
+                except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+                    continue
+
+            # Update history for mini histograms
             self.menubar_history.append(menubar_memory)
             self.service_history.append(service_memory)
 
-            # Keep history manageable
-            if len(self.menubar_history) > 10:
-                self.menubar_history.pop(0)
-            if len(self.service_history) > 10:
-                self.service_history.pop(0)
+            if len(self.menubar_history) > 10: self.menubar_history.pop(0)
+            if len(self.service_history) > 10: self.service_history.pop(0)
 
-            # Update peaks
             self.menubar_peak = max(self.menubar_peak, menubar_memory)
             self.service_peak = max(self.service_peak, service_memory)
 
-            # Generate histograms and update display
             menubar_histogram = self._generate_mini_histogram(self.menubar_history, self.menubar_peak)
             service_histogram = self._generate_mini_histogram(self.service_history, self.service_peak)
 
             self.memory_menubar_item.title = f"Menu Bar: {menubar_memory:.1f}MB {menubar_histogram} Peak: {self.menubar_peak:.0f}MB"
             self.memory_service_item.title = f"Service: {service_memory:.1f}MB  {service_histogram} Peak: {self.service_peak:.0f}MB"
 
-            # Periodic cleanup to prevent memory accumulation
-            if self._cleanup_counter % 4 == 0:  # Every 4 calls (every minute at 15s intervals)
-                self._perform_periodic_cleanup()
-
-            # Performance monitoring
-            if self._cleanup_counter % 8 == 0:  # Every 2 minutes
-                self._monitor_performance()
-
-            # Check execution time
-            execution_time = time.time() - start_time
-            if execution_time > 0.5:  # Should be < 0.1 seconds normally
-                try:
-                    import datetime
-                    with open(self.error_log_path, 'a') as f:
-                        f.write(f"[{datetime.datetime.now()}] SLOW EXECUTION: update_memory_status took {execution_time:.2f}s\n")
-                except:
-                    pass
-
         except Exception as e:
-            # Graceful error handling with recovery
             self.memory_menubar_item.title = "Menu Bar: Error"
             self.memory_service_item.title = "Service: Error"
-
-            # Reset cache on error to force refresh
-            self.cached_service_pid = None
-            self.cache_last_updated = 0
-
-            # Log error safely
             try:
                 import datetime
                 with open(self.error_log_path, 'a') as f:
@@ -2564,63 +2486,6 @@ read -n 1
                     f.write("---\n")
             except:
                 pass
-
-    def _perform_periodic_cleanup(self):
-        """Perform periodic cleanup to prevent memory accumulation."""
-        try:
-            import gc
-
-            # Trim history if it gets too long
-            if len(self.menubar_history) > 20:
-                self.menubar_history = self.menubar_history[-10:]
-            if len(self.service_history) > 20:
-                self.service_history = self.service_history[-10:]
-
-            # Force garbage collection periodically
-            if self._cleanup_counter % 20 == 0:  # Every 5 minutes
-                gc.collect()
-
-        except Exception:
-            pass  # Don't let cleanup errors affect main functionality
-
-    def _monitor_performance(self):
-        """Monitor our own performance to detect issues early."""
-        try:
-            current_process = psutil.Process(os.getpid())
-            cpu_percent = current_process.cpu_percent()
-            memory_mb = current_process.memory_info().rss / 1024 / 1024
-
-            # Alert if we're consuming too many resources
-            if cpu_percent > 15:  # Should be < 5% normally
-                self._handle_performance_issue("high_cpu", cpu_percent)
-            elif memory_mb > 200:  # Should be < 100MB normally
-                self._handle_performance_issue("high_memory", memory_mb)
-
-        except Exception:
-            pass  # Don't let monitoring affect main functionality
-
-    def _handle_performance_issue(self, issue_type, value):
-        """Handle detected performance issues."""
-        try:
-            # Log the issue
-            import datetime
-            with open(self.error_log_path, 'a') as f:
-                f.write(f"[{datetime.datetime.now()}] PERFORMANCE ISSUE: {issue_type} = {value}\n")
-
-            # Take corrective action
-            if issue_type == "high_cpu":
-                # Increase timer interval to reduce load
-                self.memory_timer.stop()
-                self.memory_timer = rumps.Timer(self.update_memory_status, 30)  # Slower
-                self.memory_timer.start()
-            elif issue_type == "high_memory":
-                # Force cleanup
-                self._perform_periodic_cleanup()
-                import gc
-                gc.collect()
-
-        except Exception:
-            pass
 
     def _generate_mini_histogram(self, values, peak_value):
         """Generate mini histogram bars for memory visualization"""
@@ -2693,26 +2558,15 @@ read -n 1
 
         try:
             import psutil
-            import subprocess
-            # Use pgrep for faster process finding
-            try:
-                result = subprocess.run(['pgrep', '-f', script_name],
-                                      capture_output=True, text=True, timeout=1)
-                if result.returncode == 0:
-                    pids = result.stdout.strip().split('\n')
-                    if pids and pids[0]:
-                        self._monitoring_processes[process_name] = int(pids[0])
+            for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
+                try:
+                    cmdline = proc.info.get('cmdline', [])
+                    if cmdline and script_name in ' '.join(cmdline):
+                        # Found existing process, track it
+                        self._monitoring_processes[process_name] = proc.info['pid']
                         return True
-            except (subprocess.TimeoutExpired, FileNotFoundError, ValueError):
-                # Fallback to slower method only if pgrep fails
-                for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
-                    try:
-                        cmdline = proc.info.get('cmdline', [])
-                        if cmdline and script_name in ' '.join(cmdline):
-                            self._monitoring_processes[process_name] = proc.info['pid']
-                            return True
-                    except (psutil.NoSuchProcess, psutil.AccessDenied):
-                        continue
+                except (psutil.NoSuchProcess, psutil.AccessDenied):
+                    continue
         except Exception:
             pass
 
@@ -2758,33 +2612,15 @@ read -n 1
             if script_name:
                 try:
                     import psutil
-                    import subprocess
-                    # Use pgrep for faster process finding
-                    try:
-                        result = subprocess.run(['pgrep', '-f', script_name],
-                                              capture_output=True, text=True, timeout=1)
-                        if result.returncode == 0:
-                            pids = result.stdout.strip().split('\n')
-                            for pid_str in pids:
-                                if pid_str:
-                                    try:
-                                        pid = int(pid_str)
-                                        proc = psutil.Process(pid)
-                                        proc.terminate()
-                                        print(f"Terminated system process for {script_name}: {pid}")
-                                    except (psutil.NoSuchProcess, psutil.AccessDenied, ValueError):
-                                        continue
-                    except (subprocess.TimeoutExpired, FileNotFoundError):
-                        # Fallback to slower method only if pgrep fails
-                        for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
-                            try:
-                                cmdline = proc.info.get('cmdline', [])
-                                if cmdline and script_name in ' '.join(cmdline):
-                                    proc_obj = psutil.Process(proc.info['pid'])
-                                    proc_obj.terminate()
-                                    print(f"Terminated system process for {script_name}")
-                            except (psutil.NoSuchProcess, psutil.AccessDenied):
-                                continue
+                    for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
+                        try:
+                            cmdline = proc.info.get('cmdline', [])
+                            if cmdline and script_name in ' '.join(cmdline):
+                                proc_obj = psutil.Process(proc.info['pid'])
+                                proc_obj.terminate()
+                                print(f"Terminated system process for {script_name}")
+                        except (psutil.NoSuchProcess, psutil.AccessDenied):
+                            continue
                 except Exception as e:
                     print(f"Error during system-wide kill for {process_name}: {e}")
 
