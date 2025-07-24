@@ -27,12 +27,7 @@ This system monitors your menu bar app **externally** without modifying its code
 ### 🔍 **Tail Memory Debug Log**
 - **What it does**: Real-time view of memory debug log (like tail -f)
 - **Shows**: Live streaming log entries as they're written
-- **Best for**: Watching memory data collection in real-time
-
-### 📋 **View Memory Debug Log**
-- **What it does**: Display complete memory debug log file
-- **Shows**: All historical memory monitoring data
-- **Best for**: Reviewing complete monitoring history
+- **Best for**: Watching memory data collection in real-time and reviewing complete history
 
 ### 🧹 **Clear Memory Log**
 - **What it does**: Clear the memory debug log file
