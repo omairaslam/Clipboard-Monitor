@@ -58,12 +58,7 @@
             "color": "warning"
         },
 
-        {
-            "label": "📋 View Memory Log",
-            "task": "📋 View Memory Debug Log",
-            "tooltip": "View the complete memory debug log",
-            "color": "default"
-        },
+
         {
             "label": "🧹",
             "task": "🗑️ Clear Memory Debug Log",

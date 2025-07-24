@@ -316,22 +316,7 @@
             }
         },
 
-        {
-            "label": "📋 View Memory Debug Log",
-            "type": "shell",
-            "command": "cd memory_debugging && cat memory_leak_debug.log",
-            "problemMatcher": [],
-            "presentation": {
-                "reveal": "always",
-                "panel": "new",
-                "focus": true,
-                "clear": true
-            },
-            "group": {
-                "kind": "test",
-                "isDefault": false
-            }
-        },
+
         {
             "label": "🗑️ Clear Memory Debug Log",
             "type": "shell",
