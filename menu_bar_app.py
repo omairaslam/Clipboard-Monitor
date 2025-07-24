@@ -9,6 +9,7 @@ import threading
 import time
 import json
 import logging
+import psutil
 from pathlib import Path
 from utils import safe_expanduser, ensure_directory_exists, set_config_value, load_clipboard_history, setup_logging, get_app_paths, show_notification
 from config_manager import ConfigManager
@@ -27,8 +28,6 @@ try:
     NSApplication.sharedApplication().setActivationPolicy_(NSApplicationActivationPolicyAccessory)
 except Exception:
     pass
-
-
 
 
 class ClipboardMonitorMenuBar(rumps.App):
@@ -2449,6 +2448,19 @@ read -n 1
             pass
         return 0
 
+    def get_service_memory_and_cpu_cached(self):
+        """Get service memory and CPU using cached PID for performance."""
+        try:
+            service_proc = self.find_service_process_cached()
+            if service_proc:
+                memory_mb = service_proc.memory_info().rss / 1024 / 1024  # MB
+                # Use non-blocking CPU collection for faster response
+                cpu_percent = service_proc.cpu_percent(interval=None)
+                return memory_mb, cpu_percent
+        except Exception:
+            pass
+        return 0, 0
+
     def update_memory_status(self, _):
         """Update the memory status in the menu - OPTIMIZED VERSION."""
         import time
@@ -2458,53 +2470,65 @@ read -n 1
             # Increment cleanup counter for periodic maintenance
             self._cleanup_counter += 1
 
-            # First try to get data from unified dashboard API if available (with shorter timeout)
+            # Initialize variables for memory and CPU data
             menubar_memory = 0
             service_memory = 0
+            menubar_cpu = 0
+            service_cpu = 0
             dashboard_success = False
 
-            try:
-                import urllib.request
-                import json
+            # Skip dashboard API for performance - use direct monitoring instead
+            # Dashboard API was causing 0.8-1.0s delays, direct monitoring is much faster
+            use_dashboard_api = False  # Set to True only when dashboard integration is specifically needed
 
-                with urllib.request.urlopen('http://localhost:8001/api/memory', timeout=1) as response:
-                    data = json.loads(response.read().decode())
+            if use_dashboard_api:
+                try:
+                    import urllib.request
+                    import json
 
-                    # Extract data from unified dashboard
-                    processes = data.get('clipboard', {}).get('processes', [])
-                    menubar_process = next((p for p in processes if p.get('process_type') == 'menu_bar'), None)
-                    service_process = next((p for p in processes if p.get('process_type') == 'main_service'), None)
+                    with urllib.request.urlopen('http://localhost:8001/api/memory', timeout=0.3) as response:
+                        data = json.loads(response.read().decode())
 
-                    if menubar_process and service_process:
-                        menubar_memory = menubar_process.get('memory_mb', 0)
-                        service_memory = service_process.get('memory_mb', 0)
-                        dashboard_success = True
+                        # Extract data from unified dashboard
+                        processes = data.get('clipboard', {}).get('processes', [])
+                        menubar_process = next((p for p in processes if p.get('process_type') == 'menu_bar'), None)
+                        service_process = next((p for p in processes if p.get('process_type') == 'main_service'), None)
 
-                        # Use dashboard's peak values for consistency
-                        dashboard_menubar_peak = data.get('peak_menubar_memory', 0)
-                        dashboard_service_peak = data.get('peak_service_memory', 0)
+                        if menubar_process and service_process:
+                            menubar_memory = menubar_process.get('memory_mb', 0)
+                            service_memory = service_process.get('memory_mb', 0)
+                            menubar_cpu = menubar_process.get('cpu_percent', 0)
+                            service_cpu = service_process.get('cpu_percent', 0)
+                            dashboard_success = True
 
-                        # Update our peaks to match dashboard (but don't go backwards)
-                        self.menubar_peak = max(self.menubar_peak, dashboard_menubar_peak)
-                        self.service_peak = max(self.service_peak, dashboard_service_peak)
+                            # Use dashboard's peak values for consistency
+                            dashboard_menubar_peak = data.get('peak_menubar_memory', 0)
+                            dashboard_service_peak = data.get('peak_service_memory', 0)
 
-            except Exception:
-                # Dashboard not available, fall back to optimized independent monitoring
-                dashboard_success = False
+                            # Update our peaks to match dashboard (but don't go backwards)
+                            self.menubar_peak = max(self.menubar_peak, dashboard_menubar_peak)
+                            self.service_peak = max(self.service_peak, dashboard_service_peak)
+
+                except Exception:
+                    # Dashboard not available, fall back to optimized independent monitoring
+                    dashboard_success = False
 
             # Fallback: Optimized independent monitoring (NO expensive process scanning)
             if not dashboard_success:
                 import psutil
 
-                # Get memory for menu bar app (current process) - always fast
+                # Get memory and CPU for menu bar app (current process) - optimized
                 try:
                     current_process = psutil.Process(os.getpid())
                     menubar_memory = current_process.memory_info().rss / 1024 / 1024  # MB
+                    # Use non-blocking CPU collection with interval=None for instant result
+                    menubar_cpu = current_process.cpu_percent(interval=None)
                 except Exception:
                     menubar_memory = 0
+                    menubar_cpu = 0
 
-                # Get service memory using cached PID - much faster than scanning all processes
-                service_memory = self.get_service_memory_cached()
+                # Get service memory and CPU using cached PID - much faster than scanning all processes
+                service_memory, service_cpu = self.get_service_memory_and_cpu_cached()
 
             # Update history for mini histograms (with cleanup)
             self.menubar_history.append(menubar_memory)
@@ -2526,6 +2550,8 @@ read -n 1
 
             self.memory_menubar_item.title = f"Menu Bar: {menubar_memory:.1f}MB {menubar_histogram} Peak: {self.menubar_peak:.0f}MB"
             self.memory_service_item.title = f"Service: {service_memory:.1f}MB  {service_histogram} Peak: {self.service_peak:.0f}MB"
+            self.log_event("Memory & CPU Status: MenuBar={:.1f}MB/{:.1f}%, Service={:.1f}MB/{:.1f}%".format(
+                menubar_memory, menubar_cpu, service_memory, service_cpu), "INFO")
 
             # Periodic cleanup to prevent memory accumulation
             if self._cleanup_counter % 4 == 0:  # Every 4 calls (every minute at 15s intervals)
@@ -2535,13 +2561,20 @@ read -n 1
             if self._cleanup_counter % 8 == 0:  # Every 2 minutes
                 self._monitor_performance()
 
-            # Check execution time
+            # Check execution time with detailed breakdown
             execution_time = time.time() - start_time
             if execution_time > 0.5:  # Should be < 0.1 seconds normally
                 try:
                     import datetime
                     with open(self.error_log_path, 'a') as f:
-                        f.write(f"[{datetime.datetime.now()}] SLOW EXECUTION: update_memory_status took {execution_time:.2f}s\n")
+                        f.write(f"[{datetime.datetime.now()}] SLOW EXECUTION: update_memory_status took {execution_time:.2f}s (dashboard_success={dashboard_success})\n")
+                except:
+                    pass
+            elif execution_time > 0.2:  # Log moderate slowdowns too
+                try:
+                    import datetime
+                    with open(self.error_log_path, 'a') as f:
+                        f.write(f"[{datetime.datetime.now()}] MODERATE EXECUTION: update_memory_status took {execution_time:.2f}s (dashboard_success={dashboard_success})\n")
                 except:
                     pass
 
@@ -2625,7 +2658,7 @@ read -n 1
     def _generate_mini_histogram(self, values, peak_value):
         """Generate mini histogram bars for memory visualization"""
         if not values:
-            return "▁▁▁▁▁▁▁▁▁▁"
+            return "          "
 
         # Ensure we have exactly 10 values
         if len(values) < 10:
@@ -2640,7 +2673,7 @@ read -n 1
             normalized = [0] * 10
 
         # Unicode block characters for different heights
-        bars = ['▁', '▂', '▃', '▄', '▅', '▆', '▇', '█']
+        bars = [' ', '▂', '▃', '▄', '▅', '▆', '▇', '█']
 
         # Generate histogram with color coding
         histogram = ''.join([bars[level] for level in normalized])
