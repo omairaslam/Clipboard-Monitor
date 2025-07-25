@@ -267,9 +267,11 @@ class UnifiedMemoryDashboard:
         self.session_start_time = datetime.now()
         self.peak_menubar_memory = 0.0
         self.peak_service_memory = 0.0
+        self.peak_dashboard_memory = 0.0
         self.peak_total_memory = 0.0
         self.peak_menubar_cpu = 0.0
         self.peak_service_cpu = 0.0
+        self.peak_dashboard_cpu = 0.0
         self.peak_total_cpu = 0.0
 
         # Analytics tracking
@@ -292,15 +294,25 @@ class UnifiedMemoryDashboard:
 
         def do_GET(self):
             """Handle GET requests."""
-            # Update activity time for any request
-            self._update_activity()
+            # Parse query parameters to check if this is a monitoring request
+            from urllib.parse import urlparse, parse_qs
+            parsed_path = urlparse(self.path)
+            query_params = parse_qs(parsed_path.query)
 
-            if self.path == '/':
+            # Only update activity time if this is not a monitoring request
+            is_monitoring = query_params.get('monitor', ['false'])[0].lower() == 'true'
+            if not is_monitoring:
+                self._update_activity()
+
+            # Use parsed path for routing
+            path = parsed_path.path
+
+            if path == '/':
                 self.send_response(200)
                 self.send_header('Content-type', 'text/html')
                 self.end_headers()
                 self.wfile.write(self.dashboard.render_dashboard_html().encode())
-            elif self.path == '/api/memory':
+            elif path == '/api/memory':
                 # Memory data for Memory tab charts - use the more comprehensive method
                 self.send_response(200)
                 self.send_header('Content-type', 'application/json')
@@ -310,7 +322,7 @@ class UnifiedMemoryDashboard:
                 self.end_headers()
                 data = json.dumps(self.dashboard.get_memory_data())
                 self.wfile.write(data.encode())
-            elif self.path == '/api/current':
+            elif path == '/api/current':
                 # Current status including monitoring state (for Controls tab)
                 self.send_response(200)
                 self.send_header('Content-type', 'application/json')
@@ -320,7 +332,7 @@ class UnifiedMemoryDashboard:
                 self.end_headers()
                 data = json.dumps(self.dashboard.get_comprehensive_dashboard_data())
                 self.wfile.write(data.encode())
-            elif self.path == '/api/data':
+            elif path == '/api/data':
                 # Comprehensive dashboard data for monitoring dashboard compatibility
                 self.send_response(200)
                 self.send_header('Content-type', 'application/json')
@@ -330,7 +342,7 @@ class UnifiedMemoryDashboard:
                 self.end_headers()
                 data = json.dumps(self.dashboard.get_comprehensive_dashboard_data())
                 self.wfile.write(data.encode())
-            elif self.path == '/api/processes':
+            elif path == '/api/processes':
                 self.send_response(200)
                 self.send_header('Content-type', 'application/json')
                 self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
@@ -339,7 +351,7 @@ class UnifiedMemoryDashboard:
                 self.end_headers()
                 data = json.dumps(self.dashboard.get_process_data())
                 self.wfile.write(data.encode())
-            elif self.path == '/api/system':
+            elif path == '/api/system':
                 self.send_response(200)
                 self.send_header('Content-type', 'application/json')
                 self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
@@ -348,44 +360,36 @@ class UnifiedMemoryDashboard:
                 self.end_headers()
                 data = json.dumps(self.dashboard.get_system_data())
                 self.wfile.write(data.encode())
-            elif self.path == '/api/history':
+            elif path == '/api/history':
                 self.send_response(200)
                 self.send_header('Content-type', 'application/json')
                 self.end_headers()
                 data = json.dumps(self.dashboard.data_history[-200:])
                 self.wfile.write(data.encode())
-            elif self.path.startswith('/api/historical'):
-                # Parse query parameters for time range
-                from urllib.parse import parse_qs, urlparse
-                parsed = urlparse(self.path)
-                params = parse_qs(parsed.query)
-                hours = int(params.get('hours', [24])[0])
+            elif path.startswith('/api/historical'):
+                # Parse query parameters for time range (already parsed above)
+                hours = int(query_params.get('hours', [24])[0])
 
                 self.send_response(200)
                 self.send_header('Content-type', 'application/json')
                 self.end_headers()
                 data = json.dumps(self.dashboard.get_historical_data(hours))
                 self.wfile.write(data.encode())
-            elif self.path.startswith('/api/analysis'):
-                # Parse query parameters for time range
-                from urllib.parse import parse_qs, urlparse
-                parsed = urlparse(self.path)
-                params = parse_qs(parsed.query)
-                hours = int(params.get('hours', [24])[0])
+            elif path.startswith('/api/analysis'):
+                # Parse query parameters for time range (already parsed above)
+                hours = int(query_params.get('hours', [24])[0])
 
                 self.send_response(200)
                 self.send_header('Content-type', 'application/json')
                 self.end_headers()
                 data = json.dumps(self.dashboard.get_analysis_data(hours))
                 self.wfile.write(data.encode())
-            elif self.path.startswith('/api/historical-chart'):
+            elif path.startswith('/api/historical-chart'):
                 # Enhanced historical data for chart
                 try:
-                    from urllib.parse import parse_qs, urlparse
-                    parsed = urlparse(self.path)
-                    params = parse_qs(parsed.query)
-                    hours_param = params.get('hours', ['1'])[0]
-                    resolution = params.get('resolution', ['full'])[0]
+                    # Use already parsed query parameters
+                    hours_param = query_params.get('hours', ['1'])[0]
+                    resolution = query_params.get('resolution', ['full'])[0]
 
                     # Historical chart request processing
 
@@ -441,35 +445,42 @@ class UnifiedMemoryDashboard:
                         'time_range': 'error'
                     })
                     self.wfile.write(error_data.encode())
-            elif self.path.startswith('/api/start_monitoring'):
-                # Parse query parameters for interval
-                from urllib.parse import parse_qs, urlparse
-                parsed = urlparse(self.path)
-                params = parse_qs(parsed.query)
-                interval = int(params.get('interval', [30])[0])
+            elif path.startswith('/api/start_monitoring'):
+                # Parse query parameters for interval (already parsed above)
+                interval = int(query_params.get('interval', [30])[0])
 
                 self.send_response(200)
                 self.send_header('Content-type', 'application/json')
                 self.end_headers()
                 result = self.dashboard.start_advanced_monitoring(interval)
                 self.wfile.write(json.dumps(result).encode())
-            elif self.path == '/api/stop_monitoring':
+            elif path == '/api/stop_monitoring':
                 self.send_response(200)
                 self.send_header('Content-type', 'application/json')
                 self.end_headers()
                 result = self.dashboard.stop_advanced_monitoring()
                 self.wfile.write(json.dumps(result).encode())
-            elif self.path == '/api/force_gc':
+            elif path == '/api/force_gc':
                 self.send_response(200)
                 self.send_header('Content-type', 'application/json')
                 self.end_headers()
                 result = self.dashboard.force_garbage_collection()
                 self.wfile.write(json.dumps(result).encode())
-            elif self.path == '/api/leak_analysis':
+            elif path == '/api/leak_analysis':
                 self.send_response(200)
                 self.send_header('Content-type', 'application/json')
                 self.end_headers()
                 data = json.dumps(self.dashboard.get_leak_analysis())
+                self.wfile.write(data.encode())
+            elif path == '/api/dashboard_status':
+                # Dashboard status for menu bar app
+                self.send_response(200)
+                self.send_header('Content-type', 'application/json')
+                self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
+                self.send_header('Pragma', 'no-cache')
+                self.send_header('Expires', '0')
+                self.end_headers()
+                data = json.dumps(self.dashboard.get_dashboard_status())
                 self.wfile.write(data.encode())
             else:
                 self.send_response(404)
@@ -3053,8 +3064,10 @@ class UnifiedMemoryDashboard:
         try:
             menubar_memory = 0
             service_memory = 0
+            dashboard_memory = 0
             menubar_cpu = 0
             service_cpu = 0
+            dashboard_cpu = 0
 
             # Debug: collect all clipboard-related processes
             clipboard_processes = []
@@ -3098,6 +3111,7 @@ class UnifiedMemoryDashboard:
                         # More specific detection to avoid false positives
                         is_clipboard_process = (
                             'menu_bar_app.py' in cmdline_str or
+                            'unified_memory_dashboard.py' in cmdline_str or
                             ('main.py' in cmdline_str and any(path_part in cmdline_str for path_part in [
                                 'clipboard monitor', 'clipboardmonitor', 'clipboard-monitor', 'clipboard_monitor'
                             ]))
@@ -3120,6 +3134,9 @@ class UnifiedMemoryDashboard:
                         if 'menu_bar_app.py' in cmdline_str:
                             menubar_memory = memory_mb
                             menubar_cpu = cpu_percent
+                        elif 'unified_memory_dashboard.py' in cmdline_str:
+                            dashboard_memory = memory_mb
+                            dashboard_cpu = cpu_percent
                         elif 'main.py' in cmdline_str and any(path_part in cmdline_str for path_part in [
                             'clipboard', 'clipboardmonitor', 'clipboard-monitor', 'clipboard_monitor'
                         ]):
@@ -3154,6 +3171,9 @@ class UnifiedMemoryDashboard:
             if service_memory > self.peak_service_memory:
                 self.peak_service_memory = service_memory
 
+            if dashboard_memory > self.peak_dashboard_memory:
+                self.peak_dashboard_memory = dashboard_memory
+
             # Track peak CPU values
             if menubar_cpu > self.peak_menubar_cpu:
                 self.peak_menubar_cpu = menubar_cpu
@@ -3161,9 +3181,12 @@ class UnifiedMemoryDashboard:
             if service_cpu > self.peak_service_cpu:
                 self.peak_service_cpu = service_cpu
 
+            if dashboard_cpu > self.peak_dashboard_cpu:
+                self.peak_dashboard_cpu = dashboard_cpu
+
             # Track peak totals
-            total_memory = menubar_memory + service_memory
-            total_cpu = menubar_cpu + service_cpu
+            total_memory = menubar_memory + service_memory + dashboard_memory
+            total_cpu = menubar_cpu + service_cpu + dashboard_cpu
 
             if total_memory > self.peak_total_memory:
                 self.peak_total_memory = total_memory
@@ -3175,15 +3198,19 @@ class UnifiedMemoryDashboard:
                 'timestamp': datetime.now().isoformat(),
                 'menubar_memory': round(menubar_memory, 2),
                 'service_memory': round(service_memory, 2),
+                'dashboard_memory': round(dashboard_memory, 2),
                 'total_memory': round(total_memory, 2),
                 'menubar_cpu': round(menubar_cpu, 2),
                 'service_cpu': round(service_cpu, 2),
+                'dashboard_cpu': round(dashboard_cpu, 2),
                 'total_cpu': round(total_cpu, 2),
                 'peak_menubar_memory': round(self.peak_menubar_memory, 2),
                 'peak_service_memory': round(self.peak_service_memory, 2),
+                'peak_dashboard_memory': round(self.peak_dashboard_memory, 2),
                 'peak_total_memory': round(self.peak_total_memory, 2),
                 'peak_menubar_cpu': round(self.peak_menubar_cpu, 2),
                 'peak_service_cpu': round(self.peak_service_cpu, 2),
+                'peak_dashboard_cpu': round(self.peak_dashboard_cpu, 2),
                 'peak_total_cpu': round(self.peak_total_cpu, 2),
                 'session_start_time': self.session_start_time.isoformat()
             }
@@ -3515,6 +3542,97 @@ class UnifiedMemoryDashboard:
         }
         
         return latest_data
+
+    def get_dashboard_status(self):
+        """Get dashboard status information for menu bar app"""
+        try:
+            # Calculate time since last activity
+            time_since_activity = datetime.now() - self.last_activity_time
+            minutes_inactive = time_since_activity.total_seconds() / 60
+            seconds_inactive = time_since_activity.total_seconds()
+
+            # Calculate countdown for auto-timeout
+            countdown_seconds = 0
+            if self.auto_start_mode and not self.monitoring_active:
+                remaining_minutes = self.auto_timeout_minutes - minutes_inactive
+                countdown_seconds = max(0, remaining_minutes * 60)
+
+            # Determine status
+            if self.monitoring_active:
+                status = "active_in_use"
+                status_message = "Active and in use (Advanced Monitoring)"
+            elif seconds_inactive < 10:  # Recent activity (within 10 seconds)
+                status = "active_in_use"
+                status_message = "Active and in use"
+            elif self.auto_start_mode and countdown_seconds > 0:
+                status = "active_not_in_use"
+                countdown_minutes = int(countdown_seconds // 60)
+                countdown_secs = int(countdown_seconds % 60)
+                status_message = f"Active but not in use ({countdown_minutes}:{countdown_secs:02d} until shutdown)"
+            elif not self.auto_start_mode:
+                status = "active_persistent"
+                status_message = "Active (Manual mode - no timeout)"
+            else:
+                status = "inactive"
+                status_message = "Inactive"
+
+            # Get current memory and CPU data directly from collect_memory_data
+            memory_data = self.collect_memory_data()
+
+            menubar_memory = memory_data.get('menubar_memory', 0)
+            service_memory = memory_data.get('service_memory', 0)
+            dashboard_memory = memory_data.get('dashboard_memory', 0)
+            menubar_cpu = memory_data.get('menubar_cpu', 0)
+            service_cpu = memory_data.get('service_cpu', 0)
+            dashboard_cpu = memory_data.get('dashboard_cpu', 0)
+
+            return {
+                "status": status,
+                "status_message": status_message,
+                "auto_start_mode": self.auto_start_mode,
+                "monitoring_active": self.monitoring_active,
+                "last_activity_seconds": seconds_inactive,
+                "countdown_seconds": countdown_seconds,
+                "memory": {
+                    "menubar": {
+                        "current": menubar_memory,
+                        "peak": self.peak_menubar_memory,
+                        "cpu": menubar_cpu,
+                        "peak_cpu": self.peak_menubar_cpu
+                    },
+                    "service": {
+                        "current": service_memory,
+                        "peak": self.peak_service_memory,
+                        "cpu": service_cpu,
+                        "peak_cpu": self.peak_service_cpu
+                    },
+                    "dashboard": {
+                        "current": dashboard_memory,
+                        "peak": self.peak_dashboard_memory,
+                        "cpu": dashboard_cpu,
+                        "peak_cpu": self.peak_dashboard_cpu
+                    },
+                    "total": {
+                        "current": menubar_memory + service_memory + dashboard_memory,
+                        "peak": self.peak_total_memory,
+                        "cpu": menubar_cpu + service_cpu + dashboard_cpu,
+                        "peak_cpu": self.peak_total_cpu
+                    }
+                },
+                "session": {
+                    "start_time": self.session_start_time.isoformat(),
+                    "duration_minutes": (datetime.now() - self.session_start_time).total_seconds() / 60
+                },
+                "timestamp": datetime.now().isoformat()
+            }
+        except Exception as e:
+            return {
+                "status": "error",
+                "status_message": f"Error getting status: {str(e)}",
+                "error": str(e),
+                "timestamp": datetime.now().isoformat()
+            }
+
         """Get comprehensive dashboard data for monitoring dashboard compatibility"""
         try:
             memory_data = self.get_memory_data()

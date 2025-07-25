@@ -6,7 +6,10 @@ import os
 import json
 import logging
 from pathlib import Path
-CONFIG_PATH = str(Path(__file__).parent / 'config.json')
+
+# Use the same config path as utils.py for consistency
+CONFIG_PATH = str(Path.home() / "Library" / "Application Support" / "ClipboardMonitor" / "config.json")
+
 from constants import DEFAULT_CONFIG, DEFAULT_POLLING_INTERVAL, DEFAULT_ENHANCED_CHECK_INTERVAL, DEFAULT_MAX_CLIPBOARD_SIZE
 
 logger = logging.getLogger("config_manager")
@@ -53,6 +56,10 @@ class ConfigManager:
         
         try:
             config_file = Path(self.config_path)
+
+            # Ensure the directory exists
+            config_file.parent.mkdir(parents=True, exist_ok=True)
+
             if config_file.exists():
                 with config_file.open('r') as f:
                     user_config = json.load(f)

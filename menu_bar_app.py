@@ -84,9 +84,18 @@ class ClipboardMonitorMenuBar(rumps.App):
         self.timer.daemon = True
         self.timer.start()
 
-        # Start memory monitoring (reduced frequency for performance)
-        self.memory_timer = rumps.Timer(self.update_memory_status, 15)
-        self.memory_timer.start()
+        # Start memory monitoring (only in developer mode)
+        if self.developer_mode:
+            self.memory_timer = rumps.Timer(self.update_memory_status, 15)
+            self.memory_timer.start()
+
+            # Initial dashboard status update
+            try:
+                self.update_dashboard_status()
+            except Exception as e:
+                print(f"Initial dashboard status update failed: {e}")
+        else:
+            self.memory_timer = None
 
     def set_config_and_reload(self, section, key, value):
         """Set a configuration value and reload the config manager to pick up changes."""
@@ -115,16 +124,26 @@ class ClipboardMonitorMenuBar(rumps.App):
         self.memory_menubar_item = rumps.MenuItem("Menu Bar: Initializing...")
         self.memory_service_item = rumps.MenuItem("Service: Initializing...")
 
+        # Dashboard status display items
+        self.dashboard_status_item = rumps.MenuItem("Dashboard: Checking...")
+        self.dashboard_memory_item = rumps.MenuItem("Memory: Initializing...")
+        self.dashboard_cpu_item = rumps.MenuItem("CPU: Initializing...")
+        self.dashboard_stats_item = rumps.MenuItem("Dashboard Stats: Initializing...")
+
         # Unified Memory Dashboard (moved to root menu)
         self.memory_unified_dashboard_item = rumps.MenuItem("📊 Unified Dashboard", callback=self.start_unified_dashboard)
 
         # Initialize monitoring processes tracking
         self._monitoring_processes = {}
 
-        # Auto-start unified dashboard on app launch
-        with open('/tmp/clipboard_debug.log', 'a') as f:
-            f.write(f"DEBUG: About to call _auto_start_dashboard from __init__ at {time.time()}\n")
-        self._auto_start_dashboard()
+        # Developer mode configuration
+        self.developer_mode = self.config_manager.get_config_value('advanced', 'developer_mode', False)
+
+        # Auto-start unified dashboard on app launch (only in developer mode)
+        if self.developer_mode:
+            with open('/tmp/clipboard_debug.log', 'a') as f:
+                f.write(f"DEBUG: About to call _auto_start_dashboard from __init__ at {time.time()}\n")
+            self._auto_start_dashboard()
 
         # Mini histogram data for menu display
         self.menubar_history = []
@@ -670,13 +689,17 @@ class ClipboardMonitorMenuBar(rumps.App):
         return config_menu
 
     def _create_advanced_settings_menu(self):
-        """Create the 'Advanced Settings' submenu."""
+        """Create the 'Advanced Settings' submenu with developer-specific options."""
         advanced_menu = rumps.MenuItem("Advanced Settings")
-        advanced_menu.add(self._create_performance_settings_menu())  # Corrected method name
-        advanced_menu.add(self._create_security_settings_menu())
-        advanced_menu.add(self._create_configuration_management_menu())
-        advanced_menu.add(rumps.separator)
-        advanced_menu.add(self._create_memory_settings_menu())
+
+        # Developer Mode Toggle
+        self.developer_mode_item = rumps.MenuItem("🔧 Developer Mode", callback=self.toggle_developer_mode)
+        self.developer_mode_item.state = self.developer_mode
+        advanced_menu.add(self.developer_mode_item)
+
+        # Add separator and any other truly advanced-only settings here
+        # (Removed duplicated settings that are already in main settings menu)
+
         return advanced_menu
 
     def _create_memory_settings_menu(self):
@@ -765,9 +788,20 @@ class ClipboardMonitorMenuBar(rumps.App):
         """Build the clean modular menu structure - Option D: Invisible Disabled."""
         # Section 1: Status & Service Control
         self.menu.add(self.status_item)
-        self.menu.add(self.memory_menubar_item)  # Memory visualization line 1
-        self.menu.add(self.memory_service_item)  # Memory visualization line 2
-        self.menu.add(rumps.separator)
+
+        # Developer Mode: Memory & Dashboard Status (only show in developer mode)
+        if self.developer_mode:
+            self.menu.add(self.memory_menubar_item)  # Memory visualization line 1
+            self.menu.add(self.memory_service_item)  # Memory visualization line 2
+            self.menu.add(rumps.separator)
+
+            # Dashboard Status Section
+            self.menu.add(self.dashboard_status_item)
+            self.menu.add(self.dashboard_memory_item)
+            self.menu.add(self.dashboard_cpu_item)
+            self.menu.add(self.dashboard_stats_item)
+            self.menu.add(rumps.separator)
+
         self.menu.add(self.pause_toggle)
         self.menu.add(self.service_control_menu)
         self.menu.add(rumps.separator)
@@ -779,9 +813,10 @@ class ClipboardMonitorMenuBar(rumps.App):
         self.menu.add(self._create_enable_disable_modules_menu())
         self.menu.add(rumps.separator)
 
-        # Unified Memory Dashboard (moved from Memory Monitor menu)
-        self.menu.add(self.memory_unified_dashboard_item)
-        self.menu.add(rumps.separator)
+        # Unified Memory Dashboard (only in developer mode)
+        if self.developer_mode:
+            self.menu.add(self.memory_unified_dashboard_item)
+            self.menu.add(rumps.separator)
 
         # Section 3: Settings (includes module discovery)
         self.menu.add(self._create_clean_settings_menu())
@@ -791,21 +826,144 @@ class ClipboardMonitorMenuBar(rumps.App):
         self.menu.add(self.logs_menu)
         self.menu.add(self.quit_item)
 
+    def _rebuild_menu(self):
+        """Rebuild the menu when developer mode is toggled"""
+        try:
+            # Handle memory timer based on developer mode
+            if self.developer_mode:
+                # Start memory monitoring if not already running
+                if not hasattr(self, 'memory_timer') or self.memory_timer is None:
+                    self.memory_timer = rumps.Timer(self.update_memory_status, 15)
+                    self.memory_timer.start()
+
+                    # Initial dashboard status update
+                    try:
+                        self.update_dashboard_status()
+                    except Exception as e:
+                        print(f"Initial dashboard status update failed: {e}")
+
+                # Auto-start dashboard if not running
+                try:
+                    self._auto_start_dashboard()
+                except Exception as e:
+                    print(f"Auto-start dashboard failed: {e}")
+            else:
+                # Stop memory monitoring
+                if hasattr(self, 'memory_timer') and self.memory_timer is not None:
+                    try:
+                        self.memory_timer.stop()
+                    except Exception as e:
+                        print(f"Error stopping memory timer: {e}")
+                    self.memory_timer = None
+
+            # Clear existing menu items safely
+            try:
+                self.menu.clear()
+            except Exception as e:
+                print(f"Error clearing menu: {e}")
+                return  # Don't continue if we can't clear the menu
+
+            # Ensure all required menu items exist before rebuilding
+            self._ensure_menu_items_exist()
+
+            # Rebuild main menu (includes enabled modules)
+            self._build_main_menu()
+
+        except Exception as e:
+            print(f"Error in _rebuild_menu: {e}")
+            import traceback
+            traceback.print_exc()
+            # Try to restore a basic menu if rebuild fails
+            try:
+                self._build_basic_fallback_menu()
+            except Exception as fallback_error:
+                print(f"Fallback menu creation also failed: {fallback_error}")
+
+    def _ensure_menu_items_exist(self):
+        """Ensure all required menu items exist before rebuilding menu"""
+        try:
+            # Check and recreate essential menu items if they don't exist
+            if not hasattr(self, 'status_item') or self.status_item is None:
+                self.status_item = rumps.MenuItem("Status: Checking...")
+
+            if not hasattr(self, 'pause_toggle') or self.pause_toggle is None:
+                self.pause_toggle = rumps.MenuItem("Pause Monitoring", callback=self.toggle_monitoring)
+
+            if not hasattr(self, 'quit_item') or self.quit_item is None:
+                self.quit_item = rumps.MenuItem("Quit", callback=rumps.quit_application)
+
+            # Ensure developer mode items exist if needed
+            if self.developer_mode:
+                if not hasattr(self, 'memory_menubar_item') or self.memory_menubar_item is None:
+                    self.memory_menubar_item = rumps.MenuItem("Menu Bar: Initializing...")
+
+                if not hasattr(self, 'memory_service_item') or self.memory_service_item is None:
+                    self.memory_service_item = rumps.MenuItem("Service: Initializing...")
+
+                if not hasattr(self, 'dashboard_status_item') or self.dashboard_status_item is None:
+                    self.dashboard_status_item = rumps.MenuItem("Dashboard: Checking...")
+
+                if not hasattr(self, 'dashboard_memory_item') or self.dashboard_memory_item is None:
+                    self.dashboard_memory_item = rumps.MenuItem("Memory: Initializing...")
+
+                if not hasattr(self, 'dashboard_cpu_item') or self.dashboard_cpu_item is None:
+                    self.dashboard_cpu_item = rumps.MenuItem("CPU: Initializing...")
+
+                if not hasattr(self, 'dashboard_stats_item') or self.dashboard_stats_item is None:
+                    self.dashboard_stats_item = rumps.MenuItem("Dashboard Stats: Initializing...")
+
+                if not hasattr(self, 'memory_unified_dashboard_item') or self.memory_unified_dashboard_item is None:
+                    self.memory_unified_dashboard_item = rumps.MenuItem("📊 Unified Dashboard", callback=self.start_unified_dashboard)
+
+        except Exception as e:
+            print(f"Error ensuring menu items exist: {e}")
+
+    def _build_basic_fallback_menu(self):
+        """Build a basic fallback menu if the main menu rebuild fails"""
+        try:
+            self.menu.clear()
+
+            # Add only essential items
+            self.menu.add(rumps.MenuItem("Status: Menu Error"))
+            self.menu.add(rumps.separator)
+            self.menu.add(rumps.MenuItem("Settings", callback=lambda _: None))
+            self.menu.add(rumps.separator)
+            self.menu.add(rumps.MenuItem("Restart Required"))
+            self.menu.add(rumps.MenuItem("Quit", callback=rumps.quit_application))
+
+        except Exception as e:
+            print(f"Even fallback menu failed: {e}")
+
     def _add_enabled_modules_to_menu(self):
         """Add only enabled modules to the main menu with their functionality grouped."""
-        # Check if history module is enabled and add clipboard history functionality
-        if self._is_module_enabled("history_module"):
-            self._add_clipboard_history_menu()
+        try:
+            print(f"DEBUG: Adding enabled modules to menu...")
 
-        # Add other enabled modules
-        enabled_modules = self._get_enabled_modules()
-        for module_name in enabled_modules:
-            if module_name != "history_module":  # History handled separately above
-                self._add_module_menu(module_name)
+            # Check if history module is enabled and add clipboard history functionality
+            if self._is_module_enabled("history_module"):
+                print(f"DEBUG: Adding history module menu")
+                self._add_clipboard_history_menu()
 
-        # Add separator if any modules were added
-        if enabled_modules:
-            self.menu.add(rumps.separator)
+            # Add other enabled modules
+            enabled_modules = self._get_enabled_modules()
+            print(f"DEBUG: Enabled modules: {enabled_modules}")
+
+            for module_name in enabled_modules:
+                if module_name != "history_module":  # History handled separately above
+                    print(f"DEBUG: Adding module menu for {module_name}")
+                    self._add_module_menu(module_name)
+
+            # Add separator if any modules were added
+            if enabled_modules:
+                print(f"DEBUG: Adding separator after {len(enabled_modules)} modules")
+                self.menu.add(rumps.separator)
+            else:
+                print(f"DEBUG: No enabled modules found, no separator added")
+
+        except Exception as e:
+            print(f"ERROR: Failed to add enabled modules to menu: {e}")
+            import traceback
+            traceback.print_exc()
 
     def _is_module_enabled(self, module_name):
         """Check if a module is enabled."""
@@ -896,6 +1054,7 @@ class ClipboardMonitorMenuBar(rumps.App):
         settings_menu.add(self._create_performance_settings_menu())
         settings_menu.add(self._create_security_settings_menu())
         settings_menu.add(self._create_configuration_management_menu())
+        settings_menu.add(self._create_advanced_settings_menu())
 
         return settings_menu
 
@@ -941,12 +1100,17 @@ class ClipboardMonitorMenuBar(rumps.App):
     def load_module_config(self):
         """Load module configuration from config file"""
         try:
-            config_path = os.path.join(os.path.dirname(__file__), 'config.json')
-            if os.path.exists(config_path):
-                with open(config_path, 'r') as f:
-                    config = json.load(f)
-                    if 'modules' in config:
-                        self.module_status = config['modules']
+            # Force reload to ensure we get the latest config from the correct location
+            self.config_manager.reload()
+            modules_config = self.config_manager.get_section('modules', default={})
+
+            if modules_config:
+                self.module_status = modules_config
+                print(f"Loaded module config: {modules_config}")
+            else:
+                # Default to empty dict, modules will be enabled by default
+                self.module_status = {}
+                print("No module config found, using defaults (all enabled)")
         except Exception as e:
             print(f"Error loading module config: {e}")
             # Default to empty dict, modules will be enabled by default
@@ -954,9 +1118,21 @@ class ClipboardMonitorMenuBar(rumps.App):
     
     def update_status_periodically(self):
         """Update the service status every 5 seconds"""
+        dashboard_update_counter = 0
         while True:
             try:
                 self.update_status()
+
+                # Update dashboard status every 3 cycles (15 seconds) to reduce API calls (only in developer mode)
+                if self.developer_mode:
+                    dashboard_update_counter += 1
+                    if dashboard_update_counter >= 3:
+                        try:
+                            self.update_dashboard_status()
+                        except Exception as dashboard_error:
+                            print(f"Error updating dashboard status: {dashboard_error}")
+                        dashboard_update_counter = 0
+
             except Exception as e:
                 # Log the error but don't let it break the loop
                 print(f"Error in update_status: {e}")
@@ -1214,6 +1390,25 @@ class ClipboardMonitorMenuBar(rumps.App):
             self.restart_service(None)
         else:
             rumps.notification("Error", "Failed to update debug mode", "Could not save configuration")
+
+    def toggle_developer_mode(self, sender):
+        """Toggle developer mode"""
+        new_state = not sender.state
+        sender.state = new_state
+        self.developer_mode = new_state
+
+        if self.set_config_and_reload('advanced', 'developer_mode', new_state):
+            status = "enabled" if new_state else "disabled"
+            rumps.notification("Developer Mode", f"Developer mode {status}",
+                             f"Memory monitoring and dashboard features are now {status}.")
+
+            # Rebuild menu to show/hide developer items
+            self._rebuild_menu()
+        else:
+            rumps.notification("Error", "Failed to update developer mode", "Could not save configuration")
+            # Revert the state if save failed
+            sender.state = not new_state
+            self.developer_mode = not new_state
 
     def set_notification_title(self, _):
         """Set custom notification title"""
@@ -1634,22 +1829,17 @@ class ClipboardMonitorMenuBar(rumps.App):
     def save_module_config(self):
         """Save module configuration to config file"""
         try:
-            config_path = os.path.join(os.path.dirname(__file__), 'config.json')
-            
-            # Load existing config if it exists
-            if os.path.exists(config_path):
-                with open(config_path, 'r') as f:
-                    config = json.load(f)
+            # Use the config manager to save the modules section properly
+            success = self.config_manager.set_config_value('modules', self.module_status)
+            if success:
+                self.config_manager.reload()  # Reload to ensure consistency
+                print(f"Saved module config: {self.module_status}")
             else:
-                config = {}
-            
-            # Update modules section
-            config['modules'] = self.module_status
-            
-            # Write back to file
-            with open(config_path, 'w') as f:
-                json.dump(config, f, indent=2)
+                print("Failed to save module config")
+                rumps.notification("Error", "Failed to save module config", "Could not write to config file")
+
         except Exception as e:
+            print(f"Error saving module config: {e}")
             rumps.notification("Error", "Failed to save module config", str(e))
     
     def open_web_history_viewer(self, _):
@@ -2175,12 +2365,26 @@ read -n 1
                 # Browser will be opened automatically by the dashboard
                 rumps.notification("Unified Memory Dashboard", "Started Successfully",
                                  "Comprehensive monitoring available at localhost:8001")
+
+                # Update dashboard status after successful start (only in developer mode)
+                if self.developer_mode:
+                    time.sleep(2)  # Give dashboard time to fully initialize
+                    try:
+                        self.update_dashboard_status()
+                    except Exception as status_error:
+                        print(f"Error updating dashboard status after start: {status_error}")
+
             else:
                 rumps.alert("Unified Dashboard not found",
                            f"The unified_memory_dashboard.py file was not found.\nSearched paths:\n{script_path}")
 
         except Exception as e:
             rumps.alert("Error", f"Failed to start Unified Memory Dashboard: {e}")
+            # Update status to show error
+            try:
+                self.update_dashboard_status()
+            except:
+                pass
 
     def _auto_start_dashboard(self):
         """Auto-start unified dashboard on app launch (silent, no browser opening)"""
@@ -2319,6 +2523,19 @@ read -n 1
                     # Show subtle notification
                     rumps.notification("Clipboard Monitor", "Dashboard Auto-Started",
                                      "Memory monitoring available at localhost:8001 (5min timeout)")
+
+                    # Update dashboard status after auto-start (with delay) - only in developer mode
+                    if self.developer_mode:
+                        def delayed_status_update():
+                            time.sleep(3)  # Give dashboard time to fully initialize
+                            try:
+                                self.update_dashboard_status()
+                            except Exception as status_error:
+                                print(f"Error updating dashboard status after auto-start: {status_error}")
+
+                        import threading
+                        threading.Thread(target=delayed_status_update, daemon=True).start()
+
                 except Exception as e:
                     with open(debug_log_path, 'a') as f:
                         f.write(f"  ERROR starting dashboard process: {str(e)}\n")
@@ -2679,6 +2896,113 @@ read -n 1
         histogram = ''.join([bars[level] for level in normalized])
 
         return histogram
+
+    def update_dashboard_status(self):
+        """Update dashboard status indicators in the menu (only in developer mode)"""
+        if not self.developer_mode:
+            return
+
+        try:
+            import urllib.request
+            import json
+
+            # Try to get dashboard status (with monitor=true to avoid resetting activity timer)
+            try:
+                with urllib.request.urlopen('http://localhost:8001/api/dashboard_status?monitor=true', timeout=5) as response:
+                    status_data = json.loads(response.read().decode())
+
+                # Update status item
+                status = status_data.get('status', 'unknown')
+                status_message = status_data.get('status_message', 'Unknown')
+
+                # Status indicators
+                status_icons = {
+                    'active_in_use': '🟢',
+                    'active_not_in_use': '🟡',
+                    'active_persistent': '🔵',
+                    'inactive': '🔴',
+                    'error': '❌'
+                }
+
+                icon = status_icons.get(status, '❓')
+                self.dashboard_status_item.title = f"Dashboard: {icon} {status_message}"
+
+                # Memory information
+                memory_data = status_data.get('memory', {})
+                menubar_mem = memory_data.get('menubar', {})
+                service_mem = memory_data.get('service', {})
+                dashboard_mem = memory_data.get('dashboard', {})
+                total_mem = memory_data.get('total', {})
+
+                menubar_current = menubar_mem.get('current', 0)
+                menubar_peak = menubar_mem.get('peak', 0)
+                service_current = service_mem.get('current', 0)
+                service_peak = service_mem.get('peak', 0)
+                dashboard_current = dashboard_mem.get('current', 0)
+                dashboard_peak = dashboard_mem.get('peak', 0)
+                total_current = total_mem.get('current', 0)
+                total_peak = total_mem.get('peak', 0)
+
+                self.dashboard_memory_item.title = (
+                    f"Memory: Menu {menubar_current:.1f}MB (↑{menubar_peak:.0f}) | "
+                    f"Service {service_current:.1f}MB (↑{service_peak:.0f}) | "
+                    f"Total {total_current:.1f}MB (↑{total_peak:.0f})"
+                )
+
+                # CPU information
+                menubar_cpu = menubar_mem.get('cpu', 0)
+                menubar_cpu_peak = menubar_mem.get('peak_cpu', 0)
+                service_cpu = service_mem.get('cpu', 0)
+                service_cpu_peak = service_mem.get('peak_cpu', 0)
+                dashboard_cpu = dashboard_mem.get('cpu', 0)
+                dashboard_cpu_peak = dashboard_mem.get('peak_cpu', 0)
+                total_cpu = total_mem.get('cpu', 0)
+                total_cpu_peak = total_mem.get('peak_cpu', 0)
+
+                self.dashboard_cpu_item.title = (
+                    f"CPU: Menu {menubar_cpu:.1f}% (↑{menubar_cpu_peak:.1f}) | "
+                    f"Service {service_cpu:.1f}% (↑{service_cpu_peak:.1f}) | "
+                    f"Total {total_cpu:.1f}% (↑{total_cpu_peak:.1f})"
+                )
+
+                # Dashboard stats
+                self.dashboard_stats_item.title = (
+                    f"Dashboard: {dashboard_current:.1f}MB (↑{dashboard_peak:.0f}) | "
+                    f"CPU {dashboard_cpu:.1f}% (↑{dashboard_cpu_peak:.1f})"
+                )
+
+                # Update dashboard menu item based on status
+                if status == 'inactive':
+                    self.memory_unified_dashboard_item.title = "📊 Unified Dashboard (Inactive)"
+                elif status == 'active_in_use':
+                    self.memory_unified_dashboard_item.title = "📊 Unified Dashboard (Active & In Use)"
+                elif status == 'active_not_in_use':
+                    countdown = status_data.get('countdown_seconds', 0)
+                    if countdown > 0:
+                        minutes = int(countdown // 60)
+                        seconds = int(countdown % 60)
+                        self.memory_unified_dashboard_item.title = f"📊 Unified Dashboard (Timeout: {minutes}:{seconds:02d})"
+                    else:
+                        self.memory_unified_dashboard_item.title = "📊 Unified Dashboard (Active)"
+                elif status == 'active_persistent':
+                    self.memory_unified_dashboard_item.title = "📊 Unified Dashboard (Active - No Timeout)"
+                else:
+                    self.memory_unified_dashboard_item.title = "📊 Unified Dashboard"
+
+            except Exception as e:
+                # Dashboard not available
+                self.dashboard_status_item.title = "Dashboard: 🔴 Inactive"
+                self.dashboard_memory_item.title = "Memory: Dashboard not available"
+                self.dashboard_cpu_item.title = "CPU: Dashboard not available"
+                self.dashboard_stats_item.title = "Dashboard Stats: Not available"
+                self.memory_unified_dashboard_item.title = "📊 Unified Dashboard (Inactive)"
+
+        except Exception as e:
+            self.log_error(f"Error updating dashboard status: {str(e)}")
+            self.dashboard_status_item.title = "Dashboard: ❌ Error"
+            self.dashboard_memory_item.title = "Memory: Error getting data"
+            self.dashboard_cpu_item.title = "CPU: Error getting data"
+            self.dashboard_stats_item.title = "Dashboard Stats: Error"
 
     def _get_memory_color_indicator(self, current_mb, peak_mb):
         """Get color indicator based on memory usage"""

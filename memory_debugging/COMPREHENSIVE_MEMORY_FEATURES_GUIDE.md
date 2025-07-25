@@ -4,6 +4,36 @@
 
 The Clipboard Monitor includes a sophisticated multi-layered memory monitoring system designed to detect leaks, analyze performance, and provide actionable insights. This guide covers all memory-related features, their integration, data collection methods, and usage scenarios.
 
+## 🔧 **Developer Mode Toggle**
+
+### **🎯 Purpose**
+The Developer Mode toggle provides a clean separation between end-user experience and developer debugging capabilities. By default, end users see a clean interface without memory monitoring overhead, while developers can enable full debugging features when needed.
+
+### **📍 Location**
+Settings → Advanced Settings → 🔧 Developer Mode
+
+### **🏠 End User Mode (Default: `developer_mode = false`)**
+- **Clean Interface**: No memory or CPU data displayed in menu
+- **No Dashboard**: Unified memory dashboard is not auto-started
+- **No API Calls**: No dashboard status monitoring or background requests
+- **Optimal Performance**: Minimal memory footprint and CPU usage
+- **Production Ready**: Ideal for end users who just want clipboard functionality
+
+### **🔧 Developer Mode (When Enabled: `developer_mode = true`)**
+- **Full Memory Monitoring**: Shows menu bar and service memory/CPU with peaks
+- **Dashboard Integration**: Auto-starts unified memory dashboard with 5-minute timeout
+- **Dashboard Status**: Real-time status indicators with countdown timers
+- **Dashboard Stats**: Shows dashboard's own memory and CPU usage
+- **Complete Debugging**: All monitoring and analysis tools available
+
+### **⚙️ Toggle Behavior**
+- **Instant Effect**: Menu rebuilds immediately when toggled
+- **Persistent Setting**: Saved to `~/Library/Application Support/ClipboardMonitor/config.json`
+- **No Restart Required**: Changes take effect without restarting the app
+- **Notification**: User informed of state change with success message
+- **Crash Protection**: Robust error handling prevents crashes during menu rebuilding
+- **Fallback Menu**: If rebuild fails, a basic fallback menu is provided
+
 ---
 
 ## 🏗️ **System Architecture**

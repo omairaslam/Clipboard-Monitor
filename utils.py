@@ -439,11 +439,13 @@ def get_config(section=None, key=None, default=None):
         The configuration value, section, or full config.
     """
     from config_manager import ConfigManager
-    # Always create a new instance to ensure it loads the latest config,
-    # especially important in tests where the config file is frequently changed.
+    # Get the singleton instance
     config_manager = ConfigManager()
-    # NOTE: Removed automatic reload() call here as it was causing severe performance issues
-    # The menu bar app will handle reloading explicitly when needed via set_config_and_reload()
+
+    # Force reload to ensure we get the latest config
+    # This is necessary because ConfigManager is a singleton and may have stale data
+    config_manager.reload()
+
     if section is None:
         return config_manager.config
     if key is None:
@@ -453,7 +455,11 @@ def get_config(section=None, key=None, default=None):
 def set_config_value(section, key, value):
     """Set a configuration value in config.json"""
     try:
-        config_path = Path(__file__).parent / 'config.json'
+        # Use the same path as ConfigManager for consistency
+        config_path = Path.home() / "Library" / "Application Support" / "ClipboardMonitor" / "config.json"
+
+        # Ensure the directory exists
+        config_path.parent.mkdir(parents=True, exist_ok=True)
 
         # Load existing config
         if config_path.exists():
@@ -474,7 +480,7 @@ def set_config_value(section, key, value):
             json.dump(config, f, indent=2)
 
         return True
-    except (OSError, json.JSONDecodeError, json.JSONEncodeError) as e:
+    except (OSError, json.JSONDecodeError, ValueError) as e:
         logger.error(f"Error setting config value {section}.{key}: {e}")
         return False
 
