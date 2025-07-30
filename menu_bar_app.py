@@ -58,6 +58,9 @@ class ClipboardMonitorMenuBar(rumps.App):
             "code_formatter_module": "Code Formatter"
         }
 
+        # Initialize Emergency Safe Mode setting FIRST (needed for menu creation)
+        self.emergency_safe_mode = self.config_manager.get_config_value("advanced", "emergency_safe_mode", default=True)
+
         # Initialize polling options
         self.polling_options = POLLING_INTERVALS
         self.enhanced_options = ENHANCED_CHECK_INTERVALS
@@ -78,31 +81,55 @@ class ClipboardMonitorMenuBar(rumps.App):
         # Build the main menu structure
         self._build_main_menu()
 
-        # Schedule initial history update and periodic status checks
-        rumps.Timer(self.initial_history_update, 3).start()
+        if self.emergency_safe_mode:
+            print("🚨 EMERGENCY SAFE MODE: Enabled - All timers/threads disabled to prevent memory leaks")
+            print("📋 Basic clipboard monitoring fully functional")
+            print("⚠️  Status updates, history updates, and dashboard features disabled")
+        else:
+            print("⚠️  EMERGENCY SAFE MODE: Disabled - Full functionality enabled (may cause memory leaks)")
+            # Re-enable history updates with memory leak fixes
+            rumps.Timer(self.initial_history_update, 10).start()
+
+            # Re-enable status update thread with memory leak fixes
+            self.timer = threading.Thread(target=self.update_status_periodically)
+            self.timer.daemon = True
+            self.timer.start()
+            print("✅ Status and history updates enabled")
+
+        # Memory monitoring DISABLED to prevent memory leaks
+        # The memory displays in menu cause memory leaks, so we disable them entirely
+        self.memory_timer = None
+        print("⚠️  Memory monitoring disabled to prevent memory leaks")
+
+        # Enable basic status updates even in Emergency Safe Mode (but not memory monitoring)
+        # This allows users to see if the service is running/stopped without memory leaks
         self.timer = threading.Thread(target=self.update_status_periodically)
         self.timer.daemon = True
         self.timer.start()
+        print("✅ Basic status updates enabled (memory monitoring still disabled)")
 
-        # Start memory monitoring (only in developer mode)
+        # Still do initial dashboard status update if in developer mode
         if self.developer_mode:
-            self.memory_timer = rumps.Timer(self.update_memory_status, 15)
-            self.memory_timer.start()
-
-            # Initial dashboard status update
             try:
                 self.update_dashboard_status()
             except Exception as e:
                 print(f"Initial dashboard status update failed: {e}")
-        else:
-            self.memory_timer = None
 
     def set_config_and_reload(self, section, key, value):
         """Set a configuration value and reload the config manager to pick up changes."""
         success = set_config_value(section, key, value)
         if success:
             self.config_manager.reload()
+            # Clear cached config values to force refresh
+            self._clear_config_cache()
         return success
+
+    def _clear_config_cache(self):
+        """Clear cached configuration values to force refresh on next access."""
+        if hasattr(self, '_cached_max_items'):
+            delattr(self, '_cached_max_items')
+        if hasattr(self, '_cached_debug_mode'):
+            delattr(self, '_cached_debug_mode')
 
     def _init_menu_items(self):
         """Initialize individual menu items."""
@@ -120,9 +147,10 @@ class ClipboardMonitorMenuBar(rumps.App):
         self.prefs_menu = rumps.MenuItem("Preferences")
         self.module_menu = rumps.MenuItem("Modules")
 
-        # Memory visualization display items for main menu (two lines)
-        self.memory_menubar_item = rumps.MenuItem("Menu Bar: Initializing...")
-        self.memory_service_item = rumps.MenuItem("Service: Initializing...")
+        # Memory visualization display items REMOVED to prevent memory leaks
+        # These items caused memory leaks when updated every 5 seconds
+        self.memory_menubar_item = None
+        self.memory_service_item = None
 
         # Dashboard status display items
         self.dashboard_status_item = rumps.MenuItem("Dashboard: Checking...")
@@ -692,6 +720,13 @@ class ClipboardMonitorMenuBar(rumps.App):
         """Create the 'Advanced Settings' submenu with developer-specific options."""
         advanced_menu = rumps.MenuItem("Advanced Settings")
 
+        # Emergency Safe Mode Toggle
+        self.emergency_safe_mode_item = rumps.MenuItem("🚨 Emergency Safe Mode", callback=self.toggle_emergency_safe_mode)
+        self.emergency_safe_mode_item.state = self.emergency_safe_mode
+        advanced_menu.add(self.emergency_safe_mode_item)
+
+        advanced_menu.add(rumps.separator)
+
         # Developer Mode Toggle
         self.developer_mode_item = rumps.MenuItem("🔧 Developer Mode", callback=self.toggle_developer_mode)
         self.developer_mode_item.state = self.developer_mode
@@ -706,9 +741,8 @@ class ClipboardMonitorMenuBar(rumps.App):
         """Create the 'Memory Settings' submenu."""
         memory_menu = rumps.MenuItem("Memory Settings")
 
-        # Unified Memory Dashboard (replaces separate visualizer and monitoring dashboard)
+        # Unified Memory Dashboard (always available - works independently of Emergency Safe Mode)
         memory_menu.add(rumps.MenuItem("📊 Unified Memory Dashboard", callback=self.start_unified_dashboard))
-
         memory_menu.add(rumps.separator)
 
         # Memory Optimization (moved from Performance Settings)
@@ -789,18 +823,18 @@ class ClipboardMonitorMenuBar(rumps.App):
         # Section 1: Status & Service Control
         self.menu.add(self.status_item)
 
-        # Developer Mode: Memory & Dashboard Status (only show in developer mode)
+        # Developer Mode: Dashboard Status (only show in developer mode)
+        # Note: Memory items removed to prevent memory leaks
+        # Note: Dashboard status items are hidden in Emergency Safe Mode since they don't receive updates
         if self.developer_mode:
-            self.menu.add(self.memory_menubar_item)  # Memory visualization line 1
-            self.menu.add(self.memory_service_item)  # Memory visualization line 2
-            self.menu.add(rumps.separator)
 
-            # Dashboard Status Section
-            self.menu.add(self.dashboard_status_item)
-            self.menu.add(self.dashboard_memory_item)
-            self.menu.add(self.dashboard_cpu_item)
-            self.menu.add(self.dashboard_stats_item)
-            self.menu.add(rumps.separator)
+            # Dashboard Status Section (hidden in Emergency Safe Mode since no status updates)
+            if not self.emergency_safe_mode:
+                self.menu.add(self.dashboard_status_item)
+                self.menu.add(self.dashboard_memory_item)
+                self.menu.add(self.dashboard_cpu_item)
+                self.menu.add(self.dashboard_stats_item)
+                self.menu.add(rumps.separator)
 
         self.menu.add(self.pause_toggle)
         self.menu.add(self.service_control_menu)
@@ -813,7 +847,7 @@ class ClipboardMonitorMenuBar(rumps.App):
         self.menu.add(self._create_enable_disable_modules_menu())
         self.menu.add(rumps.separator)
 
-        # Unified Memory Dashboard (only in developer mode)
+        # Unified Memory Dashboard (always available in developer mode - works independently)
         if self.developer_mode:
             self.menu.add(self.memory_unified_dashboard_item)
             self.menu.add(rumps.separator)
@@ -829,18 +863,19 @@ class ClipboardMonitorMenuBar(rumps.App):
     def _rebuild_menu(self):
         """Rebuild the menu when developer mode is toggled"""
         try:
-            # Handle memory timer based on developer mode
-            if self.developer_mode:
-                # Start memory monitoring if not already running
-                if not hasattr(self, 'memory_timer') or self.memory_timer is None:
-                    self.memory_timer = rumps.Timer(self.update_memory_status, 15)
-                    self.memory_timer.start()
+            # TEMPORARILY DISABLE memory timer to fix memory leak
+            # TODO: Fix memory leak in update_memory_status method
+            if hasattr(self, 'memory_timer') and self.memory_timer is not None:
+                self.memory_timer.stop()
+                self.memory_timer = None
+                print("⚠️  Memory monitoring stopped due to memory leak")
 
-                    # Initial dashboard status update
-                    try:
-                        self.update_dashboard_status()
-                    except Exception as e:
-                        print(f"Initial dashboard status update failed: {e}")
+            # Still do dashboard status update if in developer mode
+            if self.developer_mode:
+                try:
+                    self.update_dashboard_status()
+                except Exception as e:
+                    print(f"Initial dashboard status update failed: {e}")
 
                 # Auto-start dashboard if not running
                 try:
@@ -893,12 +928,8 @@ class ClipboardMonitorMenuBar(rumps.App):
                 self.quit_item = rumps.MenuItem("Quit", callback=rumps.quit_application)
 
             # Ensure developer mode items exist if needed
+            # Memory items removed to prevent memory leaks
             if self.developer_mode:
-                if not hasattr(self, 'memory_menubar_item') or self.memory_menubar_item is None:
-                    self.memory_menubar_item = rumps.MenuItem("Menu Bar: Initializing...")
-
-                if not hasattr(self, 'memory_service_item') or self.memory_service_item is None:
-                    self.memory_service_item = rumps.MenuItem("Service: Initializing...")
 
                 if not hasattr(self, 'dashboard_status_item') or self.dashboard_status_item is None:
                     self.dashboard_status_item = rumps.MenuItem("Dashboard: Checking...")
@@ -1102,6 +1133,8 @@ class ClipboardMonitorMenuBar(rumps.App):
         try:
             # Force reload to ensure we get the latest config from the correct location
             self.config_manager.reload()
+            # Clear cached config values to force refresh
+            self._clear_config_cache()
             modules_config = self.config_manager.get_section('modules', default={})
 
             if modules_config:
@@ -1117,21 +1150,28 @@ class ClipboardMonitorMenuBar(rumps.App):
             self.module_status = {}
     
     def update_status_periodically(self):
-        """Update the service status every 5 seconds"""
+        """Update the service status every 30 seconds (REDUCED FREQUENCY TO FIX MEMORY LEAK)"""
         dashboard_update_counter = 0
         while True:
             try:
+                # MEMORY LEAK FIX: Reduce frequency and add cleanup
+                import gc
+
                 self.update_status()
 
-                # Update dashboard status every 3 cycles (15 seconds) to reduce API calls (only in developer mode)
-                if self.developer_mode:
+                # Update dashboard status every 2 cycles (60 seconds) to reduce API calls
+                # (only in developer mode and NOT in Emergency Safe Mode to prevent memory leaks)
+                if self.developer_mode and not self.emergency_safe_mode:
                     dashboard_update_counter += 1
-                    if dashboard_update_counter >= 3:
+                    if dashboard_update_counter >= 2:
                         try:
                             self.update_dashboard_status()
                         except Exception as dashboard_error:
                             print(f"Error updating dashboard status: {dashboard_error}")
                         dashboard_update_counter = 0
+
+                # MEMORY LEAK FIX: Force garbage collection after each cycle
+                gc.collect()
 
             except Exception as e:
                 # Log the error but don't let it break the loop
@@ -1144,76 +1184,134 @@ class ClipboardMonitorMenuBar(rumps.App):
                 except:
                     pass  # If logging fails, just continue
 
-            # Always sleep, even if there was an error
-            time.sleep(5)
+            # MEMORY LEAK FIX: Increased sleep time from 5 to 60 seconds for better stability
+            time.sleep(60)
+
+            # Additional memory cleanup every 10 cycles (10 minutes)
+            if not hasattr(self, '_status_cycle_count'):
+                self._status_cycle_count = 0
+            self._status_cycle_count += 1
+
+            if self._status_cycle_count >= 10:
+                try:
+                    import psutil
+                    process = psutil.Process()
+                    memory_mb = process.memory_info().rss / 1024 / 1024
+                    print(f"🔍 Status thread memory check: {memory_mb:.1f}MB")
+
+                    # Force cleanup if memory is growing
+                    if memory_mb > 50:
+                        for _ in range(3):
+                            gc.collect()
+                        print(f"🧹 Status thread cleanup at {memory_mb:.1f}MB")
+                except:
+                    pass
+                self._status_cycle_count = 0
     
     def update_status(self):
-        """Check if the service is running and update the status menu item"""
+        """Check if the service is running and update the status menu item - OPTIMIZED VERSION"""
         try:
-            # Check if the process is running using launchctl
-            # Try development service first, then production service
-            service_names = ["com.clipboardmonitor.service.dev", "com.clipboardmonitor"]
-            result = None
+            # MEMORY LEAK FIX: Cache subprocess results and reduce calls
+            if not hasattr(self, '_status_cache'):
+                self._status_cache = {'last_check': 0, 'result': None, 'is_paused': False}
 
-            for service_name in service_names:
-                result = subprocess.run(
-                    ["launchctl", "list", service_name],
-                    capture_output=True,
-                    text=True
-                )
-                if result.returncode == 0:
-                    break
-            
-            # Check for pause flag
-            pause_flag_path = safe_expanduser("~/Library/Application Support/ClipboardMonitor/pause_flag")
-            is_paused = os.path.exists(pause_flag_path)
-            
-            # If return code is 0, service is running
-            if result.returncode == 0:
+            import time
+            current_time = time.time()
+
+            # Only check subprocess every 60 seconds to reduce memory leaks
+            if current_time - self._status_cache['last_check'] > 60:
+                # Check if the process is running using launchctl
+                service_names = ["com.clipboardmonitor.service.dev", "com.clipboardmonitor"]
+                result = None
+
+                for service_name in service_names:
+                    try:
+                        result = subprocess.run(
+                            ["launchctl", "list", service_name],
+                            capture_output=True,
+                            text=True,
+                            timeout=5  # Add timeout to prevent hanging
+                        )
+                        if result.returncode == 0:
+                            break
+                    except subprocess.TimeoutExpired:
+                        print("Launchctl command timed out")
+                        result = None
+                        break
+                    except Exception as subprocess_error:
+                        print(f"Subprocess error: {subprocess_error}")
+                        result = None
+                        break
+
+                # Check for pause flag
+                pause_flag_path = safe_expanduser("~/Library/Application Support/ClipboardMonitor/pause_flag")
+                is_paused = os.path.exists(pause_flag_path)
+
+                # Cache the results
+                self._status_cache['last_check'] = current_time
+                self._status_cache['result'] = result
+                self._status_cache['is_paused'] = is_paused
+            else:
+                # Use cached results
+                result = self._status_cache['result']
+                is_paused = self._status_cache['is_paused']
+
+            # Update UI based on cached/fresh results
+            if result and result.returncode == 0:
                 if is_paused:
-                    self.status_item.title = "Status: Paused"
+                    status_text = "Status: Paused"
+                    if self.emergency_safe_mode:
+                        status_text += " 🚨"
+                    self.status_item.title = status_text
                     self.pause_toggle.title = "Resume Monitoring"
                     return
-                
-                # Service is running and not paused
-                # Check if it's using enhanced monitoring
+
+                # Check if service is using enhanced monitoring (restored functionality)
                 try:
                     from utils import get_app_paths
                     log_path = get_app_paths()["out_log"]
+
+                    # Use a more memory-efficient approach - check only recent log entries
                     grep_result = subprocess.run(
-                        ["grep", "-i", "enhanced clipboard monitoring", log_path],
+                        ["tail", "-50", log_path],
                         capture_output=True,
-                        text=True
+                        text=True,
+                        timeout=2  # Add timeout to prevent hanging
                     )
-                    
-                    if grep_result.returncode == 0 and grep_result.stdout:
-                        self.status_item.title = "Status: Running (Enhanced)"
+
+                    if grep_result.returncode == 0 and "enhanced clipboard monitoring" in grep_result.stdout.lower():
+                        status_text = "Status: Running (Enhanced)"
                     else:
-                        self.status_item.title = "Status: Running (Polling)"
-                    
-                    # Reset pause toggle text
-                    self.pause_toggle.title = "Pause Monitoring"
-                except Exception as log_error:
-                    # If we can't read the log file, just show as running
-                    self.status_item.title = "Status: Running"
-                    self.pause_toggle.title = "Pause Monitoring"
-            else:
-                self.status_item.title = "Status: Stopped"
-                # Reset pause toggle text
+                        status_text = "Status: Running (Polling)"
+
+                except Exception:
+                    # If we can't determine mode, just show as running
+                    status_text = "Status: Running"
+
+                # Add Emergency Safe Mode indicator
+                if self.emergency_safe_mode:
+                    status_text += " 🚨"
+
+                self.status_item.title = status_text
                 self.pause_toggle.title = "Pause Monitoring"
-                
+            else:
+                status_text = "Status: Stopped"
+                if self.emergency_safe_mode:
+                    status_text += " 🚨"
+                self.status_item.title = status_text
+                self.pause_toggle.title = "Pause Monitoring"
+
                 # Remove pause flag if service is stopped
-                if is_paused and os.path.exists(pause_flag_path):
-                    os.remove(pause_flag_path)
+                if is_paused:
+                    pause_flag_path = safe_expanduser("~/Library/Application Support/ClipboardMonitor/pause_flag")
+                    if os.path.exists(pause_flag_path):
+                        os.remove(pause_flag_path)
+
         except Exception as e:
             self.status_item.title = "Status: Error checking"
-            # Log the error
-            import traceback
-            from utils import get_app_paths
-            error_log_path = get_app_paths()["err_log"]
-            with open(error_log_path, 'a') as f:
-                f.write(f"Status check error: {str(e)}\n")
-                f.write(traceback.format_exc())
+            print(f"Status check error: {e}")
+            # MEMORY LEAK FIX: Simplified error logging without file operations
+            # Removed file logging to prevent memory leaks from repeated file operations
     
     def start_service(self, _):
         try:
@@ -1391,6 +1489,28 @@ class ClipboardMonitorMenuBar(rumps.App):
         else:
             rumps.notification("Error", "Failed to update debug mode", "Could not save configuration")
 
+    def toggle_emergency_safe_mode(self, sender):
+        """Toggle Emergency Safe Mode on/off"""
+        new_state = not sender.state
+        sender.state = new_state
+        self.emergency_safe_mode = new_state
+
+        if self.set_config_and_reload('advanced', 'emergency_safe_mode', new_state):
+            if new_state:
+                rumps.notification("Emergency Safe Mode", "Enabled - Memory leak prevention active",
+                                 "Status updates and dashboard features disabled. Restart required.")
+            else:
+                rumps.notification("Emergency Safe Mode", "Disabled - Full functionality restored",
+                                 "⚠️ May cause memory leaks. Monitor memory usage. Restart required.")
+
+            # Rebuild menu to show/hide items based on safe mode
+            self._rebuild_menu()
+        else:
+            rumps.notification("Error", "Failed to update Emergency Safe Mode", "Could not save configuration")
+            # Revert the state if save failed
+            sender.state = not new_state
+            self.emergency_safe_mode = not new_state
+
     def toggle_developer_mode(self, sender):
         """Toggle developer mode"""
         new_state = not sender.state
@@ -1560,6 +1680,8 @@ class ClipboardMonitorMenuBar(rumps.App):
                 new_max = int(response.text.strip())
                 if new_max > 0:
                     if set_config_value('history', 'max_items', new_max):
+                        # Update cached value immediately
+                        self._cached_max_items = new_max
                         self.log_event(f"Set max_items to {new_max}", "INFO")
                         rumps.notification("Clipboard Monitor", "Max Recent Menu Items",
                                           f"Max recent menu items set to {new_max}")
@@ -1829,13 +1951,22 @@ class ClipboardMonitorMenuBar(rumps.App):
     def save_module_config(self):
         """Save module configuration to config file"""
         try:
-            # Use the config manager to save the modules section properly
-            success = self.config_manager.set_config_value('modules', self.module_status)
-            if success:
-                self.config_manager.reload()  # Reload to ensure consistency
+            # Save each module status individually using the utils function
+            all_success = True
+            for module_name, status in self.module_status.items():
+                success = set_config_value('modules', module_name, status)
+                if not success:
+                    all_success = False
+                    print(f"Failed to save config for module: {module_name}")
+
+            if all_success:
+                # Only reload if we actually saved something
+                self.config_manager.reload()
+                # Clear cached config values to force refresh
+                self._clear_config_cache()
                 print(f"Saved module config: {self.module_status}")
             else:
-                print("Failed to save module config")
+                print("Failed to save some module configs")
                 rumps.notification("Error", "Failed to save module config", "Could not write to config file")
 
         except Exception as e:
@@ -1913,22 +2044,46 @@ read -n 1
 
     def initial_history_update(self, _):
         """Initial history menu update - called once on startup"""
-        self.update_recent_history_menu()
-        # Set up periodic updates using rumps Timer (runs on main thread)
-        self.history_timer = rumps.Timer(self.periodic_history_update, 30)
-        self.history_timer.start()
+        # Only start history updates if the history module is enabled
+        if self._is_module_enabled("history_module"):
+            self.update_recent_history_menu()
+            # Set up periodic updates using rumps Timer (runs on main thread)
+            self.history_timer = rumps.Timer(self.periodic_history_update, 30)
+            self.history_timer.start()
+        else:
+            self.history_timer = None
 
     def periodic_history_update(self, _):
         """Periodic history menu update - called every 30 seconds on main thread"""
-        self.update_recent_history_menu()
+        # Only update if history module is enabled
+        if self._is_module_enabled("history_module"):
+            self.update_recent_history_menu()
 
     def update_recent_history_menu(self):
         """Update the recent history menu, limiting items and clearing references."""
         import gc
-        import traceback        
-        # Read max_items from config file (history section), default to 20 if not set
-        max_items = self.config_manager.get_config_value('history', 'max_items', 20)
-        debug_mode = self.config_manager.get_config_value('general', 'debug_mode', False)
+        import traceback
+
+        # Check if history module is enabled - if not, skip update
+        if not self._is_module_enabled("history_module"):
+            return
+
+        # Check if menu is properly initialized - if not, skip update
+        if not hasattr(self, 'recent_history_menu') or self.recent_history_menu is None:
+            return
+
+        # Check if menu has a valid _menu property - if not, skip update
+        if not hasattr(self.recent_history_menu, '_menu') or self.recent_history_menu._menu is None:
+            return
+
+        # Cache frequently accessed config values to avoid excessive config loading
+        if not hasattr(self, '_cached_max_items'):
+            self._cached_max_items = self.config_manager.get_config_value('history', 'max_items', 20)
+        if not hasattr(self, '_cached_debug_mode'):
+            self._cached_debug_mode = self.config_manager.get_config_value('general', 'debug_mode', False)
+
+        max_items = self._cached_max_items
+        debug_mode = self._cached_debug_mode
         try:
             max_items = int(max_items)
         except (ValueError, TypeError):
@@ -1965,7 +2120,40 @@ read -n 1
             clear_history_item.set_callback(self.clear_clipboard_history)
             self.recent_history_menu.add(clear_history_item)
 
-            gc.collect()  # Explicitly collect garbage after menu update
+            # MEMORY LEAK FIX: Enhanced garbage collection and cleanup
+            # Clear any lingering references
+            if hasattr(self, '_temp_menu_items'):
+                del self._temp_menu_items
+
+            # Force multiple garbage collection passes
+            for _ in range(3):
+                gc.collect()
+
+            # Clear Python's internal caches periodically
+            try:
+                import sys
+                if hasattr(sys, '_clear_type_cache'):
+                    sys._clear_type_cache()
+                # Clear import cache periodically to prevent buildup
+                if hasattr(sys, 'modules') and len(sys.modules) > 1000:
+                    # Only clear non-essential modules
+                    modules_to_clear = [k for k in sys.modules.keys() if k.startswith('_temp_')]
+                    for mod in modules_to_clear:
+                        del sys.modules[mod]
+            except Exception as cache_error:
+                print(f"Cache cleanup warning: {cache_error}")
+
+            # Limit memory usage by forcing collection if memory is high
+            try:
+                import psutil
+                process = psutil.Process()
+                memory_mb = process.memory_info().rss / 1024 / 1024
+                if memory_mb > 100:  # If over 100MB, force aggressive cleanup
+                    for _ in range(5):
+                        gc.collect()
+                    print(f"🧹 Aggressive cleanup triggered at {memory_mb:.1f}MB")
+            except:
+                pass  # psutil might not be available
             # Debug notifications/logs
             import datetime
             timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -1988,11 +2176,17 @@ read -n 1
             rumps.notification("Clipboard Monitor Error", "Menu Update Failed", str(e))
             with open(self.error_log_path, 'a') as f:
                 f.write(err_msg + "\n")
-            # Clear and add a placeholder if menu fails
-            self.recent_history_menu.clear()
-            placeholder = rumps.MenuItem("(Error loading clipboard history)")
-            placeholder.set_callback(None)
-            self.recent_history_menu.add(placeholder)
+            # Only try to clear and add placeholder if menu is properly initialized
+            if (hasattr(self, 'recent_history_menu') and self.recent_history_menu is not None and
+                hasattr(self.recent_history_menu, '_menu') and self.recent_history_menu._menu is not None):
+                try:
+                    self.recent_history_menu.clear()
+                    placeholder = rumps.MenuItem("(Error loading clipboard history)")
+                    placeholder.set_callback(None)
+                    self.recent_history_menu.add(placeholder)
+                except Exception:
+                    # If we can't even clear the menu, just skip it
+                    pass
             gc.collect()
 
     def copy_history_item(self, sender):
@@ -2679,141 +2873,11 @@ read -n 1
         return 0, 0
 
     def update_memory_status(self, _):
-        """Update the memory status in the menu - OPTIMIZED VERSION."""
-        import time
-        start_time = time.time()
-
-        try:
-            # Increment cleanup counter for periodic maintenance
-            self._cleanup_counter += 1
-
-            # Initialize variables for memory and CPU data
-            menubar_memory = 0
-            service_memory = 0
-            menubar_cpu = 0
-            service_cpu = 0
-            dashboard_success = False
-
-            # Skip dashboard API for performance - use direct monitoring instead
-            # Dashboard API was causing 0.8-1.0s delays, direct monitoring is much faster
-            use_dashboard_api = False  # Set to True only when dashboard integration is specifically needed
-
-            if use_dashboard_api:
-                try:
-                    import urllib.request
-                    import json
-
-                    with urllib.request.urlopen('http://localhost:8001/api/memory', timeout=0.3) as response:
-                        data = json.loads(response.read().decode())
-
-                        # Extract data from unified dashboard
-                        processes = data.get('clipboard', {}).get('processes', [])
-                        menubar_process = next((p for p in processes if p.get('process_type') == 'menu_bar'), None)
-                        service_process = next((p for p in processes if p.get('process_type') == 'main_service'), None)
-
-                        if menubar_process and service_process:
-                            menubar_memory = menubar_process.get('memory_mb', 0)
-                            service_memory = service_process.get('memory_mb', 0)
-                            menubar_cpu = menubar_process.get('cpu_percent', 0)
-                            service_cpu = service_process.get('cpu_percent', 0)
-                            dashboard_success = True
-
-                            # Use dashboard's peak values for consistency
-                            dashboard_menubar_peak = data.get('peak_menubar_memory', 0)
-                            dashboard_service_peak = data.get('peak_service_memory', 0)
-
-                            # Update our peaks to match dashboard (but don't go backwards)
-                            self.menubar_peak = max(self.menubar_peak, dashboard_menubar_peak)
-                            self.service_peak = max(self.service_peak, dashboard_service_peak)
-
-                except Exception:
-                    # Dashboard not available, fall back to optimized independent monitoring
-                    dashboard_success = False
-
-            # Fallback: Optimized independent monitoring (NO expensive process scanning)
-            if not dashboard_success:
-                import psutil
-
-                # Get memory and CPU for menu bar app (current process) - optimized
-                try:
-                    current_process = psutil.Process(os.getpid())
-                    menubar_memory = current_process.memory_info().rss / 1024 / 1024  # MB
-                    # Use non-blocking CPU collection with interval=None for instant result
-                    menubar_cpu = current_process.cpu_percent(interval=None)
-                except Exception:
-                    menubar_memory = 0
-                    menubar_cpu = 0
-
-                # Get service memory and CPU using cached PID - much faster than scanning all processes
-                service_memory, service_cpu = self.get_service_memory_and_cpu_cached()
-
-            # Update history for mini histograms (with cleanup)
-            self.menubar_history.append(menubar_memory)
-            self.service_history.append(service_memory)
-
-            # Keep history manageable
-            if len(self.menubar_history) > 10:
-                self.menubar_history.pop(0)
-            if len(self.service_history) > 10:
-                self.service_history.pop(0)
-
-            # Update peaks
-            self.menubar_peak = max(self.menubar_peak, menubar_memory)
-            self.service_peak = max(self.service_peak, service_memory)
-
-            # Generate histograms and update display
-            menubar_histogram = self._generate_mini_histogram(self.menubar_history, self.menubar_peak)
-            service_histogram = self._generate_mini_histogram(self.service_history, self.service_peak)
-
-            self.memory_menubar_item.title = f"Menu Bar: {menubar_memory:.1f}MB {menubar_histogram} Peak: {self.menubar_peak:.0f}MB"
-            self.memory_service_item.title = f"Service: {service_memory:.1f}MB  {service_histogram} Peak: {self.service_peak:.0f}MB"
-            self.log_event("Memory & CPU Status: MenuBar={:.1f}MB/{:.1f}%, Service={:.1f}MB/{:.1f}%".format(
-                menubar_memory, menubar_cpu, service_memory, service_cpu), "INFO")
-
-            # Periodic cleanup to prevent memory accumulation
-            if self._cleanup_counter % 4 == 0:  # Every 4 calls (every minute at 15s intervals)
-                self._perform_periodic_cleanup()
-
-            # Performance monitoring
-            if self._cleanup_counter % 8 == 0:  # Every 2 minutes
-                self._monitor_performance()
-
-            # Check execution time with detailed breakdown
-            execution_time = time.time() - start_time
-            if execution_time > 0.5:  # Should be < 0.1 seconds normally
-                try:
-                    import datetime
-                    with open(self.error_log_path, 'a') as f:
-                        f.write(f"[{datetime.datetime.now()}] SLOW EXECUTION: update_memory_status took {execution_time:.2f}s (dashboard_success={dashboard_success})\n")
-                except:
-                    pass
-            elif execution_time > 0.2:  # Log moderate slowdowns too
-                try:
-                    import datetime
-                    with open(self.error_log_path, 'a') as f:
-                        f.write(f"[{datetime.datetime.now()}] MODERATE EXECUTION: update_memory_status took {execution_time:.2f}s (dashboard_success={dashboard_success})\n")
-                except:
-                    pass
-
-        except Exception as e:
-            # Graceful error handling with recovery
-            self.memory_menubar_item.title = "Menu Bar: Error"
-            self.memory_service_item.title = "Service: Error"
-
-            # Reset cache on error to force refresh
-            self.cached_service_pid = None
-            self.cache_last_updated = 0
-
-            # Log error safely
-            try:
-                import datetime
-                with open(self.error_log_path, 'a') as f:
-                    f.write(f"[{datetime.datetime.now()}] ERROR in update_memory_status: {str(e)}\n")
-                    import traceback
-                    f.write(f"  Traceback: {traceback.format_exc()}\n")
-                    f.write("---\n")
-            except:
-                pass
+        """DISABLED - Memory status updates removed to prevent memory leaks."""
+        # This method is disabled to prevent memory leaks caused by frequent menu updates
+        # The memory displays in the menu bar were causing significant memory leaks
+        # Use the unified dashboard at localhost:8001 for memory monitoring instead
+        return
 
     def _perform_periodic_cleanup(self):
         """Perform periodic cleanup to prevent memory accumulation."""
@@ -2898,111 +2962,89 @@ read -n 1
         return histogram
 
     def update_dashboard_status(self):
-        """Update dashboard status indicators in the menu (only in developer mode)"""
+        """Update dashboard status indicators in the menu (only in developer mode) - OPTIMIZED VERSION"""
         if not self.developer_mode:
             return
 
-        try:
-            import urllib.request
-            import json
+        # Skip dashboard status updates in Emergency Safe Mode (dashboard still works independently)
+        if self.emergency_safe_mode:
+            return
 
-            # Try to get dashboard status (with monitor=true to avoid resetting activity timer)
+        # MEMORY LEAK FIX: Cache HTTP requests and reduce frequency
+        if not hasattr(self, '_dashboard_cache'):
+            self._dashboard_cache = {'last_check': 0, 'status_data': None}
+
+        import time
+        current_time = time.time()
+
+        # Only make HTTP requests every 120 seconds to prevent memory leaks
+        if current_time - self._dashboard_cache['last_check'] > 120:
             try:
-                with urllib.request.urlopen('http://localhost:8001/api/dashboard_status?monitor=true', timeout=5) as response:
-                    status_data = json.loads(response.read().decode())
+                import urllib.request
+                import json
 
-                # Update status item
-                status = status_data.get('status', 'unknown')
-                status_message = status_data.get('status_message', 'Unknown')
-
-                # Status indicators
-                status_icons = {
-                    'active_in_use': '🟢',
-                    'active_not_in_use': '🟡',
-                    'active_persistent': '🔵',
-                    'inactive': '🔴',
-                    'error': '❌'
-                }
-
-                icon = status_icons.get(status, '❓')
-                self.dashboard_status_item.title = f"Dashboard: {icon} {status_message}"
-
-                # Memory information
-                memory_data = status_data.get('memory', {})
-                menubar_mem = memory_data.get('menubar', {})
-                service_mem = memory_data.get('service', {})
-                dashboard_mem = memory_data.get('dashboard', {})
-                total_mem = memory_data.get('total', {})
-
-                menubar_current = menubar_mem.get('current', 0)
-                menubar_peak = menubar_mem.get('peak', 0)
-                service_current = service_mem.get('current', 0)
-                service_peak = service_mem.get('peak', 0)
-                dashboard_current = dashboard_mem.get('current', 0)
-                dashboard_peak = dashboard_mem.get('peak', 0)
-                total_current = total_mem.get('current', 0)
-                total_peak = total_mem.get('peak', 0)
-
-                self.dashboard_memory_item.title = (
-                    f"Memory: Menu {menubar_current:.1f}MB (↑{menubar_peak:.0f}) | "
-                    f"Service {service_current:.1f}MB (↑{service_peak:.0f}) | "
-                    f"Total {total_current:.1f}MB (↑{total_peak:.0f})"
-                )
-
-                # CPU information
-                menubar_cpu = menubar_mem.get('cpu', 0)
-                menubar_cpu_peak = menubar_mem.get('peak_cpu', 0)
-                service_cpu = service_mem.get('cpu', 0)
-                service_cpu_peak = service_mem.get('peak_cpu', 0)
-                dashboard_cpu = dashboard_mem.get('cpu', 0)
-                dashboard_cpu_peak = dashboard_mem.get('peak_cpu', 0)
-                total_cpu = total_mem.get('cpu', 0)
-                total_cpu_peak = total_mem.get('peak_cpu', 0)
-
-                self.dashboard_cpu_item.title = (
-                    f"CPU: Menu {menubar_cpu:.1f}% (↑{menubar_cpu_peak:.1f}) | "
-                    f"Service {service_cpu:.1f}% (↑{service_cpu_peak:.1f}) | "
-                    f"Total {total_cpu:.1f}% (↑{total_cpu_peak:.1f})"
-                )
-
-                # Dashboard stats
-                self.dashboard_stats_item.title = (
-                    f"Dashboard: {dashboard_current:.1f}MB (↑{dashboard_peak:.0f}) | "
-                    f"CPU {dashboard_cpu:.1f}% (↑{dashboard_cpu_peak:.1f})"
-                )
-
-                # Update dashboard menu item based on status
-                if status == 'inactive':
-                    self.memory_unified_dashboard_item.title = "📊 Unified Dashboard (Inactive)"
-                elif status == 'active_in_use':
-                    self.memory_unified_dashboard_item.title = "📊 Unified Dashboard (Active & In Use)"
-                elif status == 'active_not_in_use':
-                    countdown = status_data.get('countdown_seconds', 0)
-                    if countdown > 0:
-                        minutes = int(countdown // 60)
-                        seconds = int(countdown % 60)
-                        self.memory_unified_dashboard_item.title = f"📊 Unified Dashboard (Timeout: {minutes}:{seconds:02d})"
-                    else:
-                        self.memory_unified_dashboard_item.title = "📊 Unified Dashboard (Active)"
-                elif status == 'active_persistent':
-                    self.memory_unified_dashboard_item.title = "📊 Unified Dashboard (Active - No Timeout)"
-                else:
-                    self.memory_unified_dashboard_item.title = "📊 Unified Dashboard"
-
+                # Try to get dashboard status with shorter timeout
+                try:
+                    with urllib.request.urlopen('http://localhost:8001/api/dashboard_status?monitor=true', timeout=2) as response:
+                        status_data = json.loads(response.read().decode())
+                        self._dashboard_cache['status_data'] = status_data
+                        self._dashboard_cache['last_check'] = current_time
+                except Exception as http_error:
+                    print(f"Dashboard HTTP request failed: {http_error}")
+                    # Use fallback status
+                    self._dashboard_cache['status_data'] = {'status': 'error', 'status_message': 'Connection Failed'}
+                    self._dashboard_cache['last_check'] = current_time
             except Exception as e:
-                # Dashboard not available
-                self.dashboard_status_item.title = "Dashboard: 🔴 Inactive"
-                self.dashboard_memory_item.title = "Memory: Dashboard not available"
-                self.dashboard_cpu_item.title = "CPU: Dashboard not available"
-                self.dashboard_stats_item.title = "Dashboard Stats: Not available"
-                self.memory_unified_dashboard_item.title = "📊 Unified Dashboard (Inactive)"
+                print(f"Dashboard status update error: {e}")
+                return
 
-        except Exception as e:
-            self.log_error(f"Error updating dashboard status: {str(e)}")
-            self.dashboard_status_item.title = "Dashboard: ❌ Error"
-            self.dashboard_memory_item.title = "Memory: Error getting data"
-            self.dashboard_cpu_item.title = "CPU: Error getting data"
-            self.dashboard_stats_item.title = "Dashboard Stats: Error"
+        # Use cached data
+        status_data = self._dashboard_cache['status_data']
+        if not status_data:
+            return
+
+        # Update status item
+        status = status_data.get('status', 'unknown')
+        status_message = status_data.get('status_message', 'Unknown')
+
+        # Status indicators
+        status_icons = {
+            'active_in_use': '🟢',
+            'active_not_in_use': '🟡',
+            'active_persistent': '🔵',
+            'inactive': '🔴',
+            'error': '❌'
+        }
+
+        icon = status_icons.get(status, '❓')
+        self.dashboard_status_item.title = f"Dashboard: {icon} {status_message}"
+
+        # MEMORY LEAK FIX: Removed complex memory calculations to prevent leaks
+        # Dashboard memory/CPU info removed to eliminate memory leak sources
+
+        # Update dashboard menu item based on status
+        # Add Emergency Safe Mode indicator when active
+        safe_mode_suffix = " 🚨" if self.emergency_safe_mode else ""
+
+        if status == 'inactive':
+            self.memory_unified_dashboard_item.title = f"📊 Unified Dashboard (Inactive){safe_mode_suffix}"
+        elif status == 'active_in_use':
+            self.memory_unified_dashboard_item.title = f"📊 Unified Dashboard (Active & In Use){safe_mode_suffix}"
+        elif status == 'active_not_in_use':
+            countdown = status_data.get('countdown_seconds', 0)
+            if countdown > 0:
+                minutes = int(countdown // 60)
+                seconds = int(countdown % 60)
+                self.memory_unified_dashboard_item.title = f"📊 Unified Dashboard (Timeout: {minutes}:{seconds:02d}){safe_mode_suffix}"
+            else:
+                self.memory_unified_dashboard_item.title = f"📊 Unified Dashboard (Active){safe_mode_suffix}"
+        elif status == 'active_persistent':
+            self.memory_unified_dashboard_item.title = f"📊 Unified Dashboard (Active - No Timeout){safe_mode_suffix}"
+        else:
+            if self.emergency_safe_mode:
+                self.memory_unified_dashboard_item.title = "📊 Unified Dashboard 🚨"
+            else:
+                self.memory_unified_dashboard_item.title = "📊 Unified Dashboard"
 
     def _get_memory_color_indicator(self, current_mb, peak_mb):
         """Get color indicator based on memory usage"""

@@ -42,6 +42,8 @@ class ConfigManager:
             # Use the module-level CONFIG_PATH
             config_path = CONFIG_PATH
         self.config_path = str(config_path)
+        self._last_reload_time = 0  # Track last reload time to prevent excessive reloading
+        self._instance_id = id(self)  # Track instance for debugging
         self.config = self._load_config()
     
     def _load_config(self):
@@ -73,7 +75,9 @@ class ConfigManager:
                         # Add new section if it doesn't exist in defaults
                         config[section] = settings
                 
-                logger.info(f"Loaded configuration from {self.config_path}")
+                # Add instance ID to track multiple instances
+                instance_id = getattr(self, '_instance_id', id(self))
+                logger.info(f"Loaded configuration from {self.config_path} (instance: {instance_id})")
             else:
                 logger.info("No config.json found, using defaults")
         except (OSError, json.JSONDecodeError) as e:
@@ -152,10 +156,27 @@ class ConfigManager:
     def reload(self):
         """
         Reload configuration from file.
-        
+        Rate limited to prevent excessive reloading.
+
         Returns:
             dict: Reloaded configuration
         """
+        import time
+        current_time = time.time()
+
+        # Rate limit: only reload if at least 1 second has passed since last reload
+        if current_time - self._last_reload_time < 1.0:
+            logger.debug(f"Skipping config reload - too frequent (last reload {current_time - self._last_reload_time:.2f}s ago)")
+            return self.config
+
+        self._last_reload_time = current_time
+
+        # Debug logging to track frequent reloads
+        if logger.level <= 10:  # DEBUG level
+            import traceback
+            stack_trace = ''.join(traceback.format_stack()[-3:-1])  # Get calling context
+            logger.debug(f"Config reload called from:\n{stack_trace}")
+
         self.config = self._load_config()
         return self.config
     

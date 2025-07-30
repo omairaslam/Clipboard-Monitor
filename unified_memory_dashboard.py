@@ -970,7 +970,8 @@ class UnifiedMemoryDashboard:
                         <!-- Chart Status -->
                         <div id="chart-status" style="font-size: 11px; color: #666;">
                             <span id="chart-mode-indicator">Real-time</span> •
-                            <span id="chart-points-count">-- pts</span>
+                            <span id="chart-points-count">-- pts</span> •
+                            <span id="chart-last-update">--</span>
                         </div>
 
                         <!-- Legend -->
@@ -1512,7 +1513,8 @@ class UnifiedMemoryDashboard:
 
         async function fetchMemoryData() {
             try {
-                const response = await fetch('/api/memory');
+                // Get current status data for dashboard stats
+                const response = await fetch('/api/current');
                 if (!response.ok) {
                     throw new Error(`Failed to fetch data: ${response.statusText}`);
                 }
@@ -1586,12 +1588,19 @@ class UnifiedMemoryDashboard:
         
         function updateDashboard(data) {
             try {
-                // Use the pre-processed data passed from fetchMemoryData
-                const menubarMemory = data.menubar_memory || 0;
-                const serviceMemory = data.service_memory || 0;
-                const menubarCpu = data.menubar_cpu || 0;
-                const serviceCpu = data.service_cpu || 0;
-                const totalMemory = data.total_memory || 0;
+                // Extract data from /api/current response structure
+                const clipboard = data.clipboard || {};
+                const processes = clipboard.processes || [];
+
+                // Find menu bar and service processes
+                const menuBarProcess = processes.find(p => p.process_type === 'menu_bar') || {};
+                const serviceProcess = processes.find(p => p.process_type === 'main_service') || {};
+
+                const menubarMemory = menuBarProcess.memory_mb || 0;
+                const serviceMemory = serviceProcess.memory_mb || 0;
+                const menubarCpu = menuBarProcess.cpu_percent || 0;
+                const serviceCpu = serviceProcess.cpu_percent || 0;
+                const totalMemory = clipboard.total_memory_mb || 0;
 
                 // Use server-provided peak values
                 const peakMenubarMemory = data.peak_menubar_memory || 0;
@@ -1600,7 +1609,15 @@ class UnifiedMemoryDashboard:
                 const peakMenubarCpu = data.peak_menubar_cpu || 0;
                 const peakServiceCpu = data.peak_service_cpu || 0;
                 const peakTotalCpu = data.peak_total_cpu || 0;
-                const sessionStartTime = data.session_start_time ? new Date(data.session_start_time) : new Date();
+                const sessionStartTime = data.session?.start_time ? new Date(data.session.start_time) : new Date();
+
+                // Add missing fields for legacy chart compatibility
+                data.menubar_memory = menubarMemory;
+                data.service_memory = serviceMemory;
+                data.menubar_cpu = menubarCpu;
+                data.service_cpu = serviceCpu;
+                data.total_memory = totalMemory;
+                data.timestamp = data.timestamp || new Date().toISOString();
 
                 // Helper function to safely update element
                 function safeUpdateElement(id, value) {
@@ -1632,25 +1649,24 @@ class UnifiedMemoryDashboard:
                 safeUpdateElement('header-menubar-cpu-peak', calcPeakMenubarCpu.toFixed(1) + '%');
                 safeUpdateElement('header-service-cpu-peak', calcPeakServiceCpu.toFixed(1) + '%');
 
-                // Update detailed process metrics from API data
-                const processes = (data.clipboard && data.clipboard.processes) ? data.clipboard.processes : [];
-                const menubarProcess = processes.find(p => p.process_type === 'menu_bar');
-                const serviceProcess = processes.find(p => p.process_type === 'main_service');
+                // Update detailed process metrics from API data (reuse existing processes variable)
+                const detailedMenubarProcess = processes.find(p => p.process_type === 'menu_bar');
+                const detailedServiceProcess = processes.find(p => p.process_type === 'main_service');
 
                 // Update Menu Bar detailed metrics
-                if (menubarProcess) {
-                    safeUpdateElement('header-menubar-threads', menubarProcess.threads || '--');
-                    safeUpdateElement('header-menubar-handles', menubarProcess.handles || '--');
-                    safeUpdateElement('header-menubar-uptime', menubarProcess.uptime || '--');
-                    safeUpdateElement('header-menubar-restarts', menubarProcess.restarts || '0');
+                if (detailedMenubarProcess) {
+                    safeUpdateElement('header-menubar-threads', detailedMenubarProcess.threads || '--');
+                    safeUpdateElement('header-menubar-handles', detailedMenubarProcess.handles || '--');
+                    safeUpdateElement('header-menubar-uptime', detailedMenubarProcess.uptime || '--');
+                    safeUpdateElement('header-menubar-restarts', detailedMenubarProcess.restarts || '0');
                 }
 
                 // Update Service detailed metrics
-                if (serviceProcess) {
-                    safeUpdateElement('header-service-threads', serviceProcess.threads || '--');
-                    safeUpdateElement('header-service-handles', serviceProcess.handles || '--');
-                    safeUpdateElement('header-service-uptime', serviceProcess.uptime || '--');
-                    safeUpdateElement('header-service-restarts', serviceProcess.restarts || '0');
+                if (detailedServiceProcess) {
+                    safeUpdateElement('header-service-threads', detailedServiceProcess.threads || '--');
+                    safeUpdateElement('header-service-handles', detailedServiceProcess.handles || '--');
+                    safeUpdateElement('header-service-uptime', detailedServiceProcess.uptime || '--');
+                    safeUpdateElement('header-service-restarts', detailedServiceProcess.restarts || '0');
                 }
 
                 // Update analytics metrics from API data
@@ -2525,15 +2541,18 @@ class UnifiedMemoryDashboard:
             async refreshHistoricalData() {
                 if (this.mode !== 'historical') return;
 
+                // Get mode indicator element once for reuse
+                const chartModeIndicator = document.getElementById('chart-mode-indicator');
+
                 try {
-                    // Show subtle loading indicator
-                    const chartTitle = document.getElementById('chart-title');
-                    const originalTitle = chartTitle ? chartTitle.textContent : '';
-                    if (chartTitle && !originalTitle.includes('🔄')) {
-                        chartTitle.textContent = originalTitle + ' 🔄';
+                    // Show subtle loading indicator in mode indicator
+                    const originalText = chartModeIndicator ? chartModeIndicator.textContent : '';
+                    if (chartModeIndicator && !originalText.includes('🔄')) {
+                        chartModeIndicator.textContent = originalText.replace('Auto-refresh: 5s', 'Refreshing... 🔄');
                     }
 
-                    const response = await fetch(`/api/historical?range=${this.currentTimeRange}&resolution=${this.currentResolution}`);
+                    // Use correct API endpoint for historical chart data
+                    const response = await fetch(`/api/historical-chart?hours=${this.currentTimeRange}&resolution=${this.currentResolution}`);
                     if (!response.ok) {
                         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                     }
@@ -2543,16 +2562,27 @@ class UnifiedMemoryDashboard:
                     this.historicalData = data.points || [];
                     this.updateChart();
 
-                    // Remove loading indicator
-                    if (chartTitle && chartTitle.textContent.includes('🔄')) {
-                        chartTitle.textContent = originalTitle;
+                    // Restore auto-refresh indicator
+                    if (chartModeIndicator && chartModeIndicator.textContent.includes('🔄')) {
+                        const rangeText = this.currentTimeRange === 'all' ? 'Since Start' :
+                                         this.currentTimeRange === '1' ? 'Last Hour' :
+                                         this.currentTimeRange === '6' ? 'Last 6 Hours' :
+                                         this.currentTimeRange === '24' ? 'Last 24 Hours' :
+                                         this.currentTimeRange === '168' ? 'Last 7 Days' :
+                                         `Last ${this.currentTimeRange} Hours`;
+                        chartModeIndicator.textContent = `Historical (${rangeText}) • Auto-refresh: 5s`;
                     }
                 } catch (error) {
                     console.error('Error refreshing historical data:', error);
-                    // Remove loading indicator on error
-                    const chartTitle = document.getElementById('chart-title');
-                    if (chartTitle && chartTitle.textContent.includes('🔄')) {
-                        chartTitle.textContent = chartTitle.textContent.replace(' 🔄', '');
+                    // Restore auto-refresh indicator on error
+                    if (chartModeIndicator && chartModeIndicator.textContent.includes('🔄')) {
+                        const rangeText = this.currentTimeRange === 'all' ? 'Since Start' :
+                                         this.currentTimeRange === '1' ? 'Last Hour' :
+                                         this.currentTimeRange === '6' ? 'Last 6 Hours' :
+                                         this.currentTimeRange === '24' ? 'Last 24 Hours' :
+                                         this.currentTimeRange === '168' ? 'Last 7 Days' :
+                                         `Last ${this.currentTimeRange} Hours`;
+                        chartModeIndicator.textContent = `Historical (${rangeText}) • Auto-refresh: 5s`;
                     }
                     // Don't show alert for auto-refresh errors, just log them
                 }
@@ -2612,6 +2642,13 @@ class UnifiedMemoryDashboard:
                 if (chartPointsCount) {
                     chartPointsCount.textContent = (data?.length || 0) + ' pts';
                 }
+
+                // Update last update timestamp
+                const chartLastUpdate = document.getElementById('chart-last-update');
+                if (chartLastUpdate) {
+                    const now = new Date();
+                    chartLastUpdate.textContent = 'Updated: ' + now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'});
+                }
             }
 
             formatHistoricalTime(date) {
@@ -2653,7 +2690,7 @@ class UnifiedMemoryDashboard:
                                      `Last ${this.currentTimeRange} Hours`;
 
                     if (chartTitle) chartTitle.textContent = `Historical Memory Usage (${rangeText})`;
-                    if (chartModeIndicator) chartModeIndicator.textContent = `Historical (${rangeText})`;
+                    if (chartModeIndicator) chartModeIndicator.textContent = `Historical (${rangeText}) • Auto-refresh: 5s`;
                 }
             }
         }
@@ -2794,12 +2831,12 @@ class UnifiedMemoryDashboard:
             loadAnalysisData();
         }, 10000);
 
-        // Auto-refresh historical data every 10 seconds when in historical mode
+        // Auto-refresh historical data every 5 seconds when in historical mode (faster updates)
         setInterval(() => {
             if (chartManager && chartManager.mode === 'historical') {
                 chartManager.refreshHistoricalData();
             }
-        }, 10000);
+        }, 5000);
 
         // Initialize chart manager after chart is ready
         setTimeout(async () => {

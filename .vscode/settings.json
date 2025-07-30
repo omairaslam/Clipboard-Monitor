@@ -34,6 +34,12 @@
             "color": "default"
         },
         {
+            "label": "🛑 Stop All Services",
+            "task": "Stop All Services",
+            "tooltip": "Stop both the main service and menu bar app",
+            "color": "error"
+        },
+        {
             "label": "🔄 Clear & Restart All",
             "task": "Clear Logs & Restart All Services",
             "tooltip": "Clear all logs and restart both services",
@@ -81,7 +87,7 @@
             "label": "⚡",
             "task": "⚡ Quick Memory Check (5min)",
             "tooltip": "Quick 5-minute external memory check (safe, non-intrusive)",
-            "color": "success"
+            "color": "default"
         },
 
         {
@@ -94,7 +100,7 @@
             "label": "📈",
             "task": "📈 Live Memory Analysis",
             "tooltip": "Start live memory analysis and monitoring",
-            "color": "info"
+            "color": "default"
         },
 
         {
@@ -114,9 +120,16 @@
             "task": "🔍 List Memory Backups",
             "tooltip": "List all available memory debugging backup files",
             "color": "default"
+        },
+        {
+            "label": "📊 Memory Status",
+            "task": "📊 Check Memory Status",
+            "tooltip": "Check current memory usage of both main service and menu bar app (Emergency Safe Mode compatible)",
+            "color": "default"
         }
     ],
     "trae.tab.enableRename": true,
     "trae.tab.enableAutoImport": true,
-    "trae.tab.cue": true
+    "trae.tab.cue": true,
+    "terminal.integrated.fontFamily": "MesloLGS NF"
 }

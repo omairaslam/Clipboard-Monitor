@@ -51,12 +51,30 @@
             "label": "Stop All Services",
             "type": "shell",
             "command": "./stop_services.sh",
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
             "problemMatcher": []
         },
         {
             "label": "Check Services Status",
             "type": "shell",
             "command": "./status_services.sh",
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
             "problemMatcher": []
         },
         {
@@ -70,12 +88,30 @@
             "label": "Clear All Logs",
             "type": "shell",
             "command": "./clear_logs.sh",
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
             "problemMatcher": []
         },
         {
             "label": "Clear Logs & Restart All Services",
             "type": "shell",
             "command": "./clear_logs.sh && ./restart_services.sh",
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
             "problemMatcher": []
         },
         {
@@ -315,8 +351,6 @@
                 "isDefault": false
             }
         },
-
-
         {
             "label": "🗑️ Clear Memory Debug Log",
             "type": "shell",
@@ -381,7 +415,6 @@
                 "isDefault": false
             }
         },
-
         {
             "label": "🔬 Memory Leak Analyzer",
             "type": "shell",
@@ -414,7 +447,6 @@
                 "isDefault": false
             }
         },
-
         {
             "label": "📋 External Monitoring Guide",
             "type": "shell",
@@ -457,6 +489,23 @@
                 "panel": "new",
                 "focus": true,
                 "clear": true
+            },
+            "group": {
+                "kind": "test",
+                "isDefault": false
+            }
+        },
+        {
+            "label": "📊 Check Memory Status",
+            "type": "shell",
+            "command": "python3 check_memory_status.py",
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "new",
+                "focus": true,
+                "clear": true,
+                "echo": true
             },
             "group": {
                 "kind": "test",
