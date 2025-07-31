@@ -1624,9 +1624,8 @@ class UnifiedMemoryDashboard:
                     const element = document.getElementById(id);
                     if (element) {
                         element.textContent = value;
-                    } else {
-                        console.warn('Element not found:', id);
                     }
+                    // Silently ignore missing elements - they're optional UI components
                 }
 
                 // Update header memory metrics - Enhanced with all new metrics
