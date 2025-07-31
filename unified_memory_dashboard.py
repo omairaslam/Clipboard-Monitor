@@ -987,7 +987,7 @@ class UnifiedMemoryDashboard:
                         </div>
                     </div>
                 </div>
-                <div class="chart-wrapper" style="height: 300px;">
+                <div class="chart-wrapper" style="height: 507px;">
                     <canvas id="memoryChart"></canvas>
                 </div>
             </div>
@@ -1044,7 +1044,7 @@ class UnifiedMemoryDashboard:
                         </div>
                     </div>
                 </div>
-                <div class="chart-wrapper" style="height: 300px;">
+                <div class="chart-wrapper" style="height: 507px;">
                     <canvas id="cpuChart"></canvas>
                 </div>
             </div>
