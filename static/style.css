@@ -1,0 +1,47 @@
+/* Extracted from inline <style> in unified_memory_dashboard.py */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #333;
+    min-height: 100vh;
+}
+.container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+.header .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.metric { background: white; border: 1px solid #e0e0e0; border-radius: 6px; padding: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.04); }
+.metric .value { font-size: 18px; font-weight: 600; color: #2c3e50; }
+.metric .label { font-size: 12px; color: #666; }
+.card { background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 15px; margin-bottom: 12px; border: 1px solid #e0e0e0; }
+.controls { display: flex; align-items: center; gap: 8px; }
+.controls select, .controls button, .controls input[type="range"] { padding: 6px 10px; border-radius: 6px; border: 1px solid #ddd; background: white; color: #333; }
+
+/* Toasts */
+#toast-container { position: fixed; top: 16px; right: 16px; z-index: 9999; }
+.toast { background: rgba(0,0,0,0.8); color: white; padding: 10px 12px; border-radius: 6px; margin-bottom: 8px; font-size: 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.25); }
+.toast.success { background: #2ecc71; }
+.toast.error { background: #e74c3c; }
+
+/* Tabs */
+.tabs { display: flex; gap: 8px; margin: 12px 0; }
+.tab { padding: 8px 12px; background: white; border: 1px solid #e0e0e0; border-radius: 6px; cursor: pointer; user-select: none; }
+.tab.active { background: linear-gradient(45deg, #3498db, #2980b9); color: white; }
+.tab:not(.active):hover { background: inherit; }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+/* Processes */
+.process-list { max-height: 400px; overflow-y: auto; min-height: 200px; }
+.process-table { width: 100%; border-collapse: collapse; min-width: 600px; }
+.process-table th, .process-table td { padding: 8px; border-bottom: 1px solid #eee; text-align: left; }
+.process-table th { background: #f8f9fa; }
+#processes-tab { position: relative; }
+#processes-tab.active { display: block !important; min-height: 400px !important; width: 100% !important; position: relative; overflow: visible; }
+#processes-tab .card { min-height: 350px !important; width: 100% !important; display: block; position: relative; padding: 20px !important; }
+.process-table td.process-memory, .process-table td.process-cpu { text-align: right; }
+
+/* Sparkline */
+.spark-cell { width: 140px; display: inline-block; }
+.sparkline { width: 140px; height: 28px; display: block; border: 1px solid #eee; background: #fafafa; }
+.cell-inner { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+.cell-inner .value { min-width: 70px; text-align: right; font-variant-numeric: tabular-nums; }
+
