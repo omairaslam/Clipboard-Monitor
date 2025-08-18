@@ -526,6 +526,10 @@ class UnifiedMemoryDashboard:
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style></style>
         <link rel="stylesheet" href="/static/style.css">
+        <script type="module" src="/static/js/app-core.js"></script>
+        <script type="module" src="/static/js/charts/hybrid-memory.js"></script>
+        <script type="module" src="/static/js/charts/cpu-chart.js"></script>
+        <script type="module" src="/static/js/dashboard.js"></script>
 
 </head>
 <body>
@@ -1204,6 +1208,13 @@ class UnifiedMemoryDashboard:
             const sel = document.getElementById('analysisTimeRange');
             const saved = localStorage.getItem('analysisTimeRange');
             if (sel && saved) sel.value = saved;
+            // if modules provided chart manager, avoid double init
+            if (!window.chartManager) {
+                try { if (typeof UnifiedMemoryChart === 'function') { window.chartManager = new UnifiedMemoryChart(); } } catch {}
+            }
+            if (!window.cpuChartManager) {
+                try { if (typeof SimpleCPUChart === 'function') { window.cpuChartManager = new SimpleCPUChart(); } } catch {}
+            }
         });
 
         // Toast helpers (global)
@@ -1554,6 +1565,8 @@ class UnifiedMemoryDashboard:
                         statusLight.style.background = '#f44336';
                         statusText.textContent = 'Disconnected';
                         statusText.style.color = '#f44336';
+            // expose to modules
+            window.updateDashboard = updateDashboard;
                     }
                     isConnected = false;
                 }
@@ -3531,7 +3544,7 @@ class UnifiedMemoryDashboard:
         let globalSessionStartTime = null;
 
         // Initialize Unified Chart Manager
-        const chartManager = new UnifiedMemoryChart();
+        const chartManager = window.chartManager || new UnifiedMemoryChart(); window.chartManager = chartManager;
 
         // Simple CPU Chart Manager
         class SimpleCPUChart {
