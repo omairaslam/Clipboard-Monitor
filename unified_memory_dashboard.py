@@ -785,24 +785,23 @@ class UnifiedMemoryDashboard:
             border-collapse: collapse;
             min-width: 600px; /* Ensure minimum width */
         }
-        /* Fix for processes tab layout - FORCE DIMENSIONS */
+        /* Processes tab layout: only apply dimensions when active */
         #processes-tab {
-            min-height: 400px !important;
-            width: 100% !important;
-            display: block !important;
-            position: relative !important;
-            overflow: visible !important;
+            /* allow default .tab-content { display:none } when not active */
+            position: relative;
         }
         #processes-tab.active {
             display: block !important;
             min-height: 400px !important;
             width: 100% !important;
+            position: relative;
+            overflow: visible;
         }
         #processes-tab .card {
             min-height: 350px !important;
             width: 100% !important;
-            display: block !important;
-            position: relative !important;
+            display: block;
+            position: relative;
             padding: 20px !important;
         }
         .process-table th {
@@ -1933,6 +1932,7 @@ class UnifiedMemoryDashboard:
                     // If clipboard data is missing, use simulated data for demonstration
                     updateDashboard(generateSimulatedData());
                 }
+                return true;
             } catch (error) {
                 console.error('Error fetching memory data:', error);
                 updateDashboard(generateSimulatedData()); // Fallback to simulated data
@@ -1947,6 +1947,7 @@ class UnifiedMemoryDashboard:
                     }
                     isConnected = false;
                 }
+                return false;
             }
         }
 
@@ -3194,7 +3195,7 @@ class UnifiedMemoryDashboard:
             }
         }
 
-        // Unified Memory Chart Manager Class - Phase 1 Implementation
+        // Unified Memory Chart Manager Class - Phase 2 (in progress)
         class UnifiedMemoryChart {
             constructor() {
                 this.mode = 'live'; // 'live' or 'historical'
@@ -3203,12 +3204,12 @@ class UnifiedMemoryDashboard:
 
                 // Flexible live view ranges (5m to 4h)
                 this.liveRanges = {
-                    '5m': { minutes: 5, points: 300, label: '5 Minutes' },      // 5min * 60sec = 300 points
-                    '15m': { minutes: 15, points: 900, label: '15 Minutes' },   // 15min * 60sec = 900 points
-                    '30m': { minutes: 30, points: 1800, label: '30 Minutes' },  // 30min * 60sec = 1800 points
-                    '1h': { minutes: 60, points: 3600, label: '1 Hour' },       // 1h * 60sec = 3600 points
-                    '2h': { minutes: 120, points: 7200, label: '2 Hours' },     // 2h * 60sec = 7200 points
-                    '4h': { minutes: 240, points: 14400, label: '4 Hours' }     // 4h * 60sec = 14400 points
+                    '5m': { minutes: 5, points: 300, label: '5 Minutes' },
+                    '15m': { minutes: 15, points: 900, label: '15 Minutes' },
+                    '30m': { minutes: 30, points: 1800, label: '30 Minutes' },
+                    '1h': { minutes: 60, points: 3600, label: '1 Hour' },
+                    '2h': { minutes: 120, points: 7200, label: '2 Hours' },
+                    '4h': { minutes: 240, points: 14400, label: '4 Hours' }
                 };
 
                 this.currentLiveRange = '5m'; // Default to 5 minutes
@@ -3219,19 +3220,107 @@ class UnifiedMemoryDashboard:
                 // Performance optimization
                 this.updateThrottleTimer = null;
                 this.lastUpdateTime = 0;
+
+                // Live polling management
+                this.livePollTimer = null;
+                this.livePollIntervalMs = 2000;
+                this.livePollFailureCount = 0;
             }
 
             async initialize() {
                 if (this.isInitialized) return;
 
-                // No legacy chart to destroy - using unified chart manager
+                // Restore persisted state (if any)
+                try {
+                    const savedMode = localStorage.getItem('umc_mode');
+                    if (savedMode === 'live' || savedMode === 'historical') {
+                        this.mode = savedMode;
+                    }
+                    const savedRange = localStorage.getItem('umc_live_range');
+                    if (savedRange && this.liveRanges[savedRange]) {
+                        this.currentLiveRange = savedRange;
+                        const liveSelect = document.getElementById('live-range-select');
+                        if (liveSelect) liveSelect.value = savedRange;
+                    }
+                    const savedTimeRange = localStorage.getItem('umc_time_range');
+                    if (savedTimeRange && ['1','6','24','168','all'].includes(savedTimeRange)) {
+                        this.currentTimeRange = savedTimeRange;
+                        const histSelect = document.getElementById('historical-range');
+                        if (histSelect) histSelect.value = savedTimeRange;
+                    }
+                    const savedRes = localStorage.getItem('umc_resolution');
+                    if (savedRes) {
+                        this.currentResolution = savedRes;
+                        const resSelect = document.getElementById('resolution-select');
+                        if (resSelect) resSelect.value = savedRes;
+                    }
+                } catch (e) {
+                    console.warn('Unable to restore persisted chart settings:', e);
+                }
 
-                // Load recent data for initial live view
-                await this.loadInitialLiveData();
+                // Initialize according to mode
+                if (this.mode === 'historical') {
+                    await this.switchToHistoricalMode(this.currentTimeRange);
+                    this.stopLivePolling();
+                } else {
+                    await this.loadInitialLiveData();
+                    this.startLivePolling();
+                }
+
                 this.updateUI();
                 this.isInitialized = true;
+                console.log(`UnifiedMemoryChart initialized (${this.mode}) with ${this.currentLiveRange} live view`);
+            }
 
-                console.log(`UnifiedMemoryChart initialized with ${this.currentLiveRange} live view`);
+            // Phase 2: internalize live polling with retry/backoff
+            startLivePolling() {
+                this.stopLivePolling();
+                const tick = async () => {
+                    const ok = await fetchMemoryData();
+                    if (ok) {
+                        if (this.livePollFailureCount > 0) {
+                            this.livePollFailureCount = 0;
+                            if (this.livePollIntervalMs !== 2000) {
+                                this.setLivePollInterval(2000);
+                            }
+                        }
+                    } else {
+                        this.livePollFailureCount += 1;
+                        // backoff: 2s -> 5s -> 10s
+                        let next = this.livePollIntervalMs;
+                        if (this.livePollFailureCount >= 3 && this.livePollIntervalMs < 5000) next = 5000;
+                        if (this.livePollFailureCount >= 6 && this.livePollIntervalMs < 10000) next = 10000;
+                        if (next !== this.livePollIntervalMs) {
+                            this.setLivePollInterval(next);
+                        }
+                    }
+                };
+                // Immediate tick, then interval
+                tick();
+                this.livePollTimer = setInterval(tick, this.livePollIntervalMs);
+            }
+
+            stopLivePolling() {
+                if (this.livePollTimer) {
+                    clearInterval(this.livePollTimer);
+                    this.livePollTimer = null;
+                }
+            }
+
+            setLivePollInterval(ms) {
+                this.livePollIntervalMs = ms;
+                if (this.livePollTimer) {
+                    clearInterval(this.livePollTimer);
+                    this.livePollTimer = setInterval(async () => {
+                        const ok = await fetchMemoryData();
+                        if (!ok) {
+                            // keep failure count advancing; interval already adjusted
+                            this.livePollFailureCount += 1;
+                        } else {
+                            this.livePollFailureCount = 0;
+                        }
+                    }, this.livePollIntervalMs);
+                }
             }
 
             async loadInitialLiveData() {
@@ -3540,9 +3629,12 @@ class UnifiedMemoryDashboard:
 
             switchToLiveMode() {
                 this.mode = 'live';
+                // Persist
+                try { localStorage.setItem('umc_mode', 'live'); } catch {}
+                this.stopLivePolling();
+                this.startLivePolling();
                 this.updateChart(true); // Animate transition
                 this.updateUI();
-
                 console.log(`Switched to live mode: ${this.liveRanges[this.currentLiveRange].label}`);
             }
 
@@ -3606,6 +3698,7 @@ class UnifiedMemoryDashboard:
 
                 console.log(`Changing resolution to: ${resolution}`);
                 this.currentResolution = resolution;
+                try { localStorage.setItem('umc_resolution', resolution); } catch {}
 
                 // Show loading indicator
                 const chartTitle = document.getElementById('chart-title');
@@ -3861,12 +3954,14 @@ class UnifiedMemoryDashboard:
         // New helper function for live range changes
         function handleLiveRangeChange(selectElement) {
             const newRange = selectElement.value;
+            try { localStorage.setItem('umc_live_range', newRange); } catch {}
             chartManager.switchLiveRange(newRange);
         }
 
         // Helper function to handle historical range selection changes
         function handleRangeChange(selectElement) {
             const selectedRange = selectElement.value;
+            try { localStorage.setItem('umc_time_range', String(selectedRange)); } catch {}
             if (selectedRange === 'all') {
                 const confirmed = confirm('Loading complete history since service start.\\nThis may take a moment and will use 1-minute resolution for performance.\\nContinue?');
                 if (confirmed) {
@@ -3961,8 +4056,8 @@ class UnifiedMemoryDashboard:
 
         const cpuChartManager = new SimpleCPUChart();
 
-        // Start memory data polling every 2 seconds
-        setInterval(fetchMemoryData, 2000);
+        // Start memory data polling is now managed by UnifiedMemoryChart (Phase 2)
+        // setInterval(fetchMemoryData, 2000);
 
         // Fetch additional data every 10 seconds
         setInterval(() => {
@@ -4000,8 +4095,7 @@ class UnifiedMemoryDashboard:
             await chartManager.initialize();
         }, 1000);
 
-        // Initial fetch
-        fetchMemoryData();
+        // Initial fetch (memory handled by chart manager on initialize)
         fetchSystemData();
         fetchProcessData();
         loadAnalysisData();
