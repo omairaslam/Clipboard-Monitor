@@ -46,3 +46,11 @@ export function safeUpdateElement(id, value) {
   if (el) el.textContent = value;
 }
 
+// Also attach to window so legacy inline handlers keep working
+if (typeof window !== 'undefined') {
+  window.showToast = showToast;
+  window.showTooltip = showTooltip;
+  window.hideTooltip = hideTooltip;
+  window.safeUpdateElement = safeUpdateElement;
+}
+

@@ -1217,80 +1217,7 @@ class UnifiedMemoryDashboard:
             }
         });
 
-        // Toast helpers (global)
-        function showToast(message, type = 'info', timeout = 2500) {
-            const container = document.getElementById('toast-container');
-            if (!container) return;
-            const toast = document.createElement('div');
-            toast.className = `toast ${type}`;
-            toast.textContent = message;
-            container.appendChild(toast);
-            setTimeout(() => { toast.remove(); }, timeout);
-        }
-
-        let currentTooltip = null;
-
-        // Tooltip functions for bubble help
-        function showTooltip(element, text) {
-            // Remove any existing tooltip
-            hideTooltip();
-
-            // Create tooltip element
-            const tooltip = document.createElement('div');
-            tooltip.className = 'tooltip';
-            tooltip.textContent = text;
-            tooltip.style.cssText = `
-                position: absolute;
-                background: #333;
-                color: white;
-                padding: 6px 8px;
-                border-radius: 4px;
-                font-size: 10px;
-                white-space: nowrap;
-                z-index: 1000;
-                opacity: 0;
-                pointer-events: none;
-                transition: opacity 0.2s;
-                max-width: 250px;
-                white-space: normal;
-                line-height: 1.3;
-            `;
-
-            // Position tooltip
-            document.body.appendChild(tooltip);
-            const rect = element.getBoundingClientRect();
-            const tooltipRect = tooltip.getBoundingClientRect();
-
-            let left = rect.left + (rect.width / 2) - (tooltipRect.width / 2);
-            let top = rect.top - tooltipRect.height - 5;
-
-            // Adjust if tooltip goes off screen
-            if (left < 5) left = 5;
-            if (left + tooltipRect.width > window.innerWidth - 5) {
-                left = window.innerWidth - tooltipRect.width - 5;
-            }
-            if (top < 5) {
-                top = rect.bottom + 5;
-            }
-
-            tooltip.style.left = left + 'px';
-            tooltip.style.top = top + 'px';
-
-            // Show tooltip
-            setTimeout(() => {
-                tooltip.style.opacity = '1';
-            }, 10);
-
-            currentTooltip = tooltip;
-        }
-
-        function hideTooltip() {
-            if (currentTooltip) {
-                currentTooltip.remove();
-                currentTooltip = null;
-            }
-        }
-
+        // Helpers moved to /static/js/app-core.js
         // Chart management functions
         let chartPaused = false;
 
@@ -3546,71 +3473,8 @@ class UnifiedMemoryDashboard:
         // Initialize Unified Chart Manager
         const chartManager = window.chartManager || new UnifiedMemoryChart(); window.chartManager = chartManager;
 
-        // Simple CPU Chart Manager
-        class SimpleCPUChart {
-            constructor() {
-                this.isPaused = false;
-            }
-
-            switchToRealtimeMode() {
-                const realtimeBtn = document.getElementById('cpu-realtime-btn');
-                const historicalBtn = document.getElementById('cpu-historical-btn');
-                const historicalOptions = document.getElementById('cpu-historical-options');
-                const chartTitle = document.getElementById('cpu-chart-title');
-                const frequencyLabel = document.getElementById('cpu-frequency-label');
-                const modeIndicator = document.getElementById('cpu-chart-mode-indicator');
-
-                if (realtimeBtn && historicalBtn && historicalOptions) {
-                    realtimeBtn.style.background = '#4CAF50';
-                    realtimeBtn.style.color = 'white';
-                    historicalBtn.style.background = '#f5f5f5';
-                    historicalBtn.style.color = '#333';
-                    historicalOptions.style.display = 'none';
-
-                    if (chartTitle) chartTitle.textContent = 'Real-time CPU Usage';
-                    if (frequencyLabel) frequencyLabel.textContent = 'Data collected every 2 seconds';
-                    if (modeIndicator) modeIndicator.textContent = 'Real-time';
-                }
-            }
-
-            switchToHistoricalMode() {
-                const realtimeBtn = document.getElementById('cpu-realtime-btn');
-                const historicalBtn = document.getElementById('cpu-historical-btn');
-                const historicalOptions = document.getElementById('cpu-historical-options');
-                const chartTitle = document.getElementById('cpu-chart-title');
-                const frequencyLabel = document.getElementById('cpu-frequency-label');
-                const modeIndicator = document.getElementById('cpu-chart-mode-indicator');
-
-                if (realtimeBtn && historicalBtn && historicalOptions) {
-                    realtimeBtn.style.background = '#f5f5f5';
-                    realtimeBtn.style.color = '#333';
-                    historicalBtn.style.background = '#2196F3';
-                    historicalBtn.style.color = 'white';
-                    historicalOptions.style.display = 'flex';
-
-                    if (chartTitle) chartTitle.textContent = 'Historical CPU Usage';
-                    if (frequencyLabel) frequencyLabel.textContent = 'Historical data frequency varies';
-                    if (modeIndicator) modeIndicator.textContent = 'Historical';
-                }
-            }
-
-            togglePause() {
-                this.isPaused = !this.isPaused;
-                const pauseBtn = document.getElementById('cpu-pause-btn');
-                if (pauseBtn) {
-                    pauseBtn.textContent = this.isPaused ? '▶️ Resume' : '⏸️ Pause';
-                }
-            }
-
-            clearChart() {
-                cpuChart.data.labels = [];
-                cpuChart.data.datasets[0].data = [];
-                cpuChart.data.datasets[1].data = [];
-                cpuChart.update();
-            }
-        }
-
-        const cpuChartManager = new SimpleCPUChart();
+        // CPU Chart manager moved to /static/js/charts/cpu-chart.js
+        const cpuChartManager = window.cpuChartManager || new SimpleCPUChart(); window.cpuChartManager = cpuChartManager;
 
         // Start memory data polling is now managed by UnifiedMemoryChart (Phase 2)
         // setInterval(fetchMemoryData, 2000);
