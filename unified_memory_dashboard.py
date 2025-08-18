@@ -569,6 +569,14 @@ class UnifiedMemoryDashboard:
                     <div style="font-weight: bold; color: #2196F3; margin-bottom: 6px; font-size: 11px; text-align: center;">📱 Menu Bar</div>
                     <div style="font-size: 10px;">
                         <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
+                            <span>🆔 PID:</span>
+                            <span id="header-menubar-pid" style="font-family: monospace; color: #2c3e50; font-weight: 600;">--</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
+                            <span>● Status:</span>
+                            <span id="header-menubar-status" style="color: #666; font-weight: bold;">--</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
                             <span>💾 Memory:</span>
                             <span style="color: #2196F3; font-weight: bold;" id="header-menubar-memory">--</span>
                         </div>
@@ -591,6 +599,14 @@ class UnifiedMemoryDashboard:
                         <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
                             <span>⏰ Uptime:</span>
                             <span style="color: #4CAF50; font-weight: bold;" id="header-menubar-uptime">--</span>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
+                            <span>🆔 PID:</span>
+                            <span id="header-service-pid" style="font-family: monospace; color: #2c3e50; font-weight: 600;">--</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
+                            <span>● Status:</span>
+                            <span id="header-service-status" style="color: #666; font-weight: bold;">--</span>
+                        </div>
                         </div>
                         <div style="display: flex; justify-content: space-between;">
                             <span>🔄 Restarts:</span>
@@ -1663,18 +1679,28 @@ class UnifiedMemoryDashboard:
 
                 // Update Menu Bar detailed metrics
                 if (detailedMenubarProcess) {
+                    safeUpdateElement('header-menubar-pid', detailedMenubarProcess.pid || '--');
                     safeUpdateElement('header-menubar-threads', detailedMenubarProcess.threads || '--');
                     safeUpdateElement('header-menubar-handles', detailedMenubarProcess.handles || '--');
                     safeUpdateElement('header-menubar-uptime', detailedMenubarProcess.uptime || '--');
                     safeUpdateElement('header-menubar-restarts', detailedMenubarProcess.restarts || '0');
+                    const status = (detailedMenubarProcess.cpu_percent > 50 || detailedMenubarProcess.memory_mb > 200) ? '⚠️ High' : '✅ Normal';
+                    safeUpdateElement('header-menubar-status', status);
+                    const statusEl = document.getElementById('header-menubar-status');
+                    if (statusEl) statusEl.style.color = status.includes('High') ? '#e74c3c' : '#27ae60';
                 }
 
                 // Update Service detailed metrics
                 if (detailedServiceProcess) {
+                    safeUpdateElement('header-service-pid', detailedServiceProcess.pid || '--');
                     safeUpdateElement('header-service-threads', detailedServiceProcess.threads || '--');
                     safeUpdateElement('header-service-handles', detailedServiceProcess.handles || '--');
                     safeUpdateElement('header-service-uptime', detailedServiceProcess.uptime || '--');
                     safeUpdateElement('header-service-restarts', detailedServiceProcess.restarts || '0');
+                    const status = (detailedServiceProcess.cpu_percent > 50 || detailedServiceProcess.memory_mb > 200) ? '⚠️ High' : '✅ Normal';
+                    safeUpdateElement('header-service-status', status);
+                    const statusEl = document.getElementById('header-service-status');
+                    if (statusEl) statusEl.style.color = status.includes('High') ? '#e74c3c' : '#27ae60';
                 }
 
                 // Update analytics metrics from API data
