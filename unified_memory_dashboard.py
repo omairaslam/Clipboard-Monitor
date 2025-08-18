@@ -599,14 +599,6 @@ class UnifiedMemoryDashboard:
                         <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
                             <span>⏰ Uptime:</span>
                             <span style="color: #4CAF50; font-weight: bold;" id="header-menubar-uptime">--</span>
-                        <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
-                            <span>🆔 PID:</span>
-                            <span id="header-service-pid" style="font-family: monospace; color: #2c3e50; font-weight: 600;">--</span>
-                        </div>
-                        <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
-                            <span>● Status:</span>
-                            <span id="header-service-status" style="color: #666; font-weight: bold;">--</span>
-                        </div>
                         </div>
                         <div style="display: flex; justify-content: space-between;">
                             <span>🔄 Restarts:</span>
@@ -616,6 +608,14 @@ class UnifiedMemoryDashboard:
 
                     <div style="font-weight: bold; color: #4CAF50; margin: 8px 0 6px 0; font-size: 11px; text-align: center; border-top: 1px solid #eee; padding-top: 6px;">⚙️ Service</div>
                     <div style="font-size: 10px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
+                            <span>🆔 PID:</span>
+                            <span id="header-service-pid" style="font-family: monospace; color: #2c3e50; font-weight: 600;">--</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
+                            <span>● Status:</span>
+                            <span id="header-service-status" style="color: #666; font-weight: bold;">--</span>
+                        </div>
                         <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
                             <span>💾 Memory:</span>
                             <span style="color: #4CAF50; font-weight: bold;" id="header-service-memory">--</span>
