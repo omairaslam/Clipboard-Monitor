@@ -1,4 +1,34 @@
+export let cpuChart = null;
 export class SimpleCPUChart {
+  initChart() {
+    const canvas = document.getElementById('cpuChart');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (cpuChart) return cpuChart;
+    cpuChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: [],
+        datasets: [
+          { label: 'Menu Bar App (%)', data: [], borderColor: '#2196F3', backgroundColor: 'rgba(33,150,243,0.1)', fill: true, tension: 0.3 },
+          { label: 'Main Service (%)', data: [], borderColor: '#4CAF50', backgroundColor: 'rgba(76,175,80,0.1)', fill: true, tension: 0.3 }
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { display: true, position: 'top' },
+          title: { display: false }
+        },
+        scales: {
+          y: { beginAtZero: true, title: { display: true, text: 'CPU (%)' } },
+          x: { title: { display: true, text: 'Time' } }
+        }
+      }
+    });
+    return cpuChart;
+  }
+
   constructor() { this.isPaused = false; }
 
   switchToRealtimeMode() {

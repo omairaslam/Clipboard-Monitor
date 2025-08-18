@@ -1335,69 +1335,10 @@ class UnifiedMemoryDashboard:
 
         // Legacy memory chart initialization removed - now handled by UnifiedMemoryChart class
 
-        // Initialize CPU chart
-        const cpuCtx = document.getElementById('cpuChart').getContext('2d');
-        const cpuChart = new Chart(cpuCtx, {
-            type: 'line',
-            data: {
-                labels: [],
-                datasets: [{
-                    label: 'Menu Bar App (%)',
-                    data: [],
-                    borderColor: '#2196F3',
-                    backgroundColor: 'rgba(33, 150, 243, 0.1)',
-                    tension: 0.4,
-                    fill: true
-                }, {
-                    label: 'Main Service (%)',
-                    data: [],
-                    borderColor: '#4CAF50',
-                    backgroundColor: 'rgba(76, 175, 80, 0.1)',
-                    tension: 0.4,
-                    fill: true
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                interaction: {
-                    intersect: false,
-                    mode: 'index'
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        title: {
-                            display: true,
-                            text: 'CPU Usage (%)'
-                        }
-                    },
-                    x: {
-                        title: {
-                            display: true,
-                            text: 'Time'
-                        }
-                    }
-                },
-                plugins: {
-                    title: {
-                        display: false
-                    },
-                    legend: {
-                        display: false
-                    }
-                },
-                animation: {
-                    duration: 0 // Disable animations for real-time updates
-                },
-                elements: {
-                    point: {
-                        radius: 1,
-                        hoverRadius: 4
-                    }
-                }
-            }
-        });
+        // Initialize CPU chart moved to /static/js/charts/cpu-chart.js
+        if (window.cpuChartManager && typeof window.cpuChartManager.initChart === 'function') {
+            window.cpuChartManager.initChart();
+        }
 
         // Polling for real-time updates (simpler than WebSockets)
         let isConnected = false;
