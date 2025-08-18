@@ -1935,7 +1935,8 @@ class UnifiedMemoryDashboard:
             }
         }
 
-        function updateAnalysisDisplay(data) {
+        // updateAnalysisDisplay moved to /static/js/dashboard.js
+        function updateAnalysisDisplay(data) { return window.updateAnalysisDisplay?.(data); }
             const leakAnalysis = document.getElementById('leak-analysis');
             const trendAnalysis = document.getElementById('trend-analysis');
 
@@ -1976,7 +1977,8 @@ class UnifiedMemoryDashboard:
             }
         }
 
-        function updateLeakAnalysisDisplay(leakData) {
+        // updateLeakAnalysisDisplay moved to /static/js/dashboard.js
+        function updateLeakAnalysisDisplay(leakData) { return window.updateLeakAnalysisDisplay?.(leakData); }
             const leakAnalysis = document.getElementById('leak-analysis');
             if (!leakAnalysis) return;
 
@@ -2019,7 +2021,8 @@ class UnifiedMemoryDashboard:
             leakAnalysis.innerHTML = html;
         }
 
-        function updateAnalysisSummary(data, hours) {
+        // updateAnalysisSummary moved to /static/js/dashboard.js
+        function updateAnalysisSummary(data, hours) { return window.updateAnalysisSummary?.(data, hours); }
             const summaryDiv = document.getElementById('analysis-summary');
             if (!summaryDiv) return;
 
@@ -2046,7 +2049,8 @@ class UnifiedMemoryDashboard:
             summaryDiv.innerHTML = html;
         }
         // Trend Explorer UI builder (inside Growth Trend Analysis card)
-        function ensureTrendExplorerUI() {
+        // ensureTrendExplorerUI moved to /static/js/dashboard.js
+        function ensureTrendExplorerUI() { return; }
             const container = document.getElementById('trend-analysis');
             if (!container || container.dataset.init === '1') return;
             container.dataset.init = '1';
@@ -2108,7 +2112,8 @@ class UnifiedMemoryDashboard:
             setActive('proc');
         }
 
-        function computeRegression(points, key) {
+        // computeRegression moved to /static/js/dashboard.js
+        function computeRegression(points, key) { return window.computeRegression?.(points, key); }
             // points: [{timestamp, key values}], key: 'menubar_memory' etc.
             if (!points || points.length < 2) return { slopePerHour: 0, r2: 0 };
             const xs = []; const ys = [];
@@ -2136,8 +2141,8 @@ class UnifiedMemoryDashboard:
             return { slopePerHour: slope, r2 };
         }
 
-        let trendProcChart = null;
-        async function updateTrendExplorer(hours) {
+        // updateTrendExplorer moved to /static/js/dashboard.js
+        async function updateTrendExplorer(hours) { return window.updateTrendExplorer?.(hours); }
             try {
                 ensureTrendExplorerUI();
                 const rangeSel = document.getElementById('trend-range');
@@ -2229,7 +2234,8 @@ class UnifiedMemoryDashboard:
         }
 
 
-        function updateMonitoringHistory() {
+        // updateMonitoringHistory moved to /static/js/dashboard.js
+        function updateMonitoringHistory() { return window.updateMonitoringHistory?.(); }
             const historyDiv = document.getElementById('monitoring-history');
             if (!historyDiv) return;
 
@@ -2252,7 +2258,8 @@ class UnifiedMemoryDashboard:
             historyDiv.innerHTML = html;
         }
 
-        function updateSessionFindings(analysisData, leakData) {
+        // updateSessionFindings moved to /static/js/dashboard.js
+        function updateSessionFindings(analysisData, leakData) { return window.updateSessionFindings?.(analysisData, leakData); }
             const container = document.getElementById('session-findings');
             if (!container) return;
 
@@ -2308,7 +2315,8 @@ class UnifiedMemoryDashboard:
             container.innerHTML = html;
         }
 
-        async function updateMonitoringStatus() {
+        // updateMonitoringStatus moved to /static/js/dashboard.js
+        async function updateMonitoringStatus() { return window.updateMonitoringStatus?.(); }
             try {
                 const response = await fetch('/api/current');
                 const data = await response.json();
