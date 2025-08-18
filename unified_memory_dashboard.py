@@ -3225,6 +3225,8 @@ class UnifiedMemoryDashboard:
                 this.livePollTimer = null;
                 this.livePollIntervalMs = 2000;
                 this.livePollFailureCount = 0;
+                this.liveErrorNotified = false; // show toast once during failures
+                this.paused = false; // paused via visibility or external control
             }
 
             async initialize() {
@@ -3276,6 +3278,7 @@ class UnifiedMemoryDashboard:
             startLivePolling() {
                 this.stopLivePolling();
                 const tick = async () => {
+                    if (this.paused) return;
                     const ok = await fetchMemoryData();
                     if (ok) {
                         if (this.livePollFailureCount > 0) {
@@ -3283,6 +3286,10 @@ class UnifiedMemoryDashboard:
                             if (this.livePollIntervalMs !== 2000) {
                                 this.setLivePollInterval(2000);
                             }
+                        }
+                        if (this.liveErrorNotified) {
+                            showToast('✅ Connection restored', 'success', 1800);
+                            this.liveErrorNotified = false;
                         }
                     } else {
                         this.livePollFailureCount += 1;
@@ -3292,6 +3299,10 @@ class UnifiedMemoryDashboard:
                         if (this.livePollFailureCount >= 6 && this.livePollIntervalMs < 10000) next = 10000;
                         if (next !== this.livePollIntervalMs) {
                             this.setLivePollInterval(next);
+                        }
+                        if (!this.liveErrorNotified && this.livePollFailureCount >= 3) {
+                            showToast('⚠️ Connection issues: slowing updates', 'error', 2600);
+                            this.liveErrorNotified = true;
                         }
                     }
                 };
@@ -3312,12 +3323,21 @@ class UnifiedMemoryDashboard:
                 if (this.livePollTimer) {
                     clearInterval(this.livePollTimer);
                     this.livePollTimer = setInterval(async () => {
+                        if (this.paused) return;
                         const ok = await fetchMemoryData();
                         if (!ok) {
                             // keep failure count advancing; interval already adjusted
                             this.livePollFailureCount += 1;
+                            if (!this.liveErrorNotified && this.livePollFailureCount >= 3) {
+                                showToast('⚠️ Connection issues: slowing updates', 'error', 2600);
+                                this.liveErrorNotified = true;
+                            }
                         } else {
                             this.livePollFailureCount = 0;
+                            if (this.liveErrorNotified) {
+                                showToast('✅ Connection restored', 'success', 1800);
+                                this.liveErrorNotified = false;
+                            }
                         }
                     }, this.livePollIntervalMs);
                 }
@@ -3632,6 +3652,9 @@ class UnifiedMemoryDashboard:
                 // Persist
                 try { localStorage.setItem('umc_mode', 'live'); } catch {}
                 this.stopLivePolling();
+                // Reset failure state upon explicit switch
+                this.livePollFailureCount = 0;
+                this.liveErrorNotified = false;
                 this.startLivePolling();
                 this.updateChart(true); // Animate transition
                 this.updateUI();
@@ -3699,6 +3722,10 @@ class UnifiedMemoryDashboard:
                 console.log(`Changing resolution to: ${resolution}`);
                 this.currentResolution = resolution;
                 try { localStorage.setItem('umc_resolution', resolution); } catch {}
+
+                // Reset failure state when explicitly changing view
+                this.livePollFailureCount = 0;
+                this.liveErrorNotified = false;
 
                 // Show loading indicator
                 const chartTitle = document.getElementById('chart-title');
@@ -4094,6 +4121,11 @@ class UnifiedMemoryDashboard:
         setTimeout(async () => {
             await chartManager.initialize();
         }, 1000);
+
+        // Pause/resume polling based on tab visibility
+        document.addEventListener('visibilitychange', () => {
+            chartManager.paused = document.hidden;
+        });
 
         // Initial fetch (memory handled by chart manager on initialize)
         fetchSystemData();
