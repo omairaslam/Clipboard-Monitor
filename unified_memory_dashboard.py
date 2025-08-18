@@ -350,15 +350,6 @@ class UnifiedMemoryDashboard:
                 self.end_headers()
                 data = json.dumps(self.dashboard.get_comprehensive_dashboard_data())
                 self.wfile.write(data.encode())
-            elif path == '/api/processes':
-                self.send_response(200)
-                self.send_header('Content-type', 'application/json')
-                self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
-                self.send_header('Pragma', 'no-cache')
-                self.send_header('Expires', '0')
-                self.end_headers()
-                data = json.dumps(self.dashboard.get_process_data())
-                self.wfile.write(data.encode())
             elif path == '/api/system':
                 self.send_response(200)
                 self.send_header('Content-type', 'application/json')
@@ -755,7 +746,6 @@ class UnifiedMemoryDashboard:
         <div class="tabs">
             <div class="tab active" onclick="switchTab('dashboard', this)">📊 Dashboard</div>
             <div class="tab" onclick="switchTab('analysis', this)">🔍 Analysis & Controls</div>
-            <div class="tab" onclick="switchTab('processes', this)">⚙️ Processes</div>
         </div>
 
         <!-- Consolidated Dashboard Tab -->
@@ -1192,34 +1182,7 @@ class UnifiedMemoryDashboard:
             </div> <!-- Close stack-16 -->
         </div>
 
-        <!-- Processes Tab -->
-        <div id="processes-tab" class="tab-content">
-            <div class="card">
-                <h3>🔍 Clipboard Monitor Processes
-                    <span id="processes-meta" style="font-size:12px; color:#666; margin-left:8px;"></span>
-                    <button id="processes-refresh" onclick="fetchProcessData()" style="float:right; font-size:12px; padding:4px 8px; background:#4CAF50; color:white; border:none; border-radius:3px; cursor:pointer;">🔄 Refresh</button>
-                </h3>
-                <div class="process-list">
-                    <table class="process-table">
-                        <thead>
-                            <tr>
-                                <th>Process Name</th>
-                                <th>PID</th>
-                                <th>Memory (MB)</th>
-                                <th>CPU (%)</th>
-                                <th>Uptime</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody id="process-list">
-                            <tr>
-                                <td colspan="6" style="text-align: center; padding: 20px;">Loading processes...</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
+
 
 
 
@@ -1396,8 +1359,6 @@ class UnifiedMemoryDashboard:
             }
         }
 
-        // Global variable for process refresh interval
-        let processRefreshInterval = null;
 
         // Tab switching functionality
         function switchTab(tabName, el) {
@@ -1423,13 +1384,6 @@ class UnifiedMemoryDashboard:
                 if (fallback) fallback.classList.add('active');
             }
 
-            // Clear any existing process refresh interval
-            if (processRefreshInterval) {
-                clearInterval(processRefreshInterval);
-                processRefreshInterval = null;
-            }
-
-
             // Handle tab-specific initialization
             if (tabName === 'dashboard') {
                 // Resize charts when switching to dashboard tab to fix any sizing issues
@@ -1438,10 +1392,6 @@ class UnifiedMemoryDashboard:
                         chart.resize();
                     }
                 }, 100);
-            } else if (tabName === 'processes') {
-                // Load processes immediately and start auto-refresh
-                fetchProcessData();
-                processRefreshInterval = setInterval(fetchProcessData, 3000); // Refresh every 3 seconds
             }
         }
 
@@ -1906,111 +1856,7 @@ class UnifiedMemoryDashboard:
             }
         }
 
-        async function fetchProcessData() {
-            try {
-                const response = await fetch('/api/processes');
-                const data = await response.json();
 
-                const processList = document.getElementById('process-list');
-                if (!processList) return; // DOM not ready yet
-                processList.innerHTML = '';
-
-                // Update meta summary and normalize list shape
-                const meta = document.getElementById('processes-meta');
-                let list = [];
-                try {
-                    if (Array.isArray(data.clipboard_processes)) {
-                        list = data.clipboard_processes;
-                    } else if (data.clipboard && Array.isArray(data.clipboard.processes)) {
-                        list = data.clipboard.processes;
-                    }
-                } catch (e) {
-                    console.error('Error parsing process data:', e);
-                }
-
-                // Fallback to /api/current if primary returns empty
-                if (!list || list.length === 0) {
-                    try {
-                        const resp2 = await fetch('/api/current');
-                        const d2 = await resp2.json();
-                        if (d2 && d2.clipboard && Array.isArray(d2.clipboard.processes)) {
-                            list = d2.clipboard.processes;
-                        }
-                    } catch (e) {
-                        console.warn('Fallback to /api/current failed:', e);
-                    }
-                }
-
-                if (meta) {
-                    const count = (list && list.length) || 0;
-                    meta.textContent = `${count} process${count !== 1 ? 'es' : ''} • ${new Date().toLocaleTimeString()}`;
-                }
-
-                let rendered = 0;
-
-                if (Array.isArray(list) && list.length > 0) {
-                    list.forEach(procRaw => {
-                        try {
-                            // Coerce values defensively in case types vary
-                            const proc = {
-                                ...procRaw,
-                                pid: (procRaw && (procRaw.pid ?? Math.floor(Math.random()*1e6))),
-                                display_name: (procRaw && (procRaw.display_name || procRaw.name)) || 'process',
-                                memory_mb: Number(procRaw && procRaw.memory_mb || 0),
-                                cpu_percent: Number(procRaw && procRaw.cpu_percent || 0)
-                            };
-                            // Helper function to format uptime (handles both string and number inputs)
-                            function formatUptime(uptime) {
-                                // If it's already a formatted string, return it
-                                if (typeof uptime === 'string' && uptime.includes('m')) {
-                                    return uptime;
-                                }
-                                // If it's a number (seconds), format it
-                                if (typeof uptime === 'number' && uptime > 0) {
-                                    const hours = Math.floor(uptime / 3600);
-                                    const minutes = Math.floor((uptime % 3600) / 60);
-                                    if (hours > 0) return `${hours}h ${minutes}m`;
-                                    return `${minutes}m`;
-                                }
-                                return '--';
-                            }
-
-                            // Helper function to get status
-                            function getProcessStatus(proc) {
-                                if (proc.memory_mb > 200) return '<span style="color:#e74c3c;">⚠️ High Memory</span>';
-                                if (proc.cpu_percent > 50) return '<span style="color:#f39c12;">⚡ High CPU</span>';
-                                return '<span style="color:#27ae60;">✅ Normal</span>';
-                            }
-
-                            const row = document.createElement('tr');
-                            row.innerHTML = `
-                                <td style="font-weight: 500;">${proc.display_name || 'Unknown'}</td>
-                                <td style="text-align: right; font-family: monospace;">${proc.pid || '--'}</td>
-                                <td style="text-align: right; font-family: monospace;">${proc.memory_mb.toFixed(1)}</td>
-                                <td style="text-align: right; font-family: monospace;">${proc.cpu_percent.toFixed(1)}</td>
-                                <td style="text-align: right; font-family: monospace;">${formatUptime(proc.uptime)}</td>
-                                <td style="text-align: center;">${getProcessStatus(proc)}</td>
-                            `;
-                            // Append row to table
-                            processList.appendChild(row);
-                            rendered++;
-                        } catch (rowErr) {
-                            console.warn('Skipped a process due to render error:', rowErr, procRaw);
-                        }
-                    });
-                }
-
-                if (rendered === 0) {
-                    processList.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 20px;">No Clipboard Monitor processes found</td></tr>';
-                }
-            } catch (error) {
-                console.error('Error fetching process data:', error);
-                const processList = document.getElementById('process-list');
-                if (processList) {
-                    processList.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 20px; color: #e74c3c;">Error loading processes</td></tr>';
-                }
-            }
-        }
 
 
 
@@ -2699,9 +2545,10 @@ class UnifiedMemoryDashboard:
                         if (pointsChanged || needInit) {
                             const lastEl = document.getElementById('live-last-sample');
                             if (lastEl) {
-                                const resp = await fetch('/api/processes');
+                                // Use /api/current since processes tab is removed
+                                const resp = await fetch('/api/current');
                                 const procData = await resp.json();
-                                const procs = procData.clipboard_processes || [];
+                                const procs = (procData && procData.clipboard && Array.isArray(procData.clipboard.processes)) ? procData.clipboard.processes : [];
                                 const service = procs.find(p => (p.process_type||'') === 'main_service') || procs[0];
                                 const menu = procs.find(p => (p.process_type||'') === 'menu_bar') || procs[1];
                                 // Keep last values for deltas
@@ -2839,7 +2686,6 @@ class UnifiedMemoryDashboard:
                 // Refresh all dashboard data with progress indication
                 await fetchMemoryData();
                 await fetchSystemData();
-                await fetchProcessData();
                 await loadAnalysisData();
                 await updateMonitoringStatus();
 
@@ -3759,7 +3605,6 @@ class UnifiedMemoryDashboard:
         // Fetch additional data every 10 seconds
         setInterval(() => {
             fetchSystemData();
-            fetchProcessData();
             loadAnalysisData();
         }, 10000);
 
@@ -3799,7 +3644,6 @@ class UnifiedMemoryDashboard:
 
         // Initial fetch (memory handled by chart manager on initialize)
         fetchSystemData();
-        fetchProcessData();
         loadAnalysisData();
         updateMonitoringStatus();
 
@@ -4021,38 +3865,6 @@ class UnifiedMemoryDashboard:
         except Exception as e:
             return {'error': str(e), 'timestamp': datetime.now().isoformat()}
 
-    def get_process_data(self):
-        """Get process information."""
-        memory_data = self.get_memory_data()
-        processes = memory_data.get('clipboard', {}).get('processes', [])
-        if not processes:
-            try:
-                fallback = []
-                for proc in psutil.process_iter(['pid','name','cmdline','memory_info','cpu_percent']):
-                    try:
-                        name = proc.info.get('name') or ''
-                        cmd = ' '.join(proc.info.get('cmdline') or []).lower()
-                        if ('clipboard' in cmd) or ('menu_bar_app.py' in cmd) or ('unified_memory_dashboard.py' in cmd) or (name == 'ClipboardMonitor') or ('clipboard' in (name or '').lower()):
-                            mi = proc.info.get('memory_info')
-                            mem_mb = (mi.rss/1024/1024) if mi else 0
-                            fallback.append({
-                                'pid': proc.info.get('pid'),
-                                'name': name,
-                                'display_name': 'Clipboard Monitor' if 'clipboard' in cmd else (name or 'process'),
-                                'memory_mb': round(mem_mb, 2),
-                                'cpu_percent': proc.info.get('cpu_percent') or 0,
-                                'process_type': 'unknown'
-                            })
-                    except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
-                        continue
-                if fallback:
-                    return {'clipboard_processes': fallback, 'timestamp': datetime.now().isoformat(), 'fallback': True}
-            except Exception:
-                pass
-        return {
-            'clipboard_processes': processes,
-            'timestamp': datetime.now().isoformat()
-        }
 
     def get_system_data(self):
         """Get system information."""
