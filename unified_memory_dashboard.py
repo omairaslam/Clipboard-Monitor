@@ -1769,109 +1769,14 @@ class UnifiedMemoryDashboard:
             }
         }
 
-        // Fetch additional data via REST API
-        async function fetchSystemData() {
-            try {
-                const response = await fetch('/api/system');
-                const data = await response.json();
-
-                if (data.system) {
-                    // Update header metrics (moved to header)
-                    document.getElementById('header-system-memory').textContent = data.system.percent + '%';
-                    document.getElementById('header-total-ram').textContent = data.system.total_gb.toFixed(1);
-                    document.getElementById('header-available-ram').textContent = data.system.available_gb.toFixed(1);
-                }
-
-                if (data.cpu_percent !== undefined) {
-                    document.getElementById('header-cpu-usage').textContent = data.cpu_percent + '%';
-                }
-
-                if (data.uptime) {
-                    document.getElementById('header-uptime').textContent = data.uptime;
-                }
-
-                // Update data points counter in header - handled by chartManager
-            } catch (error) {
-                console.error('Error fetching system data:', error);
-            }
-        }
+        // Fetch additional data via REST API moved to /static/js/dashboard.js
 
 
 
 
 
-
-        // Advanced monitoring functions
-        // Global monitoring state
-        let isMonitoringActive = false;
-
-        async function toggleAdvancedMonitoring() {
-            const toggleBtn = document.getElementById('monitoringToggleBtn');
-
-            if (!isMonitoringActive) {
-                // Start monitoring
-                try {
-                    const interval = document.getElementById('monitorInterval').value;
-                    const response = await fetch(`/api/start_monitoring?interval=${interval}`);
-                    const result = await response.json();
-
-                    if (result.status === 'started') {
-                        isMonitoringActive = true;
-
-                        // Update button appearance
-                        toggleBtn.style.background = '#f44336';
-                        toggleBtn.innerHTML = '🛑 Stop Advanced Monitoring';
-                        toggleBtn.style.animation = 'pulse 2s infinite';
-
-                        // Show success toast
-                        showToast(`✅ ${result.message} — collecting every ${result.interval}s`, 'success');
-                        updateMonitoringStatus();
-                    }
-                } catch (error) {
-                    showToast('❌ Error starting monitoring: ' + error, 'error');
-                }
-            } else {
-                // Stop monitoring
-                try {
-                    const response = await fetch('/api/stop_monitoring');
-                    const result = await response.json();
-
-                    if (result.status === 'stopped') {
-                        isMonitoringActive = false;
-
-                        // Update button appearance
-                        toggleBtn.style.background = '#4CAF50';
-                        toggleBtn.innerHTML = '🚀 Start Advanced Monitoring';
-                        toggleBtn.style.animation = 'none';
-
-                        // Show success message with detailed session summary
-                        const duration = result.duration_seconds ? Math.round(result.duration_seconds) : 0;
-                        const minutes = Math.floor(duration / 60);
-                        const seconds = duration % 60;
-                        const durationText = minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
-                        const dataPoints = result.data_points_collected || 0;
-
-                        showToast(`✅ ${result.message} — ${dataPoints} points in ${durationText}`, 'success');
-                        updateMonitoringStatus();
-                    }
-                } catch (error) {
-                    showToast('❌ Error stopping monitoring: ' + error, 'error');
-                }
-            }
-        }
-
-        // Legacy functions for compatibility (now call toggle)
-        async function startAdvancedMonitoring() {
-            if (!isMonitoringActive) {
-                await toggleAdvancedMonitoring();
-            }
-        }
-
-        async function stopAdvancedMonitoring() {
-            if (isMonitoringActive) {
-                await toggleAdvancedMonitoring();
-            }
-        }
+        // Advanced monitoring functions moved to /static/js/dashboard.js
+        // Legacy functions moved to /static/js/dashboard.js
 
         async function forceGarbageCollection() {
             // Show loading state
