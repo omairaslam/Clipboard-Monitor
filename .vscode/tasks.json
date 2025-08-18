@@ -511,6 +511,56 @@
                 "kind": "test",
                 "isDefault": false
             }
+        },
+        {
+            "label": "Start Unified Memory Dashboard",
+            "type": "shell",
+            "command": "pkill -f unified_memory_dashboard.py >/dev/null 2>&1 || true; nohup python3 unified_memory_dashboard.py --auto-start > ~/.ClipboardMonitor/dashboard.out 2>&1 & disown; sleep 1; open http://localhost:8001",
+            "problemMatcher": [],
+            "presentation": { "reveal": "always", "panel": "new" },
+            "options": {
+                "env": { "TERM": "xterm-256color" }
+            },
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            },
+        {
+            "label": "Stop Unified Memory Dashboard",
+            "type": "shell",
+            "command": "pkill -f unified_memory_dashboard.py || true && echo 'Dashboard stopped'",
+            "problemMatcher": [],
+            "presentation": { "reveal": "always", "panel": "shared" }
+        },
+        {
+            "label": "Tail Dashboard Log",
+            "type": "shell",
+            "command": "mkdir -p ~/.ClipboardMonitor && touch ~/.ClipboardMonitor/dashboard.out && tail -f ~/.ClipboardMonitor/dashboard.out",
+            "problemMatcher": [],
+            "presentation": { "reveal": "always", "panel": "new" }
+        },
+        {
+            "label": "Restart Unified Memory Dashboard",
+            "type": "shell",
+            "command": "pkill -f unified_memory_dashboard.py >/dev/null 2>&1 || true; nohup python3 unified_memory_dashboard.py --auto-start > ~/.ClipboardMonitor/dashboard.out 2>&1 & disown; sleep 1; open http://localhost:8001",
+            "problemMatcher": [],
+            "presentation": { "reveal": "always", "panel": "new" }
+        },
+        {
+            "label": "Start Unified Memory Dashboard (Dev Mode)",
+            "type": "shell",
+            "command": "pkill -f unified_memory_dashboard.py >/dev/null 2>&1 || true; python3 unified_memory_dashboard.py --port 8001",
+            "problemMatcher": [],
+            "presentation": { "reveal": "always", "panel": "shared", "focus": true }
+        }
+,
+        {
+            "label": "Restart Unified Memory Dashboard (Toggle)",
+            "type": "shell",
+            "command": "./scripts/restart_dashboard.sh",
+            "problemMatcher": [],
+            "presentation": { "reveal": "always", "panel": "shared" },
+            "options": { "cwd": "${workspaceFolder}", "env": { "TERM": "xterm-256color" }, "shell": { "executable": "/bin/bash", "args": ["-lc"] } }
         }
     ]
 }

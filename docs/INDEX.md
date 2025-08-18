@@ -47,6 +47,11 @@ Comprehensive testing documentation covering all test categories, execution meth
 ### **[Comprehensive Test Suite (COMPREHENSIVE_TEST_SUITE.md)](COMPREHENSIVE_TEST_SUITE.md)**
 Detailed analysis of the test suite with complete coverage assessment and test descriptions.
 
+## 🧹 **Cleanup & Refactoring**
+
+### **[Unified Dashboard Cleanup Plan (Cleanup/Unified-Dashboard-Cleanup-Plan.md)](Cleanup/Unified-Dashboard-Cleanup-Plan.md)
+Safely modularize the unified memory dashboard, consolidate documentation, and reduce technical debt without breaking functionality.
+
 ## 🐛 **Bug Fixes & Issues**
 
 ### **[Bug Fixes (FIXES.md)](FIXES.md)**

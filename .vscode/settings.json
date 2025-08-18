@@ -126,6 +126,12 @@
             "task": "📊 Check Memory Status",
             "tooltip": "Check current memory usage of both main service and menu bar app (Emergency Safe Mode compatible)",
             "color": "default"
+        },
+        {
+            "label": "🧠 Dashboard",
+            "task": "Restart Unified Memory Dashboard (Toggle)",
+            "tooltip": "Restart (stop if running, then start) and open http://localhost:8001",
+            "color": "default"
         }
     ],
     "trae.tab.enableRename": true,

@@ -251,6 +251,8 @@ class UnifiedMemoryDashboard:
 
         # Auto-start configuration
         self.auto_start_mode = auto_start
+        # Dev auto-reload
+        self.dev_reload = False
         self.auto_start_time = datetime.now() if auto_start else None
         self.last_activity_time = datetime.now()
         self.auto_timeout_minutes = 5  # Auto-shutdown after 5 minutes of inactivity
@@ -312,6 +314,12 @@ class UnifiedMemoryDashboard:
                 self.send_header('Content-type', 'text/html')
                 self.end_headers()
                 self.wfile.write(self.dashboard.render_dashboard_html().encode())
+            elif path == '/favicon.ico':
+                # Avoid 404 noise in console; no favicon needed
+                self.send_response(204)
+                self.send_header('Cache-Control', 'no-store')
+                self.end_headers()
+                return
             elif path == '/api/memory':
                 # Memory data for Memory tab charts - use the more comprehensive method
                 self.send_response(200)
@@ -431,6 +439,7 @@ class UnifiedMemoryDashboard:
 
                 except Exception as e:
                     print(f"Error in historical-chart API: {e}")
+                    print(f"Request parameters: hours={hours_param}, resolution={resolution}")
                     import traceback
                     traceback.print_exc()
 
@@ -442,7 +451,8 @@ class UnifiedMemoryDashboard:
                         'points': [],
                         'total_points': 0,
                         'resolution': resolution,
-                        'time_range': 'error'
+                        'time_range': 'error',
+                        'debug_info': f"hours_param={hours_param}, resolution={resolution}"
                     })
                     self.wfile.write(error_data.encode())
             elif path.startswith('/api/start_monitoring'):
@@ -489,7 +499,7 @@ class UnifiedMemoryDashboard:
         def log_message(self, format, *args):
             """Suppress default logging."""
             pass
-    
+
     def render_dashboard_html(self):
         """Render the unified dashboard HTML."""
         return '''
@@ -502,43 +512,43 @@ class UnifiedMemoryDashboard:
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { 
+        body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: #333;
             min-height: 100vh;
         }
         .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
-        .header { 
-            text-align: center; 
-            margin-bottom: 30px; 
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
             background: rgba(255,255,255,0.95);
             padding: 20px;
             border-radius: 12px;
             box-shadow: 0 8px 32px rgba(0,0,0,0.1);
         }
         .header h1 { color: #2c3e50; margin-bottom: 10px; }
-        .status { 
-            padding: 12px 24px; 
-            border-radius: 25px; 
+        .status {
+            padding: 12px 24px;
+            border-radius: 25px;
             margin: 10px auto;
             max-width: 300px;
             font-weight: 600;
             transition: all 0.3s ease;
         }
-        .status.connected { 
+        .status.connected {
             background: linear-gradient(45deg, #4CAF50, #45a049);
             color: white;
         }
-        .status.disconnected { 
+        .status.disconnected {
             background: linear-gradient(45deg, #f44336, #da190b);
             color: white;
         }
         .dashboard-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
+            gap: 16px;
+            margin-bottom: 16px;
         }
         .card {
             background: rgba(255,255,255,0.95);
@@ -546,12 +556,15 @@ class UnifiedMemoryDashboard:
             border-radius: 12px;
             box-shadow: 0 8px 32px rgba(0,0,0,0.1);
             backdrop-filter: blur(10px);
-            transition: transform 0.3s ease;
+            position: relative;
+            margin: 0; /* Rely on parent stack/grid gaps */
+            transition: none; /* Keep panels static */
         }
-        .card:hover { transform: translateY(-5px); }
-        .card h3 { 
-            color: #2c3e50; 
-            margin-bottom: 15px;
+        /* Disable hover lift to keep layout static */
+        .card:hover { transform: none; }
+        .card h3 {
+            color: #2c3e50;
+            margin-bottom: 12px;
             display: flex;
             align-items: center;
             gap: 10px;
@@ -573,22 +586,132 @@ class UnifiedMemoryDashboard:
             padding: 25px;
             border-radius: 12px;
             box-shadow: 0 8px 32px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
+            margin-bottom: 12px;
             position: relative;
-            height: 450px; /* Fixed height to prevent expansion */
+            overflow: hidden; /* Force content to stay within container */
+            min-height: 400px; /* Ensure container is tall enough for content */
         }
         .chart-wrapper {
             position: relative;
             height: 280px; /* Reduced height for more compact layout */
             width: 100%;
+            max-width: 100%; /* Ensure wrapper doesn't exceed container */
             overflow: hidden; /* Prevent chart from expanding beyond container */
+            margin: 0; /* Remove any margins */
+            padding: 0; /* Remove any padding */
+            box-sizing: border-box; /* Include padding/border in width calculation */
+            top: 0 !important; /* Force to top of container */
+        }
+
+        /* Force memory chart to be visible */
+        #memoryChart {
+            position: static !important;
+            top: 0 !important;
+            left: 0 !important;
+            transform: none !important;
         }
         .chart-wrapper canvas {
             max-height: 280px !important;
             max-width: 100% !important;
+            width: 100% !important; /* Force canvas to respect container width */
+            position: static !important; /* Use static positioning to stay in flow */
+            display: block !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            box-sizing: border-box !important; /* Include padding/border in width calculation */
         }
 
+        /* Layout utilities for consistent, non-overlapping spacing */
+        .section-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+        .stack-16 {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        /* Unified Control Bar Styles */
+        .unified-control-bar {
+            transition: all 0.3s ease;
+        }
+        .unified-control-bar:hover {
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1) !important;
+        }
+
+        .mode-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .mode-btn:active {
+            transform: translateY(0);
+        }
+
+        .chart-badge {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.8; }
+            100% { opacity: 1; }
+        }
+
+        /* Responsive Design for Control Bar */
+        @media (max-width: 768px) {
+            .unified-control-bar > div:last-child {
+                flex-direction: column;
+                gap: 8px;
+            }
+
+            .range-controls {
+                order: 1;
+            }
+
+            .mode-controls {
+                order: 2;
+            }
+
+            .data-info {
+                order: 3;
+                align-self: center;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .unified-control-bar {
+                padding: 8px 12px !important;
+            }
+
+            .unified-control-bar h3 {
+                font-size: 14px !important;
+            }
+
+            .mode-btn {
+                padding: 4px 8px !important;
+                font-size: 11px !important;
+            }
+
+            .range-controls select {
+                min-width: 80px !important;
+                font-size: 11px !important;
+            }
+        }
+        /* Gap utility classes for consistency */
+        .row-12 { display: flex; gap: 12px; }
+        .grid-gap-12 { display: grid; gap: 12px; }
+        .grid-2-12 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .grid-4-12 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 12px; }
+
+
         /* Button animations */
+        /* Dedicated grid for Analysis & Controls panels to ensure even spacing */
+        .analysis-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; align-items: stretch; }
+
         @keyframes pulse {
             0% { box-shadow: 0 0 0 0 rgba(244, 67, 54, 0.7); }
             70% { box-shadow: 0 0 0 10px rgba(244, 67, 54, 0); }
@@ -624,16 +747,19 @@ class UnifiedMemoryDashboard:
             background: rgba(255,255,255,0.95);
             border-radius: 12px;
             padding: 5px;
-            margin-bottom: 20px;
+            margin-bottom: 12px;
             box-shadow: 0 4px 16px rgba(0,0,0,0.1);
         }
+        /* Ensure consistent vertical spacing between major panels on Analysis tab */
+        #analysis-tab > .card { margin-bottom: 12px; }
+        #analysis-tab > .analysis-grid { margin-bottom: 12px; }
         .tab {
             flex: 1;
             padding: 12px 20px;
             text-align: center;
             border-radius: 8px;
             cursor: pointer;
-            transition: all 0.3s ease;
+            /* Keep static: remove transitions and hover background shifts */
             font-weight: 600;
         }
         .tab.active {
@@ -641,7 +767,7 @@ class UnifiedMemoryDashboard:
             color: white;
         }
         .tab:not(.active):hover {
-            background: rgba(52, 152, 219, 0.1);
+            background: inherit;
         }
         .tab-content {
             display: none;
@@ -652,10 +778,32 @@ class UnifiedMemoryDashboard:
         .process-list {
             max-height: 400px;
             overflow-y: auto;
+            min-height: 200px; /* Ensure minimum height */
         }
         .process-table {
             width: 100%;
             border-collapse: collapse;
+            min-width: 600px; /* Ensure minimum width */
+        }
+        /* Fix for processes tab layout - FORCE DIMENSIONS */
+        #processes-tab {
+            min-height: 400px !important;
+            width: 100% !important;
+            display: block !important;
+            position: relative !important;
+            overflow: visible !important;
+        }
+        #processes-tab.active {
+            display: block !important;
+            min-height: 400px !important;
+            width: 100% !important;
+        }
+        #processes-tab .card {
+            min-height: 350px !important;
+            width: 100% !important;
+            display: block !important;
+            position: relative !important;
+            padding: 20px !important;
         }
         .process-table th {
             background: #f8f9fa;
@@ -673,8 +821,9 @@ class UnifiedMemoryDashboard:
             border-bottom: 1px solid #ecf0f1;
             vertical-align: middle;
         }
+        /* Keep rows static; no hover highlight to avoid layout shifts */
         .process-table tr:hover {
-            background: rgba(52, 152, 219, 0.05);
+            background: inherit;
         }
         .process-name {
             font-weight: 600;
@@ -698,11 +847,11 @@ class UnifiedMemoryDashboard:
         .system-info {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
+            gap: 12px;
         }
         .info-item {
             text-align: center;
-            padding: 15px;
+            padding: 12px;
             background: rgba(52, 152, 219, 0.1);
             border-radius: 8px;
         }
@@ -724,15 +873,40 @@ class UnifiedMemoryDashboard:
                 flex-direction: column;
             }
         }
+        /* Toast notifications */
+        #toast-container { position: fixed; top: 16px; right: 16px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
+        .toast { min-width: 240px; max-width: 380px; background: #333; color: white; padding: 10px 14px; border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.2); opacity: 0.95; font-size: 14px; }
+        .toast.success { background: #2e7d32; }
+        .toast.info { background: #1565c0; }
+        .toast.warn { background: #ef6c00; }
+        .toast.error { background: #c62828; }
+
+        /* Skeleton loader */
+        .loading { position: relative; background: linear-gradient(90deg, #f0f0f0 25%, #f7f7f7 37%, #f0f0f0 63%); background-size: 400% 100%; animation: shimmer 1.4s ease infinite; height: 14px; border-radius: 4px; }
+        @keyframes shimmer { 0% { background-position: 100% 0; } 100% { background-position: -100% 0; } }
+
+        /* Sparkline canvas */
+        .spark-cell { width: 140px; display: inline-block; }
+        .sparkline { width: 140px; height: 28px; display: block; border: 1px solid #eee; background: #fafafa; }
+        .cell-inner { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+        .process-table td.process-memory, .process-table td.process-cpu { text-align: right; }
+        .cell-inner .value { min-width: 70px; text-align: right; font-variant-numeric: tabular-nums; }
+
     </style>
 </head>
 <body>
     <div class="container">
+        <div id="toast-container" aria-live="polite" aria-atomic="true"></div>
         <!-- New 4-Box Dashboard Header -->
-        <div class="header" style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: 8px; padding: 12px; margin-bottom: 15px; border: 1px solid #dee2e6; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
+        <div class="header" style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: 8px; padding: 8px; margin-bottom: 8px; border: 1px solid #dee2e6; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
             <!-- Compact Title and Status -->
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid #e0e0e0;">
-                <h1 style="margin: 0; font-size: 16px; color: #333; font-weight: bold;">📊 Clipboard Monitor Dashboard</h1>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px solid #e0e0e0;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <h1 style="margin: 0; font-size: 16px; color: #333; font-weight: bold;">📊 Clipboard Monitor Dashboard</h1>
+                    <span id="ui-signature" style="font-size:11px; color:#555; background:#f1f3f5; border:1px solid #dfe3e6; padding:2px 6px; border-radius:6px;">
+                        UI v2025-08-14 02:00Z • workspace
+                    </span>
+                </div>
                 <div style="display: flex; gap: 8px; align-items: center; font-size: 11px;">
                     <span style="background: #4CAF50; color: white; padding: 2px 6px; border-radius: 8px; font-weight: bold; display: flex; align-items: center; gap: 3px;">
                         <span>●</span> Connected
@@ -740,14 +914,15 @@ class UnifiedMemoryDashboard:
                     <span id="advanced-status" style="background: #999; color: white; padding: 2px 6px; border-radius: 8px; font-weight: bold; display: flex; align-items: center; gap: 3px;">
                         ⚫ Advanced
                     </span>
+                        <span id="monitoring-status-indicator" class="monitoring-indicator" style="display:none; width:10px; height:10px; border-radius:50%; background:#4CAF50; animation: pulse-dot 1.5s infinite;"></span>
                 </div>
             </div>
 
             <!-- Clean 4-Box Horizontal Layout -->
-            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 12px; width: 100%;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 8px; width: 100%;">
 
                 <!-- Box 1: Menu Bar + Service -->
-                <div style="background: white; border-radius: 6px; padding: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-left: 3px solid #2196F3;">
+                <div style="background: white; border-radius: 6px; padding: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-left: 3px solid #2196F3;">
                     <div style="font-weight: bold; color: #2196F3; margin-bottom: 6px; font-size: 11px; text-align: center;">📱 Menu Bar</div>
                     <div style="font-size: 10px;">
                         <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
@@ -814,8 +989,8 @@ class UnifiedMemoryDashboard:
                 </div>
 
                 <!-- Box 2: Analytics -->
-                <div style="background: white; border-radius: 6px; padding: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-left: 3px solid #FF9800;">
-                    <div style="font-weight: bold; color: #FF9800; margin-bottom: 6px; font-size: 11px; text-align: center;">📊 Analytics</div>
+                <div style="background: white; border-radius: 6px; padding: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-left: 3px solid #FF9800;">
+                    <div style="font-weight: bold; color: #FF9800; margin-bottom: 4px; font-size: 11px; text-align: center;">📊 Analytics</div>
                     <div style="font-size: 10px;">
                         <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
                             <span>📊 Total:</span>
@@ -857,8 +1032,8 @@ class UnifiedMemoryDashboard:
                 </div>
 
                 <!-- Box 3: System -->
-                <div style="background: white; border-radius: 6px; padding: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-left: 3px solid #9C27B0;">
-                    <div style="font-weight: bold; color: #9C27B0; margin-bottom: 6px; font-size: 11px; text-align: center;">💻 System</div>
+                <div style="background: white; border-radius: 6px; padding: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-left: 3px solid #9C27B0;">
+                    <div style="font-weight: bold; color: #9C27B0; margin-bottom: 4px; font-size: 11px; text-align: center;">💻 System</div>
                     <div style="font-size: 10px;">
                         <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
                             <span>🧠 RAM:</span>
@@ -884,8 +1059,8 @@ class UnifiedMemoryDashboard:
                 </div>
 
                 <!-- Box 4: Session -->
-                <div style="background: white; border-radius: 6px; padding: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-left: 3px solid #795548;">
-                    <div style="font-weight: bold; color: #795548; margin-bottom: 6px; font-size: 11px; text-align: center;">📊 Session</div>
+                <div style="background: white; border-radius: 6px; padding: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-left: 3px solid #795548;">
+                    <div style="font-weight: bold; color: #795548; margin-bottom: 4px; font-size: 11px; text-align: center;">📊 Session</div>
                     <div style="font-size: 10px;">
                         <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
                             <span>⏰ Session:</span>
@@ -915,91 +1090,217 @@ class UnifiedMemoryDashboard:
                 </div>
             </div>
         </div>
-        
+
+
+
         <div class="tabs">
-            <div class="tab active" onclick="switchTab('dashboard')">📊 Dashboard</div>
-            <div class="tab" onclick="switchTab('analysis')">🔍 Analysis & Controls</div>
-            <div class="tab" onclick="switchTab('processes')">⚙️ Processes</div>
+            <div class="tab active" onclick="switchTab('dashboard', this)">📊 Dashboard</div>
+            <div class="tab" onclick="switchTab('analysis', this)">🔍 Analysis & Controls</div>
+            <div class="tab" onclick="switchTab('processes', this)">⚙️ Processes</div>
         </div>
-        
+
         <!-- Consolidated Dashboard Tab -->
         <div id="dashboard-tab" class="tab-content active">
 
-
-
-
-            <!-- Charts Section with Hybrid Controls -->
-            <div class="chart-container" style="margin-bottom: 10px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                    <div style="display: flex; align-items: center; gap: 15px;">
-                        <h3 style="font-size: 16px; margin: 0; color: #333;">📈 <span id="chart-title">Real-time Memory Usage</span></h3>
-                        <span style="font-size: 11px; color: #666; font-style: italic;" id="data-collection-info">Data collected every 2 seconds</span>
-                    </div>
-                    <div style="display: flex; gap: 15px; align-items: center;">
-                        <!-- Mode Toggle -->
-                        <div style="display: flex; gap: 5px;">
-                            <button id="realtime-btn" class="chart-mode-btn" onclick="chartManager.switchToRealtimeMode()"
-                                    style="padding: 4px 8px; font-size: 11px; border: 1px solid #ddd; background: #4CAF50; color: white; border-radius: 4px; cursor: pointer;">
-                                Real-time
-                            </button>
-                            <button id="historical-btn" class="chart-mode-btn" onclick="toggleHistoricalOptions()"
-                                    style="padding: 4px 8px; font-size: 11px; border: 1px solid #ddd; background: #f5f5f5; color: #333; border-radius: 4px; cursor: pointer;">
-                                Historical
-                            </button>
+            <!-- Memory Usage Chart - Only visible in Dashboard tab -->
+            <div class="chart-container" style="margin-bottom: 10px; width: 100%; max-width: 100%; box-sizing: border-box; overflow: hidden; height: 350px;">
+                <!-- Unified Control Bar -->
+                <div class="unified-control-bar" style="
+                    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+                    border: 1px solid #dee2e6;
+                    border-radius: 8px;
+                    padding: 8px 12px;
+                    margin-bottom: 8px;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+                    width: 100%;
+                    max-width: 100%;
+                    box-sizing: border-box;
+                    overflow: hidden;
+                ">
+                    <!-- Top Row: Title and Status -->
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <h3 style="font-size: 16px; margin: 0; color: #333; font-weight: 600;">
+                                📈 <span id="chart-title">Live Memory Usage</span>
+                            </h3>
+                            <div class="chart-badge" style="
+                                background: #4CAF50;
+                                color: white;
+                                padding: 2px 8px;
+                                border-radius: 12px;
+                                font-size: 10px;
+                                font-weight: 500;
+                                text-transform: uppercase;
+                            " id="mode-badge">Live</div>
                         </div>
-
-                        <!-- Historical Range Options (hidden by default) -->
-                        <div id="historical-options" style="display: none; gap: 5px;">
-                            <select id="historical-range" onchange="handleRangeChange(this)"
-                                    style="padding: 4px 6px; font-size: 11px; border: 1px solid #ddd; border-radius: 4px;">
-                                <option value="1">Last Hour</option>
-                                <option value="6">Last 6 Hours</option>
-                                <option value="24">Last 24 Hours</option>
-                                <option value="168">Last 7 Days</option>
-                                <option value="all">Since Start ⚠️</option>
-                            </select>
-                            <select id="resolution-select" onchange="chartManager.changeResolution(this.value)"
-                                    style="padding: 4px 6px; font-size: 11px; border: 1px solid #ddd; border-radius: 4px;">
-                                <option value="full">Full Resolution</option>
-                                <option value="10sec">10 Second Avg</option>
-                                <option value="minute">1 Minute Avg</option>
-                                <option value="hour">1 Hour Avg</option>
-                            </select>
-                        </div>
-
-                        <!-- Chart Status -->
-                        <div id="chart-status" style="font-size: 11px; color: #666;">
-                            <span id="chart-mode-indicator">Real-time</span> •
-                            <span id="chart-points-count">-- pts</span> •
+                        <div class="chart-status" style="
+                            display: flex;
+                            align-items: center;
+                            gap: 8px;
+                            font-size: 11px;
+                            color: #666;
+                            background: rgba(255,255,255,0.7);
+                            padding: 4px 8px;
+                            border-radius: 4px;
+                        ">
+                            <span id="chart-mode-indicator">Live: 5 Minutes</span>
+                            <span style="color: #dee2e6;">•</span>
+                            <span id="chart-points-count">-- pts</span>
+                            <span style="color: #dee2e6;">•</span>
                             <span id="chart-last-update">--</span>
                         </div>
+                    </div>
 
-                        <!-- Legend -->
-                        <div id="chart-legend" style="display: flex; gap: 15px; font-size: 12px;">
-                            <div style="display: flex; align-items: center;">
-                                <div style="width: 12px; height: 12px; background: #2196F3; margin-right: 4px; border-radius: 2px;"></div>
-                                <span>Menu Bar App</span>
+                    <!-- Bottom Row: Controls -->
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <!-- Left: Mode Controls -->
+                        <div class="mode-controls" style="display: flex; align-items: center; gap: 8px;">
+                            <span style="font-size: 12px; color: #666; font-weight: 500;">Mode:</span>
+                            <div class="mode-toggle" style="
+                                display: flex;
+                                background: white;
+                                border: 1px solid #dee2e6;
+                                border-radius: 6px;
+                                overflow: hidden;
+                                box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+                            ">
+                                <button id="realtime-btn" class="mode-btn" onclick="chartManager.switchToLiveMode()" style="
+                                    padding: 6px 12px;
+                                    font-size: 12px;
+                                    border: none;
+                                    background: #4CAF50;
+                                    color: white;
+                                    cursor: pointer;
+                                    font-weight: 500;
+                                    transition: all 0.2s ease;
+                                ">Live</button>
+                                <button id="historical-btn" class="mode-btn" onclick="toggleHistoricalOptions()" style="
+                                    padding: 6px 12px;
+                                    font-size: 12px;
+                                    border: none;
+                                    background: white;
+                                    color: #666;
+                                    cursor: pointer;
+                                    font-weight: 500;
+                                    transition: all 0.2s ease;
+                                ">Historical</button>
                             </div>
-                            <div style="display: flex; align-items: center;">
-                                <div style="width: 12px; height: 12px; background: #4CAF50; margin-right: 4px; border-radius: 2px;"></div>
-                                <span>Main Service</span>
+                        </div>
+
+                        <!-- Center: Range Controls -->
+                        <div class="range-controls" style="display: flex; align-items: center; gap: 8px;">
+                            <!-- Live Range Options -->
+                            <div id="live-options" style="display: flex; align-items: center; gap: 6px;">
+                                <span style="font-size: 12px; color: #666; font-weight: 500;">Range:</span>
+                                <select id="live-range-select" onchange="handleLiveRangeChange(this)" style="
+                                    padding: 6px 10px;
+                                    font-size: 12px;
+                                    border: 1px solid #dee2e6;
+                                    border-radius: 4px;
+                                    background: white;
+                                    color: #333;
+                                    cursor: pointer;
+                                    font-weight: 500;
+                                    min-width: 100px;
+                                ">
+                                    <option value="5m">5 Minutes</option>
+                                    <option value="15m">15 Minutes</option>
+                                    <option value="30m">30 Minutes</option>
+                                    <option value="1h">1 Hour</option>
+                                    <option value="2h">2 Hours</option>
+                                    <option value="4h">4 Hours</option>
+                                </select>
+                            </div>
+
+                            <!-- Historical Range Options (hidden by default) -->
+                            <div id="historical-options" style="display: none; align-items: center; gap: 6px;">
+                                <span style="font-size: 12px; color: #666; font-weight: 500;">Period:</span>
+                                <select id="historical-range" onchange="handleRangeChange(this)" style="
+                                    padding: 6px 10px;
+                                    font-size: 12px;
+                                    border: 1px solid #dee2e6;
+                                    border-radius: 4px;
+                                    background: white;
+                                    color: #333;
+                                    cursor: pointer;
+                                    font-weight: 500;
+                                    min-width: 120px;
+                                ">
+                                    <option value="1">Last Hour</option>
+                                    <option value="6">Last 6 Hours</option>
+                                    <option value="24">Last 24 Hours</option>
+                                    <option value="168">Last 7 Days</option>
+                                    <option value="all">Since Start ⚠️</option>
+                                </select>
+                                <span style="font-size: 12px; color: #666; font-weight: 500;">Resolution:</span>
+                                <select id="resolution-select" onchange="chartManager.changeResolution(this.value)" style="
+                                    padding: 6px 10px;
+                                    font-size: 12px;
+                                    border: 1px solid #dee2e6;
+                                    border-radius: 4px;
+                                    background: white;
+                                    color: #333;
+                                    cursor: pointer;
+                                    font-weight: 500;
+                                    min-width: 100px;
+                                ">
+                                    <option value="full">Full</option>
+                                    <option value="10sec">10s Avg</option>
+                                    <option value="minute">1m Avg</option>
+                                    <option value="hour">1h Avg</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Right: Data Info and Legend -->
+                        <div style="display: flex; align-items: center; gap: 16px;">
+                            <div class="data-info" style="
+                                display: flex;
+                                align-items: center;
+                                gap: 6px;
+                                font-size: 11px;
+                                color: #666;
+                                background: rgba(255,255,255,0.7);
+                                padding: 4px 8px;
+                                border-radius: 4px;
+                            ">
+                                <span id="data-collection-info">Data: 2s intervals</span>
+                            </div>
+
+                            <!-- Legend -->
+                            <div class="legend-info" style="
+                                display: flex;
+                                align-items: center;
+                                gap: 12px;
+                                font-size: 12px;
+                            ">
+                                <div style="display: flex; align-items: center; gap: 4px;">
+                                    <div style="width: 12px; height: 12px; background: #2196F3; border-radius: 2px;"></div>
+                                    <span>Menu Bar App</span>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 4px;">
+                                    <div style="width: 12px; height: 12px; background: #4CAF50; border-radius: 2px;"></div>
+                                    <span>Main Service</span>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-                <div class="chart-wrapper" style="height: 507px;">
-                    <canvas id="memoryChart"></canvas>
+
+                    <!-- Chart Canvas -->
+                    <div class="chart-wrapper" style="margin-top: 0; position: relative; top: 0;">
+                        <canvas id="memoryChart"></canvas>
+                    </div>
                 </div>
             </div>
 
             <!-- CPU Usage Chart -->
             <div class="chart-container" style="margin-bottom: 8px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                    <div style="display: flex; align-items: center; gap: 15px;">
+                    <div class="row-12" style="align-items: center;">
                         <h3 style="font-size: 16px; margin: 0; color: #333;">⚡ <span id="cpu-chart-title">Real-time CPU Usage</span></h3>
                         <span style="font-size: 11px; color: #666; font-style: italic;">Data collected every 2 seconds</span>
                     </div>
-                    <div style="display: flex; gap: 12px; align-items: center;">
+                    <div class="row-12" style="align-items: center;">
                         <!-- Mode Toggle -->
                         <div style="display: flex; gap: 4px;">
                             <button id="cpu-realtime-btn" class="chart-mode-btn" onclick="cpuChartManager.switchToRealtimeMode()"
@@ -1025,26 +1326,26 @@ class UnifiedMemoryDashboard:
 
 
 
-                        <!-- Chart Status -->
-                        <div id="cpu-chart-status" style="font-size: 10px; color: #666;">
-                            <span id="cpu-chart-mode-indicator">Real-time</span> •
-                            <span id="cpu-chart-points-count">-- pts</span>
-                        </div>
-
-                        <!-- Legend -->
-                        <div id="cpu-chart-legend" style="display: flex; gap: 15px; font-size: 12px;">
-                            <div style="display: flex; align-items: center;">
-                                <div style="width: 12px; height: 12px; background: #2196F3; margin-right: 4px; border-radius: 2px;"></div>
-                                <span>Menu Bar App</span>
+                        <!-- Chart Status and Legend -->
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <div id="cpu-chart-status" style="font-size: 10px; color: #666;">
+                                <span id="cpu-chart-mode-indicator">Real-time</span> •
+                                <span id="cpu-chart-points-count">-- pts</span>
                             </div>
-                            <div style="display: flex; align-items: center;">
-                                <div style="width: 12px; height: 12px; background: #4CAF50; margin-right: 4px; border-radius: 2px;"></div>
-                                <span>Main Service</span>
+                            <div id="cpu-chart-legend" style="display: flex; align-items: center; gap: 12px; font-size: 12px;">
+                                <div style="display: flex; align-items: center; gap: 4px;">
+                                    <div style="width: 12px; height: 12px; background: #2196F3; border-radius: 2px;"></div>
+                                    <span>Menu Bar App</span>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 4px;">
+                                    <div style="width: 12px; height: 12px; background: #4CAF50; border-radius: 2px;"></div>
+                                    <span>Main Service</span>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
-                <div class="chart-wrapper" style="height: 507px;">
+                <div class="chart-wrapper">
                     <canvas id="cpuChart"></canvas>
                 </div>
             </div>
@@ -1054,10 +1355,10 @@ class UnifiedMemoryDashboard:
 
         <!-- Analysis Tab (Combined with Controls) -->
         <div id="analysis-tab" class="tab-content">
-            <div style="background: #e8f5e9; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #4CAF50;">
+            <div style="background: #e8f5e9; padding: 15px; border-radius: 8px; margin-bottom: 12px; border-left: 4px solid #4CAF50;">
                 <h4 style="margin: 0 0 10px 0; color: #2e7d32;">🔍 Memory Analysis & Monitoring Dashboard</h4>
                 <p style="margin: 0 0 10px 0;">This tab provides comprehensive memory leak detection, monitoring controls, and growth pattern analysis.</p>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 10px;">
+                <div class="grid-2-12" style="margin-top: 10px;">
                     <div style="background: white; padding: 10px; border-radius: 5px;">
                         <strong>📊 Analysis Features:</strong>
                         <ul style="margin: 5px 0; padding-left: 20px; font-size: 14px;">
@@ -1079,13 +1380,40 @@ class UnifiedMemoryDashboard:
                 </div>
             </div>
 
+            <!-- Live Collection Strip (compact banner) -->
+            <div class="card" style="padding: 10px 12px;">
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
+                    <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                        <span id="live-status-dot" style="width:10px; height:10px; border-radius:50%; background:#ccc;"></span>
+                        <strong>Live Collection:</strong>
+                        <span id="live-status-text" style="color:#666;">INACTIVE</span>
+                        <span style="color:#bbb;">|</span>
+                        <span>Rate: <strong id="live-interval">Every 30s</strong></span>
+                        <span style="color:#bbb;">|</span>
+                        <span>Next: <strong id="live-next">--</strong></span>
+                        <span style="color:#bbb;">|</span>
+                        <span>Points: <strong id="live-adv-points">0</strong></span>
+                        <span style="color:#bbb;">|</span>
+                        <span>Duration: <strong id="live-duration">0.00h</strong></span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <button id="monitoringToggleBtnMini" onclick="toggleAdvancedMonitoring()" style="background:#4CAF50; color:white; border:none; padding:8px 14px; border-radius:5px; cursor:pointer; font-weight:600;">🚀 Start</button>
+                        <button onclick="forceGarbageCollection()" style="background:#ff9800; color:white; border:none; padding:8px 14px; border-radius:5px; cursor:pointer;" title="Force Python garbage collection to free unused memory">🗑️ GC</button>
+                    </div>
+                </div>
+                <div style="margin-top:6px; color:#666; font-size:12px;">
+                    <em>Collects per‑process memory and CPU at the chosen interval. Use the controls to start/stop a session; results appear below.</em>
+                </div>
+                <div id="live-last-sample" style="margin-top:6px; font-size:12px; color:#333; font-variant-numeric: tabular-nums;"></div>
+            </div>
+
             <!-- Monitoring Controls Section (Moved from Controls Tab) -->
             <div class="card">
                 <h3>⚙️ Advanced Monitoring Controls</h3>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 20px;">
+                <div class="section-grid">
                     <div>
                         <label for="monitorInterval" style="display: block; margin-bottom: 5px;">Monitoring Interval:</label>
-                        <select id="monitorInterval" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 15px;">
+                        <select id="monitorInterval" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 12px;">
                             <option value="10">Every 10 seconds</option>
                             <option value="30" selected>Every 30 seconds</option>
                             <option value="60">Every 1 minute</option>
@@ -1104,9 +1432,12 @@ class UnifiedMemoryDashboard:
                                 <div id="status-indicator" style="width: 12px; height: 12px; border-radius: 50%; background: #ccc; margin-right: 10px;"></div>
                                 <strong>Advanced Monitoring Status:</strong> <span id="status-text">INACTIVE</span>
                             </div>
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                            <div class="grid-2-12">
                                 <div>
                                     <strong>Advanced Data Points:</strong> <span id="advanced-data-points">0</span><br>
+                                <div>
+                                    <strong>Next Sample In:</strong> <span id="next-sample">--</span>
+                                </div>
                                     <strong>Advanced Collection Rate:</strong> <span id="collection-rate">Stopped</span><br>
                                     <small style="color: #666;">Leak detection & analysis data</small>
                                 </div>
@@ -1116,7 +1447,7 @@ class UnifiedMemoryDashboard:
                                     <small style="color: #666;">Real-time dashboard data</small>
                                 </div>
                             </div>
-                            <div style="margin-top: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                            <div class="grid-2-12" style="margin-top: 10px;">
                                 <div>
                                     <strong>Advanced Duration:</strong> <span id="monitoring-duration">0.0 hours</span>
                                 </div>
@@ -1136,10 +1467,18 @@ class UnifiedMemoryDashboard:
             </div>
 
             <!-- Analysis Controls Section -->
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 20px;">
+            <div class="analysis-grid">
+            <!-- Last Session Summary (Findings Board) -->
+            <div class="card">
+                <h3>🧭 Last Session Summary</h3>
+                <div id="session-findings">
+                    <div class="loading">Waiting for advanced monitoring data...</div>
+                </div>
+            </div>
+
                 <div class="card">
                     <h3>⏱️ Analysis Time Range</h3>
-                    <div style="margin-bottom: 15px;">
+                    <div style="margin-bottom: 12px;">
                         <label for="analysisTimeRange" style="display: block; margin-bottom: 5px;">Select time period for analysis:</label>
                         <select id="analysisTimeRange" onchange="updateAnalysisTimeRange()" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
                             <option value="1">Last 1 hour</option>
@@ -1165,6 +1504,7 @@ class UnifiedMemoryDashboard:
             </div>
 
             <!-- Analysis Results Section -->
+            <div class="stack-16">
             <div class="card">
                 <h3>🔍 Memory Leak Detection Results</h3>
                 <div id="leak-analysis">
@@ -1174,6 +1514,11 @@ class UnifiedMemoryDashboard:
 
             <div class="card">
                 <h3>📈 Growth Trend Analysis</h3>
+                <div style="font-size:12px; color:#555; margin-bottom:8px;">
+                    This section analyzes memory behavior over time for the Menu Bar and Main Service processes.
+                    We compute growth rate (MB/hour) using a simple regression of memory vs time, estimate Consistency using R² (how well a straight line explains the trend),
+                    and surface the biggest spikes to help spot anomalous jumps. Use the Range and Res controls to change the analysis window and resolution.
+                </div>
                 <div id="trend-analysis">
                     <div class="loading">Loading trend analysis...</div>
                 </div>
@@ -1185,38 +1530,71 @@ class UnifiedMemoryDashboard:
                     <div class="loading">Loading monitoring history...</div>
                 </div>
             </div>
+            </div> <!-- Close stack-16 -->
         </div>
-        
+
         <!-- Processes Tab -->
         <div id="processes-tab" class="tab-content">
             <div class="card">
-                <h3>🔍 Clipboard Monitor Processes</h3>
+                <h3>🔍 Clipboard Monitor Processes
+                    <span id="processes-meta" style="font-size:12px; color:#666; margin-left:8px;"></span>
+                    <button id="processes-refresh" onclick="fetchProcessData()" style="float:right; font-size:12px; padding:4px 8px; background:#4CAF50; color:white; border:none; border-radius:3px; cursor:pointer;">🔄 Refresh</button>
+                </h3>
                 <div class="process-list">
                     <table class="process-table">
                         <thead>
                             <tr>
                                 <th>Process Name</th>
-                                <th>Memory</th>
-                                <th>CPU</th>
+                                <th>PID</th>
+                                <th>Memory (MB)</th>
+                                <th>CPU (%)</th>
+                                <th>Uptime</th>
+                                <th>Status</th>
                             </tr>
                         </thead>
                         <tbody id="process-list">
                             <tr>
-                                <td colspan="3" style="text-align: center; padding: 20px;">Loading processes...</td>
+                                <td colspan="6" style="text-align: center; padding: 20px;">Loading processes...</td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
             </div>
         </div>
-        
 
 
-        <!-- Controls Tab (Removed - Merged with Analysis Tab) -->
-    </div>
-    
+
+    <!-- Controls Tab (Removed - Merged with Analysis Tab) -->
+
     <script>
+        // Live collection countdown state (global)
+        window.__liveCountdown = { active: false, interval: 30, remaining: 0, timerId: null, lastPoints: 0 };
+
         // Global variables
+        // Analysis helpers (move to script top to avoid being printed in tables)
+        let analysisAbortController = null;
+        let analysisDebounceTimer = null;
+        function isTabActive(name) {
+            const el = document.getElementById(name + '-tab');
+            return el && el.classList.contains('active');
+        }
+        document.addEventListener('DOMContentLoaded', () => {
+            const sel = document.getElementById('analysisTimeRange');
+            const saved = localStorage.getItem('analysisTimeRange');
+            if (sel && saved) sel.value = saved;
+        });
+
+        // Toast helpers (global)
+        function showToast(message, type = 'info', timeout = 2500) {
+            const container = document.getElementById('toast-container');
+            if (!container) return;
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            container.appendChild(toast);
+            setTimeout(() => { toast.remove(); }, timeout);
+        }
+
         let currentTooltip = null;
 
         // Tooltip functions for bubble help
@@ -1286,6 +1664,47 @@ class UnifiedMemoryDashboard:
         // Legacy chart functions (removed duplicate chartManager declaration)
         // The real chartManager is initialized later as HybridMemoryChart
 
+        // Simple sparkline drawer with tiny history buffers per PID (moved near top for availability)
+        const sparkHistory = { mem: new Map(), cpu: new Map() };
+        function drawSparkline(canvasId, value, kind = 'mem', maxPoints = 10) {
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            const map = kind === 'cpu' ? sparkHistory.cpu : sparkHistory.mem;
+            if (!map.has(canvasId)) map.set(canvasId, []);
+            const history = map.get(canvasId);
+            history.push(Math.max(0, value));
+            if (history.length > maxPoints) history.shift();
+            // Clear
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            // Normalize
+            const h = canvas.height, w = canvas.width;
+            const min = Math.min(...history);
+            const max = Math.max(...history);
+            const range = Math.max(0.001, max - min);
+            // Draw bars
+            const barW = 5, gap = 2;
+            const startX = Math.max(0, w - (barW + gap) * history.length);
+            history.forEach((v, i) => {
+                const norm = (v - min) / range;
+                const barH = Math.max(2, Math.round(norm * (h - 2)));
+                const x = startX + i * (barW + gap);
+                const y = h - barH;
+                // Color coding
+                let color = '#4CAF50';
+                const val = v;
+                if (kind === 'cpu') {
+                    if (val > 70) color = '#FF5722';
+                    else if (val > 40) color = '#FF9800';
+                } else {
+                    if (val > 400) color = '#FF5722';
+                    else if (val > 200) color = '#FF9800';
+                }
+                ctx.fillStyle = color;
+                ctx.fillRect(x, y, barW, barH);
+            });
+        }
+
         // Utility functions
         function formatDuration(ms) {
             const seconds = Math.floor(ms / 1000);
@@ -1322,7 +1741,7 @@ class UnifiedMemoryDashboard:
         let processRefreshInterval = null;
 
         // Tab switching functionality
-        function switchTab(tabName) {
+        function switchTab(tabName, el) {
             // Hide all tab contents
             document.querySelectorAll('.tab-content').forEach(content => {
                 content.classList.remove('active');
@@ -1336,14 +1755,21 @@ class UnifiedMemoryDashboard:
             // Show selected tab content
             document.getElementById(tabName + '-tab').classList.add('active');
 
-            // Add active class to clicked tab
-            event.target.classList.add('active');
+            // Add active class to clicked tab (robust for direct calls)
+            if (el && el.classList) {
+                el.classList.add('active');
+            } else {
+                const sel = `.tabs .tab[onclick*="${tabName}"]`;
+                const fallback = document.querySelector(sel);
+                if (fallback) fallback.classList.add('active');
+            }
 
             // Clear any existing process refresh interval
             if (processRefreshInterval) {
                 clearInterval(processRefreshInterval);
                 processRefreshInterval = null;
             }
+
 
             // Handle tab-specific initialization
             if (tabName === 'dashboard') {
@@ -1356,73 +1782,11 @@ class UnifiedMemoryDashboard:
             } else if (tabName === 'processes') {
                 // Load processes immediately and start auto-refresh
                 fetchProcessData();
-                processRefreshInterval = setInterval(fetchProcessData, 2000); // Refresh every 2 seconds
+                processRefreshInterval = setInterval(fetchProcessData, 3000); // Refresh every 3 seconds
             }
         }
-        
-        // Initialize memory chart
-        const ctx = document.getElementById('memoryChart').getContext('2d');
-        const chart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: [],
-                datasets: [{
-                    label: 'Menu Bar App (MB)',
-                    data: [],
-                    borderColor: '#2196F3',
-                    backgroundColor: 'rgba(33, 150, 243, 0.1)',
-                    tension: 0.4,
-                    fill: true
-                }, {
-                    label: 'Main Service (MB)',
-                    data: [],
-                    borderColor: '#4CAF50',
-                    backgroundColor: 'rgba(76, 175, 80, 0.1)',
-                    tension: 0.4,
-                    fill: true
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                interaction: {
-                    intersect: false,
-                    mode: 'index'
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        title: {
-                            display: true,
-                            text: 'Memory Usage (MB)'
-                        }
-                    },
-                    x: {
-                        title: {
-                            display: true,
-                            text: 'Time'
-                        }
-                    }
-                },
-                plugins: {
-                    title: {
-                        display: false
-                    },
-                    legend: {
-                        display: false
-                    }
-                },
-                animation: {
-                    duration: 0 // Disable animations for real-time updates
-                },
-                elements: {
-                    point: {
-                        radius: 1,
-                        hoverRadius: 4
-                    }
-                }
-            }
-        });
+
+        // Legacy memory chart initialization removed - now handled by UnifiedMemoryChart class
 
         // Initialize CPU chart
         const cpuCtx = document.getElementById('cpuChart').getContext('2d');
@@ -1585,7 +1949,7 @@ class UnifiedMemoryDashboard:
                 }
             }
         }
-        
+
         function updateDashboard(data) {
             try {
                 // Extract data from /api/current response structure
@@ -1804,22 +2168,6 @@ class UnifiedMemoryDashboard:
 
             if (chartManager && chartManager.isInitialized) {
                 chartManager.addRealtimePoint(realtimePoint);
-            } else {
-                // Fallback to old method if chart manager not ready
-                const time = new Date(data.timestamp).toLocaleTimeString();
-
-                chart.data.labels.push(time);
-                chart.data.datasets[0].data.push(data.menubar_memory);
-                chart.data.datasets[1].data.push(data.service_memory);
-
-                // Keep only last 50 data points for performance
-                if (chart.data.labels.length > 50) {
-                    chart.data.labels.shift();
-                    chart.data.datasets[0].data.shift();
-                    chart.data.datasets[1].data.shift();
-                }
-
-                chart.update('none');
             }
 
             // Update CPU chart (only if not paused)
@@ -1849,23 +2197,17 @@ class UnifiedMemoryDashboard:
                 console.error('Error in updateDashboard:', error);
             }
         }
-        
+
         function loadHistoricalData(history) {
             if (history && history.length > 0) {
                 const recentHistory = history.slice(-50);
-                
-                chart.data.labels = recentHistory.map(d => new Date(d.timestamp).toLocaleTimeString());
-                chart.data.datasets[0].data = recentHistory.map(d => d.menubar_memory);
-                chart.data.datasets[1].data = recentHistory.map(d => d.service_memory);
-                
-                chart.update();
-                
+
                 // Update current metrics
                 const latest = recentHistory[recentHistory.length - 1];
                 updateDashboard(latest);
             }
         }
-        
+
         // Fetch additional data via REST API
         async function fetchSystemData() {
             try {
@@ -1887,44 +2229,119 @@ class UnifiedMemoryDashboard:
                     document.getElementById('header-uptime').textContent = data.uptime;
                 }
 
-                // Update data points counter in header
-                const headerDataPointsElement = document.getElementById('header-data-points');
-                if (headerDataPointsElement && chart && chart.data && chart.data.labels) {
-                    headerDataPointsElement.textContent = chart.data.labels.length + ' pts';
-                }
+                // Update data points counter in header - handled by chartManager
             } catch (error) {
                 console.error('Error fetching system data:', error);
             }
         }
-        
+
         async function fetchProcessData() {
             try {
                 const response = await fetch('/api/processes');
                 const data = await response.json();
 
                 const processList = document.getElementById('process-list');
+                if (!processList) return; // DOM not ready yet
                 processList.innerHTML = '';
 
-                if (data.clipboard_processes && data.clipboard_processes.length > 0) {
-                    data.clipboard_processes.forEach(proc => {
-                        const row = document.createElement('tr');
-                        row.innerHTML = `
-                            <td class="process-name">${proc.display_name || proc.name} (${proc.pid})</td>
-                            <td class="process-memory">${proc.memory_mb.toFixed(1)} MB</td>
-                            <td class="process-cpu">${proc.cpu_percent.toFixed(1)}%</td>
-                        `;
-                        processList.appendChild(row);
+                // Update meta summary and normalize list shape
+                const meta = document.getElementById('processes-meta');
+                let list = [];
+                try {
+                    if (Array.isArray(data.clipboard_processes)) {
+                        list = data.clipboard_processes;
+                    } else if (data.clipboard && Array.isArray(data.clipboard.processes)) {
+                        list = data.clipboard.processes;
+                    }
+                } catch (e) {
+                    console.error('Error parsing process data:', e);
+                }
+
+                // Fallback to /api/current if primary returns empty
+                if (!list || list.length === 0) {
+                    try {
+                        const resp2 = await fetch('/api/current');
+                        const d2 = await resp2.json();
+                        if (d2 && d2.clipboard && Array.isArray(d2.clipboard.processes)) {
+                            list = d2.clipboard.processes;
+                        }
+                    } catch (e) {
+                        console.warn('Fallback to /api/current failed:', e);
+                    }
+                }
+
+                if (meta) {
+                    const count = (list && list.length) || 0;
+                    meta.textContent = `${count} process${count !== 1 ? 'es' : ''} • ${new Date().toLocaleTimeString()}`;
+                }
+
+                let rendered = 0;
+
+                if (Array.isArray(list) && list.length > 0) {
+                    list.forEach(procRaw => {
+                        try {
+                            // Coerce values defensively in case types vary
+                            const proc = {
+                                ...procRaw,
+                                pid: (procRaw && (procRaw.pid ?? Math.floor(Math.random()*1e6))),
+                                display_name: (procRaw && (procRaw.display_name || procRaw.name)) || 'process',
+                                memory_mb: Number(procRaw && procRaw.memory_mb || 0),
+                                cpu_percent: Number(procRaw && procRaw.cpu_percent || 0)
+                            };
+                            // Helper function to format uptime (handles both string and number inputs)
+                            function formatUptime(uptime) {
+                                // If it's already a formatted string, return it
+                                if (typeof uptime === 'string' && uptime.includes('m')) {
+                                    return uptime;
+                                }
+                                // If it's a number (seconds), format it
+                                if (typeof uptime === 'number' && uptime > 0) {
+                                    const hours = Math.floor(uptime / 3600);
+                                    const minutes = Math.floor((uptime % 3600) / 60);
+                                    if (hours > 0) return `${hours}h ${minutes}m`;
+                                    return `${minutes}m`;
+                                }
+                                return '--';
+                            }
+
+                            // Helper function to get status
+                            function getProcessStatus(proc) {
+                                if (proc.memory_mb > 200) return '<span style="color:#e74c3c;">⚠️ High Memory</span>';
+                                if (proc.cpu_percent > 50) return '<span style="color:#f39c12;">⚡ High CPU</span>';
+                                return '<span style="color:#27ae60;">✅ Normal</span>';
+                            }
+
+                            const row = document.createElement('tr');
+                            row.innerHTML = `
+                                <td style="font-weight: 500;">${proc.display_name || 'Unknown'}</td>
+                                <td style="text-align: right; font-family: monospace;">${proc.pid || '--'}</td>
+                                <td style="text-align: right; font-family: monospace;">${proc.memory_mb.toFixed(1)}</td>
+                                <td style="text-align: right; font-family: monospace;">${proc.cpu_percent.toFixed(1)}</td>
+                                <td style="text-align: right; font-family: monospace;">${formatUptime(proc.uptime)}</td>
+                                <td style="text-align: center;">${getProcessStatus(proc)}</td>
+                            `;
+                            // Append row to table
+                            processList.appendChild(row);
+                            rendered++;
+                        } catch (rowErr) {
+                            console.warn('Skipped a process due to render error:', rowErr, procRaw);
+                        }
                     });
-                } else {
-                    processList.innerHTML = '<tr><td colspan="3" style="text-align: center; padding: 20px;">No Clipboard Monitor processes found</td></tr>';
+                }
+
+                if (rendered === 0) {
+                    processList.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 20px;">No Clipboard Monitor processes found</td></tr>';
                 }
             } catch (error) {
                 console.error('Error fetching process data:', error);
                 const processList = document.getElementById('process-list');
-                processList.innerHTML = '<tr><td colspan="3" style="text-align: center; padding: 20px; color: #e74c3c;">Error loading processes</td></tr>';
+                if (processList) {
+                    processList.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 20px; color: #e74c3c;">Error loading processes</td></tr>';
+                }
             }
         }
-        
+
+
 
 
         // Advanced monitoring functions
@@ -1949,14 +2366,12 @@ class UnifiedMemoryDashboard:
                         toggleBtn.innerHTML = '🛑 Stop Advanced Monitoring';
                         toggleBtn.style.animation = 'pulse 2s infinite';
 
-                        // Show success message
-                        const message = `✅ ${result.message}\\n\\n📊 Background collection: ${result.background_collection}\\n⏱️ Interval: ${result.interval} seconds\\n\\n💡 Data will be collected automatically and status will update every 5 seconds.`;
-                        alert(message);
-
+                        // Show success toast
+                        showToast(`✅ ${result.message} — collecting every ${result.interval}s`, 'success');
                         updateMonitoringStatus();
                     }
                 } catch (error) {
-                    alert('❌ Error starting monitoring: ' + error);
+                    showToast('❌ Error starting monitoring: ' + error, 'error');
                 }
             } else {
                 // Stop monitoring
@@ -1979,13 +2394,11 @@ class UnifiedMemoryDashboard:
                         const durationText = minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
                         const dataPoints = result.data_points_collected || 0;
 
-                        const message = `✅ ${result.message}\\n\\n📊 Session Summary:\\n• Duration: ${durationText}\\n• Advanced Data Points: ${dataPoints}\\n• Background collection: ${result.background_collection}\\n\\n💾 What happens next:\\n• Advanced monitoring data is preserved for analysis\\n• Basic data collection continues for real-time charts\\n• Leak detection analysis is available in Analysis tab\\n• You can restart advanced monitoring anytime`;
-                        alert(message);
-
+                        showToast(`✅ ${result.message} — ${dataPoints} points in ${durationText}`, 'success');
                         updateMonitoringStatus();
                     }
                 } catch (error) {
-                    alert('❌ Error stopping monitoring: ' + error);
+                    showToast('❌ Error stopping monitoring: ' + error, 'error');
                 }
             }
         }
@@ -2025,7 +2438,7 @@ class UnifiedMemoryDashboard:
                 const memoryFreed = result.memory_freed_mb || 0;
 
                 const message = `✅ Garbage Collection Completed!\\n\\n🗑️ Objects Collected: ${objectsCollected.toLocaleString()}\\n💾 Memory Freed: ${memoryFreed.toFixed(2)} MB\\n\\n💡 What this does:\\n• Forces Python to clean up unused objects\\n• Releases memory back to the system\\n• Helps identify memory leaks\\n• Improves overall performance\\n\\n📊 Memory charts will update automatically.`;
-                alert(message);
+                showToast('✅ Garbage collection completed', 'success');
 
                 // Refresh memory data to show the effect
                 await fetchMemoryData();
@@ -2037,7 +2450,7 @@ class UnifiedMemoryDashboard:
                     gcBtn.innerHTML = originalText;
                 }, 2000);
 
-                alert('❌ Error during garbage collection: ' + error);
+                showToast('❌ Error during garbage collection: ' + error, 'error');
             } finally {
                 gcBtn.disabled = false;
             }
@@ -2048,7 +2461,10 @@ class UnifiedMemoryDashboard:
         }
 
         async function updateAnalysisTimeRange() {
-            await loadAnalysisData();
+            const sel = document.getElementById('analysisTimeRange');
+            if (sel) localStorage.setItem('analysisTimeRange', sel.value);
+            if (analysisDebounceTimer) clearTimeout(analysisDebounceTimer);
+            analysisDebounceTimer = setTimeout(() => { loadAnalysisData(); }, 250);
         }
 
         async function refreshAnalysisData() {
@@ -2063,6 +2479,7 @@ class UnifiedMemoryDashboard:
                 setTimeout(() => {
                     refreshBtn.innerHTML = originalText;
                 }, 2000);
+
             } catch (error) {
                 refreshBtn.innerHTML = '❌ Error';
                 setTimeout(() => {
@@ -2108,27 +2525,37 @@ class UnifiedMemoryDashboard:
 
         async function loadAnalysisData() {
             try {
+                if (typeof isTabActive === 'function' && !isTabActive('analysis')) return; // Skip if tab not visible
+                // Abort stale requests
+                if (analysisAbortController) analysisAbortController.abort();
+                analysisAbortController = new AbortController();
+                const signal = analysisAbortController.signal;
+
                 // Get time range from either selector (fallback to 24 hours)
                 const timeRangeElement = document.getElementById('analysisTimeRange') || document.getElementById('timeRange');
                 const hours = timeRangeElement ? timeRangeElement.value : 24;
 
-                console.log(`Loading analysis data for ${hours} hours`);
-
                 // Fetch analysis data
-                const response = await fetch(`/api/analysis?hours=${hours}`);
+                const response = await fetch(`/api/analysis?hours=${hours}`, { signal });
                 const data = await response.json();
                 updateAnalysisDisplay(data);
 
                 // Fetch leak analysis
-                const leakResponse = await fetch('/api/leak_analysis');
+                const leakResponse = await fetch('/api/leak_analysis', { signal });
                 const leakData = await leakResponse.json();
                 updateLeakAnalysisDisplay(leakData);
+
+                // Update Last Session Findings board
+                updateSessionFindings(data, leakData);
 
                 // Update analysis summary
                 updateAnalysisSummary(data, hours);
 
                 // Update monitoring history
                 updateMonitoringHistory();
+
+                // Update Trend Explorer
+                updateTrendExplorer(hours);
 
             } catch (error) {
                 console.error('Error loading analysis data:', error);
@@ -2150,8 +2577,8 @@ class UnifiedMemoryDashboard:
             const leakAnalysis = document.getElementById('leak-analysis');
             const trendAnalysis = document.getElementById('trend-analysis');
 
-            let leakHtml = '<div style="display: grid; gap: 15px;">';
-            let trendHtml = '<div style="display: grid; gap: 15px;">';
+            let leakHtml = '<div style="display: grid; gap: 12px;">';
+            let trendHtml = '<div style="display: grid; gap: 12px;">';
 
             for (const [process, analysis] of Object.entries(data)) {
                 const statusColor = analysis.severity === 'high' ? '#e74c3c' :
@@ -2180,7 +2607,11 @@ class UnifiedMemoryDashboard:
             trendHtml += '</div>';
 
             leakAnalysis.innerHTML = leakHtml;
-            trendAnalysis.innerHTML = trendHtml;
+            // Only populate trend-analysis if Trend Explorer UI not initialized yet
+            const trendContainer = document.getElementById('trend-analysis');
+            if (trendContainer && trendContainer.dataset.init !== '1') {
+                trendContainer.innerHTML = trendHtml;
+            }
         }
 
         function updateLeakAnalysisDisplay(leakData) {
@@ -2192,7 +2623,7 @@ class UnifiedMemoryDashboard:
                 return;
             }
 
-            let html = '<div style="display: grid; gap: 15px;">';
+            let html = '<div style="display: grid; gap: 12px;">';
             html += `<div style="padding: 10px; background: #e8f5e9; border-radius: 5px; margin-bottom: 15px;">
                 <strong>🔍 Advanced Leak Detection Results</strong><br>
                 <small>Based on advanced monitoring data collection</small>
@@ -2206,12 +2637,13 @@ class UnifiedMemoryDashboard:
                     html += `
                         <div style="padding: 15px; border-left: 4px solid ${statusColor}; background: rgba(0,0,0,0.05); border-radius: 5px;">
                             <h4 style="margin: 0 0 10px 0;">${key.replace('_', ' ').toUpperCase()}</h4>
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
                                 <div>
                                     <p><strong>Status:</strong> <span style="color: ${statusColor};">${analysis.status}</span></p>
                                     <p><strong>Severity:</strong> <span style="color: ${statusColor};">${analysis.severity}</span></p>
                                 </div>
                                 <div>
+
                                     <p><strong>Growth Rate:</strong> ${analysis.growth_rate_mb?.toFixed(2) || 0} MB/hour</p>
                                     <p><strong>Snapshots:</strong> ${analysis.snapshots_analyzed || 0}</p>
                                 </div>
@@ -2251,6 +2683,189 @@ class UnifiedMemoryDashboard:
 
             summaryDiv.innerHTML = html;
         }
+        // Trend Explorer UI builder (inside Growth Trend Analysis card)
+        function ensureTrendExplorerUI() {
+            const container = document.getElementById('trend-analysis');
+            if (!container || container.dataset.init === '1') return;
+            container.dataset.init = '1';
+            container.innerHTML = `
+                <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+                    <div style="display:flex; gap:6px;">
+                        <button id="trend-tab-proc" class="btn" style="padding:6px 10px; border:1px solid #ddd; border-radius:4px; background:#2196F3; color:#fff;">Processes</button>
+                        <button id="trend-tab-growth" class="btn" style="padding:6px 10px; border:1px solid #ddd; border-radius:4px; background:#f5f5f5; color:#333;">Growth & Consistency</button>
+                        <button id="trend-tab-spikes" class="btn" style="padding:6px 10px; border:1px solid #ddd; border-radius:4px; background:#f5f5f5; color:#333;">Spikes & Outliers</button>
+                    </div>
+                    <div style="margin-left:auto; display:flex; align-items:center; gap:8px; font-size:12px; color:#555;">
+                        <span>Range:</span>
+                        <select id="trend-range" style="padding:4px 6px; border:1px solid #ddd; border-radius:4px;">
+                            <option value="1">1h</option>
+                            <option value="6">6h</option>
+                            <option value="24" selected>24h</option>
+                            <option value="168">7d</option>
+                            <option value="all">All</option>
+                        </select>
+                        <span>Res:</span>
+                        <select id="trend-resolution" style="padding:4px 6px; border:1px solid #ddd; border-radius:4px;">
+                            <option value="full">Full</option>
+                            <option value="10sec">10s</option>
+                            <option value="minute" selected>1m</option>
+                            <option value="hour">1h</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="trend-pane-proc">
+                    <div style="display:flex; align-items:center; gap:10px; margin-bottom:6px; font-size:12px; color:#555;">
+                        <label><input type="checkbox" id="chk-menubar" checked> Menu Bar</label>
+                        <label><input type="checkbox" id="chk-service" checked> Service</label>
+                        <label><input type="checkbox" id="chk-total"> Total</label>
+                        <span id="trend-status" style="margin-left:auto;">--</span>
+                    </div>
+                    <div class="chart-wrapper" style="height:260px;">
+                        <canvas id="trend-proc-chart"></canvas>
+                    </div>
+                </div>
+                <div id="trend-pane-growth" style="display:none;">
+                    <div id="trend-growth-content" style="font-size:13px; color:#333;"></div>
+                </div>
+                <div id="trend-pane-spikes" style="display:none;">
+                    <div id="trend-spikes-content" style="font-size:13px; color:#333;"></div>
+                </div>
+            `;
+
+            // Tab switching
+            const setActive = (name) => {
+                ['proc','growth','spikes'].forEach(n => {
+                    document.getElementById(`trend-pane-${n}`).style.display = (n===name)?'block':'none';
+                    const b = document.getElementById(`trend-tab-${n}`);
+                    if (b) { b.style.background = (n===name)?'#2196F3':'#f5f5f5'; b.style.color = (n===name)?'#fff':'#333'; }
+                });
+            };
+            document.getElementById('trend-tab-proc').onclick = () => setActive('proc');
+            document.getElementById('trend-tab-growth').onclick = () => setActive('growth');
+            document.getElementById('trend-tab-spikes').onclick = () => setActive('spikes');
+            setActive('proc');
+        }
+
+        function computeRegression(points, key) {
+            // points: [{timestamp, key values}], key: 'menubar_memory' etc.
+            if (!points || points.length < 2) return { slopePerHour: 0, r2: 0 };
+            const xs = []; const ys = [];
+            const t0 = new Date(points[0].timestamp).getTime();
+            points.forEach(p => {
+                const t = new Date(p.timestamp).getTime();
+                xs.push((t - t0) / 3600000); // hours since start
+                ys.push(p[key] || 0);
+            });
+            const n = xs.length;
+            const sumX = xs.reduce((a,b)=>a+b,0);
+            const sumY = ys.reduce((a,b)=>a+b,0);
+            const sumXX = xs.reduce((a,b)=>a+b*b,0);
+            const sumXY = xs.reduce((a, x, i)=>a + x*ys[i], 0);
+            const meanY = sumY / n;
+            const denom = (n*sumXX - sumX*sumX) || 1e-9;
+            const slope = (n*sumXY - sumX*sumY) / denom; // MB per hour
+            // r^2
+            const ssTot = ys.reduce((a,y)=>a + Math.pow(y-meanY,2),0) || 1e-9;
+            const intercept = meanY - slope*(sumX/n);
+            const ssRes = ys.reduce((a,y,i)=>{
+                const yhat = slope*xs[i] + intercept; return a + Math.pow(y - yhat, 2);
+            },0);
+            const r2 = Math.max(0, 1 - ssRes/ssTot);
+            return { slopePerHour: slope, r2 };
+        }
+
+        let trendProcChart = null;
+        async function updateTrendExplorer(hours) {
+            try {
+                ensureTrendExplorerUI();
+                const rangeSel = document.getElementById('trend-range');
+                const resSel = document.getElementById('trend-resolution');
+                if (hours) rangeSel.value = String(hours);
+                let range = rangeSel.value;
+                let res = resSel.value;
+                // Auto adjust resolution for large ranges
+                if (range === 'all' && res === 'full') res = 'minute';
+                if (range === '168' && res === 'full') res = '10sec';
+
+                const resp = await fetch(`/api/historical-chart?hours=${range}&resolution=${res}`);
+                const data = await resp.json();
+                const points = data.points || [];
+                const statusEl = document.getElementById('trend-status');
+                if (statusEl) statusEl.textContent = `${points.length} pts • ${data.resolution} • ${data.time_range}`;
+
+                // Render Processes chart
+                const ctx = document.getElementById('trend-proc-chart').getContext('2d');
+                const labels = points.map(p => new Date(p.timestamp).toLocaleTimeString());
+                const menubar = points.map(p => p.menubar_memory || 0);
+                const service = points.map(p => p.service_memory || 0);
+                const total = points.map(p => (p.total_memory || ((p.menubar_memory||0)+(p.service_memory||0))));
+                if (trendProcChart) trendProcChart.destroy();
+                trendProcChart = new Chart(ctx, {
+                    type: 'line',
+                    data: { labels, datasets: [
+                        { label: 'Menu Bar', data: menubar, borderColor:'#2196F3', tension:0.3, fill:false, hidden:false },
+                        { label: 'Service', data: service, borderColor:'#4CAF50', tension:0.3, fill:false, hidden:false },
+                        { label: 'Total', data: total, borderColor:'#9C27B0', tension:0.3, fill:false, hidden:true }
+                    ]},
+                    options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:true}}, elements:{point:{radius:0}} }
+                });
+                // Wire toggles
+                document.getElementById('chk-menubar').onchange = (e)=>{ trendProcChart.data.datasets[0].hidden = !e.target.checked; trendProcChart.update('none'); };
+                document.getElementById('chk-service').onchange = (e)=>{ trendProcChart.data.datasets[1].hidden = !e.target.checked; trendProcChart.update('none'); };
+                document.getElementById('chk-total').onchange = (e)=>{ trendProcChart.data.datasets[2].hidden = !e.target.checked; trendProcChart.update('none'); };
+
+                // Growth & Consistency
+                const sMenubar = computeRegression(points, 'menubar_memory');
+                const sService = computeRegression(points, 'service_memory');
+                const growthHtml = `
+                    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px,1fr)); gap:10px;">
+                        <div style="border-left:4px solid ${sMenubar.slopePerHour>5?'#e74c3c':sMenubar.slopePerHour>2?'#f39c12':'#27ae60'}; background:#fff; padding:10px; border-radius:6px; box-shadow:0 0 0 1px #eee inset;">
+                            <div style="display:flex; justify-content:space-between;"><strong>Menu Bar</strong><span>${points.length} pts</span></div>
+                            <div>Growth: <strong>${sMenubar.slopePerHour.toFixed(2)} MB/h</strong></div>
+                            <div>Consistency (R²): <strong>${sMenubar.r2.toFixed(2)}</strong></div>
+                        </div>
+                        <div style="border-left:4px solid ${sService.slopePerHour>5?'#e74c3c':sService.slopePerHour>2?'#f39c12':'#27ae60'}; background:#fff; padding:10px; border-radius:6px; box-shadow:0 0 0 1px #eee inset;">
+                            <div style="display:flex; justify-content:space-between;"><strong>Main Service</strong><span>${points.length} pts</span></div>
+                            <div>Growth: <strong>${sService.slopePerHour.toFixed(2)} MB/h</strong></div>
+                            <div>Consistency (R²): <strong>${sService.r2.toFixed(2)}</strong></div>
+                        </div>
+                    </div>`;
+                document.getElementById('trend-growth-content').innerHTML = growthHtml;
+
+                // Spikes & Outliers (top spikes)
+                function computeSpikes(arr) {
+                    const deltas = [];
+                    for (let i=1;i<arr.length;i++){ const d = (arr[i]||0)-(arr[i-1]||0); deltas.push({i, d}); }
+                    deltas.sort((a,b)=>Math.abs(b.d)-Math.abs(a.d));
+                    return deltas.slice(0,5);
+                }
+                const spikesM = computeSpikes(menubar);
+                const spikesS = computeSpikes(service);
+                let spikesHtml = '<div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">';
+                const fmt = (o, lbl) => {
+                    const t = labels[o.i] || '--';
+                    const val = o.d.toFixed(2);
+                    const color = o.d>0 ? (Math.abs(o.d)>50?'#e74c3c':'#f39c12') : '#27ae60';
+                    return `<div style="padding:8px; background:#fff; border-radius:6px; box-shadow:0 0 0 1px #eee inset;">
+                        <div><strong>${lbl}</strong></div>
+                        <div><span style="color:${color}">${o.d>0?'▲':'▼'} ${Math.abs(val)} MB</span> at ${t}</div>
+                    </div>`;
+                };
+                spikesHtml += '<div>' + spikesM.map(s=>fmt(s,'Menu Bar')).join('') + '</div>';
+                spikesHtml += '<div>' + spikesS.map(s=>fmt(s,'Main Service')).join('') + '</div>';
+                spikesHtml += '</div>';
+                document.getElementById('trend-spikes-content').innerHTML = spikesHtml;
+
+                // Change handlers
+                document.getElementById('trend-range').onchange = ()=> updateTrendExplorer();
+                document.getElementById('trend-resolution').onchange = ()=> updateTrendExplorer();
+
+            } catch (e) {
+                const container = document.getElementById('trend-analysis');
+                if (container) container.innerHTML = `<div style="color:#e74c3c; padding:10px;">❌ Trend Explorer error: ${e.message}</div>`;
+            }
+        }
+
 
         function updateMonitoringHistory() {
             const historyDiv = document.getElementById('monitoring-history');
@@ -2275,6 +2890,62 @@ class UnifiedMemoryDashboard:
             historyDiv.innerHTML = html;
         }
 
+        function updateSessionFindings(analysisData, leakData) {
+            const container = document.getElementById('session-findings');
+            if (!container) return;
+
+            const hasLeakData = leakData && Object.keys(leakData).some(k => leakData[k] && leakData[k].status);
+            const hasAnalysis = analysisData && Object.keys(analysisData).length > 0;
+            if (!hasLeakData && !hasAnalysis) {
+                container.innerHTML = '<div style="padding: 12px; color: #666;">No session findings yet. Start Advanced Monitoring and stop to analyze the last session.</div>';
+                return;
+            }
+
+            const entries = [];
+            const pushEntry = (name, a, l) => {
+                if (!a && !l) return;
+                const growth = (a && a.growth_rate_mb) ?? (l && l.growth_rate_mb) ?? 0;
+                const totalGrowth = (a && a.total_growth_mb) ?? 0;
+                const points = (a && a.data_points) ?? (l && l.snapshots_analyzed) ?? 0;
+                const severity = (l && l.severity) || (a && a.severity) || 'low';
+                const status = (l && l.status) || (a && a.status) || 'stable';
+                entries.push({ name, growth, totalGrowth, points, severity, status });
+            };
+            pushEntry('Main Service', analysisData.main_service, leakData.main_service);
+            pushEntry('Menu Bar', analysisData.menu_bar, leakData.menu_bar);
+            pushEntry('System', analysisData.system, leakData.system);
+
+            const sevColor = s => s === 'high' ? '#e74c3c' : s === 'medium' ? '#f39c12' : '#27ae60';
+
+            let html = '<div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px;">';
+            entries.forEach(e => {
+                const color = sevColor(e.severity);
+                html += `
+                    <div style="padding:12px; border-left:4px solid ${color}; background:#fff; border-radius:6px; box-shadow: 0 0 0 1px #eee inset;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                            <strong>${e.name}</strong>
+                            <span style="color:${color}; font-weight:600;">${e.severity.toUpperCase()}</span>
+                        </div>
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; font-variant-numeric: tabular-nums;">
+                            <div>Growth: <strong>${(e.growth||0).toFixed(2)} MB/h</strong></div>
+                            <div>Points: <strong>${e.points}</strong></div>
+                            <div>Total Δ: <strong>${(e.totalGrowth||0).toFixed(2)} MB</strong></div>
+                            <div>Status: <strong style="color:${color}">${e.status}</strong></div>
+                        </div>
+                        <details style="margin-top:6px;">
+                            <summary style="cursor:pointer; color:#555;">Explain this result</summary>
+                            <div style="margin-top:6px; color:#444; font-size: 12px;">
+                                <div><strong>How it’s computed:</strong> Growth = slope of memory vs time (MB/hour) via linear regression. Consistency uses the fit’s R². Spikiness is measured with MAD.</div>
+                                <div style="margin-top:4px;"><strong>Thresholds:</strong> High if slope > 5 MB/h and consistent (R² ≥ 0.6); Medium if slope 2–5 MB/h or R² 0.3–0.6; Low otherwise; Insufficient data if < 2 points.</div>
+                            </div>
+                        </details>
+                    </div>`;
+            });
+            html += '</div>';
+
+            container.innerHTML = html;
+        }
+
         async function updateMonitoringStatus() {
             try {
                 const response = await fetch('/api/current');
@@ -2288,18 +2959,109 @@ class UnifiedMemoryDashboard:
                 const lastUpdateSpan = document.getElementById('last-update');
                 const collectionAnimation = document.getElementById('collection-animation');
                 const toggleBtn = document.getElementById('monitoringToggleBtn');
+                const nextSampleSpan = document.getElementById('next-sample');
 
-                const status = data.dashboard_status || 'inactive';
-                const advancedDataPoints = data.long_term_monitoring?.data_points || 0;
+                const lt = data.long_term_monitoring || data.monitoring_status || {};
+                const isActive = (lt.status === 'active') || (!!lt.active);
+                const advancedDataPoints = lt.data_points || lt.advanced_data_points || 0;
                 const basicDataPoints = data.data_history_length || 0;
-                const duration = data.long_term_monitoring?.monitoring_duration_hours || 0;
-                const isActive = status === 'active';
+                const duration = lt.monitoring_duration_hours || 0;
+                const interval = lt.interval || 30;
 
-                // Update status indicator and text
+                // Update status indicator and text (and header badge)
                 if (statusIndicator && statusText) {
                     statusIndicator.className = isActive ? 'status-active' : 'status-inactive';
-                    statusText.textContent = status.toUpperCase();
+                    statusText.textContent = isActive ? 'ACTIVE' : 'INACTIVE';
                     statusText.style.color = isActive ? '#4CAF50' : '#666';
+                }
+                // Also update the top-right Advanced badge blink
+                updateAdvancedStatus(isActive);
+
+                // Update Live Collection strip
+                const dot = document.getElementById('live-status-dot');
+                const liveText = document.getElementById('live-status-text');
+                const liveInterval = document.getElementById('live-interval');
+                const liveNext = document.getElementById('live-next');
+                const livePoints = document.getElementById('live-adv-points');
+                const liveDuration = document.getElementById('live-duration');
+                const miniBtn = document.getElementById('monitoringToggleBtnMini');
+                if (dot) dot.style.background = isActive ? '#4CAF50' : '#ccc';
+                if (liveText) liveText.textContent = isActive ? 'ACTIVE' : 'INACTIVE';
+                if (liveInterval) liveInterval.textContent = `Every ${interval}s`;
+                if (livePoints) livePoints.textContent = advancedDataPoints.toLocaleString();
+                if (liveDuration) liveDuration.textContent = `${duration.toFixed(2)}h`;
+                if (miniBtn) {
+                    if (isActive) {
+                        miniBtn.textContent = '🛑 Stop'; miniBtn.style.background = '#f44336';
+                    } else { miniBtn.textContent = '🚀 Start'; miniBtn.style.background = '#4CAF50'; }
+                }
+                const nextEl = document.getElementById('live-next');
+                if (nextEl) {
+                    const st = window.__liveCountdown || { active:false };
+                    // Reset countdown if status flipped or interval changed or points increased (sample taken)
+                    const pointsChanged = (st.lastPoints ?? 0) !== advancedDataPoints;
+                    if (!st.active && isActive) {
+                        st.active = true; st.interval = interval; st.remaining = interval; st.lastPoints = advancedDataPoints;
+                        if (st.timerId) clearInterval(st.timerId);
+                        st.timerId = setInterval(() => {
+                            st.remaining = Math.max(0, st.remaining - 1);
+                            nextEl.textContent = `${st.remaining}s`;
+                            if (st.remaining === 0) { st.remaining = interval; }
+                        }, 1000);
+                    } else if (st.active && !isActive) {
+                        st.active = false; nextEl.textContent = '--'; st.remaining = 0; st.lastPoints = advancedDataPoints;
+                        if (st.timerId) clearInterval(st.timerId); st.timerId = null;
+                    } else if (st.active && isActive) {
+                        // Keep ticking; if points changed, restart full interval
+                        if (pointsChanged) { st.remaining = interval; st.lastPoints = advancedDataPoints; }
+                    }
+                    window.__liveCountdown = st; // persist
+                    // Update display if needed
+                    if (st.active) nextEl.textContent = `${st.remaining}s`;
+                // Update Last Sample line when a new point arrives
+                try {
+                    if (window.__liveCountdown?.active) {
+                        const st = window.__liveCountdown;
+                        const pointsChanged = (st.lastPoints ?? 0) !== advancedDataPoints;
+                        const lastEl = document.getElementById('live-last-sample');
+                        const needInit = lastEl && !lastEl.dataset.init;
+                        if (pointsChanged || needInit) {
+                            const lastEl = document.getElementById('live-last-sample');
+                            if (lastEl) {
+                                const resp = await fetch('/api/processes');
+                                const procData = await resp.json();
+                                const procs = procData.clipboard_processes || [];
+                                const service = procs.find(p => (p.process_type||'') === 'main_service') || procs[0];
+                                const menu = procs.find(p => (p.process_type||'') === 'menu_bar') || procs[1];
+                                // Keep last values for deltas
+                                window.__liveLastSample = window.__liveLastSample || { service:{}, menu:{}, total:{} };
+                                const prev = window.__liveLastSample;
+                                const fmtDelta = (curr, prevVal, suffix='') => {
+                                    if (typeof prevVal !== 'number') return '';
+                                    const d = +(curr - prevVal).toFixed(2);
+                                    if (Math.abs(d) < 0.01) return '';
+                                    const up = d > 0; const big = Math.abs(d) > (suffix==='%'?5:50);
+                                    const color = up ? (big ? '#FF5722' : '#FF9800') : '#4CAF50';
+                                    const arrow = up ? '▲' : '▼';
+                                    return ` <span style="color:${color}">${arrow}${Math.abs(d)}${suffix}</span>`;
+                                };
+                                const timeStr = new Date().toLocaleTimeString();
+                                const sMem = service?.memory_mb ?? 0; const sCpu = service?.cpu_percent ?? 0;
+                                const mMem = menu?.memory_mb ?? 0; const mCpu = menu?.cpu_percent ?? 0;
+                                const tMem = +(sMem + mMem).toFixed(2); const tCpu = +(sCpu + mCpu).toFixed(2);
+                                const html = `Last ${timeStr} • Service ${sMem.toFixed(1)} MB${fmtDelta(sMem, prev.service.memory_mb)} | ${sCpu.toFixed(1)}%${fmtDelta(sCpu, prev.service.cpu_percent, '%')} • Menu ${mMem.toFixed(1)} MB${fmtDelta(mMem, prev.menu.memory_mb)} | ${mCpu.toFixed(1)}%${fmtDelta(mCpu, prev.menu.cpu_percent, '%')} • Total ${tMem.toFixed(1)} MB${fmtDelta(tMem, prev.total.memory_mb)} | ${tCpu.toFixed(1)}%${fmtDelta(tCpu, prev.total.cpu_percent, '%')}`;
+                                lastEl.innerHTML = html;
+                                // Save current as previous
+                                window.__liveLastSample = {
+                                    service: { memory_mb: sMem, cpu_percent: sCpu },
+                                    menu: { memory_mb: mMem, cpu_percent: mCpu },
+                                    total: { memory_mb: tMem, cpu_percent: tCpu }
+                                };
+                            }
+                        }
+                    }
+                } catch (e) { console.warn('Live last sample update failed:', e); }
+
                 }
 
                 // Update advanced data points with animation if increasing
@@ -2327,7 +3089,6 @@ class UnifiedMemoryDashboard:
                 // Update collection rate
                 if (collectionRateSpan) {
                     if (isActive) {
-                        const interval = data.long_term_monitoring?.interval || 30;
                         collectionRateSpan.textContent = `Every ${interval}s`;
                         collectionRateSpan.style.color = '#4CAF50';
                     } else {
@@ -2402,6 +3163,7 @@ class UnifiedMemoryDashboard:
             refreshBtn.innerHTML = '⏳ Refreshing...';
             refreshBtn.disabled = true;
 
+
             try {
                 // Refresh all dashboard data with progress indication
                 await fetchMemoryData();
@@ -2417,8 +3179,7 @@ class UnifiedMemoryDashboard:
                 }, 2000);
 
                 // Show detailed success message
-                const message = `✅ Dashboard Data Refreshed Successfully!\\n\\n📊 Updated Components:\\n• Memory usage charts and statistics\\n• System resource information\\n• Process monitoring data\\n• Memory leak analysis\\n• Advanced monitoring status\\n\\n💡 All data is now current as of ${new Date().toLocaleTimeString()}`;
-                alert(message);
+                showToast(`✅ Dashboard data refreshed at ${new Date().toLocaleTimeString()}`, 'success');
 
             } catch (error) {
                 // Error feedback
@@ -2427,66 +3188,221 @@ class UnifiedMemoryDashboard:
                     refreshBtn.innerHTML = originalText;
                 }, 2000);
 
-                alert('Error refreshing data: ' + error);
+                showToast('❌ Error refreshing data: ' + error, 'error');
             } finally {
                 refreshBtn.disabled = false;
             }
         }
 
-        // Hybrid Memory Chart Manager Class
-        class HybridMemoryChart {
+        // Unified Memory Chart Manager Class - Phase 1 Implementation
+        class UnifiedMemoryChart {
             constructor() {
-                this.mode = 'realtime'; // 'realtime' or 'historical'
-                this.realtimeData = [];
+                this.mode = 'live'; // 'live' or 'historical'
+                this.liveData = [];
                 this.historicalData = null;
-                this.maxRealtimePoints = 300; // 5 minutes at 1-second intervals
-                this.currentTimeRange = '1';
+
+                // Flexible live view ranges (5m to 4h)
+                this.liveRanges = {
+                    '5m': { minutes: 5, points: 300, label: '5 Minutes' },      // 5min * 60sec = 300 points
+                    '15m': { minutes: 15, points: 900, label: '15 Minutes' },   // 15min * 60sec = 900 points
+                    '30m': { minutes: 30, points: 1800, label: '30 Minutes' },  // 30min * 60sec = 1800 points
+                    '1h': { minutes: 60, points: 3600, label: '1 Hour' },       // 1h * 60sec = 3600 points
+                    '2h': { minutes: 120, points: 7200, label: '2 Hours' },     // 2h * 60sec = 7200 points
+                    '4h': { minutes: 240, points: 14400, label: '4 Hours' }     // 4h * 60sec = 14400 points
+                };
+
+                this.currentLiveRange = '5m'; // Default to 5 minutes
+                this.currentTimeRange = '1';  // For historical mode
                 this.currentResolution = 'full';
                 this.isInitialized = false;
+
+                // Performance optimization
+                this.updateThrottleTimer = null;
+                this.lastUpdateTime = 0;
             }
 
             async initialize() {
                 if (this.isInitialized) return;
 
-                // Load recent historical data for context (last hour)
-                await this.loadRecentHistory();
+                // No legacy chart to destroy - using unified chart manager
+
+                // Load recent data for initial live view
+                await this.loadInitialLiveData();
                 this.updateUI();
                 this.isInitialized = true;
+
+                console.log(`UnifiedMemoryChart initialized with ${this.currentLiveRange} live view`);
             }
 
-            async loadRecentHistory() {
+            async loadInitialLiveData() {
                 try {
-                    const response = await fetch('/api/historical-chart?hours=1&resolution=full');
-                    const data = await response.json();
+                    // Only load initial data if we don't have any data yet
+                    if (this.liveData.length > 0) {
+                        console.log(`Skipping initial data load - already have ${this.liveData.length} data points`);
+                        return;
+                    }
 
-                    // Populate chart with recent data
-                    this.realtimeData = data.points || [];
+                    // For small time periods, use recent history API instead
+                    const range = this.liveRanges[this.currentLiveRange];
 
-                    // Limit to max points for performance
-                    if (this.realtimeData.length > this.maxRealtimePoints) {
-                        this.realtimeData = this.realtimeData.slice(-this.maxRealtimePoints);
+                    console.log(`Loading initial data for ${range.label}`);
+
+                    // Use /api/history for recent data (last 200 points) instead of historical-chart for small periods
+                    const response = await fetch('/api/history');
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+
+                    const historyData = await response.json();
+
+                    // Convert history format to our expected format
+                    const formattedData = historyData.map(point => ({
+                        timestamp: point.timestamp,
+                        menubar_memory: point.menubar_memory || 0,
+                        service_memory: point.service_memory || 0,
+                        total_memory: point.total_memory || 0
+                    }));
+
+                    // Populate live data buffer only if empty
+                    this.liveData = formattedData;
+
+                    // Limit to max points for current live range
+                    const maxPoints = range.points;
+                    if (this.liveData.length > maxPoints) {
+                        this.liveData = this.liveData.slice(-maxPoints);
                     }
 
                     this.updateChart();
+                    console.log(`Loaded ${this.liveData.length} initial data points for ${range.label} live view from recent history`);
                 } catch (error) {
-                    console.error('Error loading recent history:', error);
-                    this.realtimeData = [];
+                    console.error('Error loading initial live data:', error);
+                    // Initialize with empty array on error
+                    if (this.liveData.length === 0) {
+                        this.liveData = [];
+                        console.log('Initialized with empty live data buffer - will populate as new data arrives');
+                    }
                 }
             }
 
-            addRealtimePoint(newPoint) {
-                // Always collect real-time data for the buffer
-                this.realtimeData.push(newPoint);
+            addLivePoint(newPoint) {
+                // Always collect live data for the buffer
+                this.liveData.push(newPoint);
 
-                // Keep only recent points for performance
-                if (this.realtimeData.length > this.maxRealtimePoints) {
-                    this.realtimeData.shift();
+                // Keep only recent points for current live range
+                const range = this.liveRanges[this.currentLiveRange];
+                const maxPoints = range.points;
+
+                if (this.liveData.length > maxPoints) {
+                    this.liveData.shift();
                 }
 
-                // Update chart only in real-time mode
-                // Historical mode updates are handled by the periodic timer
-                if (this.mode === 'realtime') {
+                // Throttled update for performance (max 2 updates per second)
+                const now = Date.now();
+                if (this.mode === 'live' && (now - this.lastUpdateTime) > 500) {
+                    this.lastUpdateTime = now;
                     this.updateChart();
+                }
+            }
+
+            // Backward compatibility method
+            addRealtimePoint(newPoint) {
+                this.addLivePoint(newPoint);
+            }
+
+            async switchLiveRange(newRange) {
+                if (!this.liveRanges[newRange]) {
+                    console.error(`Invalid live range: ${newRange}`);
+                    return;
+                }
+
+                const oldRange = this.currentLiveRange;
+                this.currentLiveRange = newRange;
+                const range = this.liveRanges[newRange];
+                const oldRangeConfig = this.liveRanges[oldRange];
+
+                console.log(`Switching live view from ${oldRangeConfig.label} to ${range.label}`);
+                console.log(`Current data points: ${this.liveData.length}`);
+
+                // Show loading indicator
+                const chartTitle = document.getElementById('chart-title');
+                const originalTitle = chartTitle?.textContent;
+                if (chartTitle) {
+                    chartTitle.textContent = `Switching to ${range.label} live view...`;
+                }
+
+                try {
+                    const maxPoints = range.points;
+                    const currentPoints = this.liveData.length;
+
+                    if (range.points <= oldRangeConfig.points) {
+                        // Switching to smaller range - just trim existing data
+                        if (currentPoints > maxPoints) {
+                            this.liveData = this.liveData.slice(-maxPoints);
+                            console.log(`Trimmed data from ${currentPoints} to ${this.liveData.length} points`);
+                        }
+                    } else {
+                        // Switching to larger range - need more historical data
+                        const additionalHours = (range.minutes - oldRangeConfig.minutes) / 60;
+
+                        if (additionalHours > 0) {
+                            console.log(`Need additional data for larger range - trying to load more from recent history`);
+
+                            try {
+                                // For live ranges, use recent history instead of historical-chart API
+                                const response = await fetch('/api/history');
+                                if (!response.ok) {
+                                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                                }
+
+                                const historyData = await response.json();
+
+                                // Convert history format to our expected format
+                                const formattedData = historyData.map(point => ({
+                                    timestamp: point.timestamp,
+                                    menubar_memory: point.menubar_memory || 0,
+                                    service_memory: point.service_memory || 0,
+                                    total_memory: point.total_memory || 0
+                                }));
+
+                                if (formattedData.length > 0) {
+                                    // Merge with existing data, avoiding duplicates
+                                    const existingTimestamps = new Set(this.liveData.map(d => d.timestamp));
+                                    const newData = formattedData.filter(d => !existingTimestamps.has(d.timestamp));
+
+                                    // Add new data at the beginning (older data)
+                                    this.liveData = [...newData, ...this.liveData];
+
+                                    // Trim to max points if needed
+                                    if (this.liveData.length > maxPoints) {
+                                        this.liveData = this.liveData.slice(-maxPoints);
+                                    }
+
+                                    console.log(`Added ${newData.length} additional data points from history, total: ${this.liveData.length}`);
+                                } else {
+                                    console.log('No additional historical data available');
+                                }
+                            } catch (error) {
+                                console.warn('Failed to load additional historical data:', error);
+                                // Continue with existing data - this is not a critical error
+                            }
+                        }
+                    }
+
+                    // Smooth transition with animation
+                    this.updateChart(true); // true = animate transition
+                    this.updateUI();
+
+                    console.log(`Live view switched to ${range.label} (${this.liveData.length} data points)`);
+                } catch (error) {
+                    console.error('Error switching live range:', error);
+                    // Revert on error
+                    this.currentLiveRange = oldRange;
+                } finally {
+                    // Restore title
+                    if (chartTitle) {
+                        const newTitle = `Live Memory Usage (${range.label})`;
+                        chartTitle.textContent = newTitle;
+                    }
                 }
             }
 
@@ -2494,18 +3410,30 @@ class UnifiedMemoryDashboard:
                 this.mode = 'historical';
                 this.currentTimeRange = timeRange;
 
+                // Show loading indicator
+                const chartTitle = document.getElementById('chart-title');
+                const originalTitle = chartTitle?.textContent;
+                if (chartTitle) {
+                    chartTitle.textContent = 'Loading historical data...';
+                }
+
                 try {
-                    // Auto-adjust resolution for large datasets
+                    // Enhanced auto-adjust resolution for optimal performance
                     let resolution = this.currentResolution;
-                    if (timeRange === 'all' && resolution === 'full') {
-                        resolution = 'minute'; // Default to 1-minute for "since start"
-                        this.currentResolution = 'minute';
-                        document.getElementById('resolution-select').value = 'minute';
-                    } else if (timeRange === '168' && resolution === 'full') {
-                        resolution = '10sec'; // 10-second for 7 days
-                        this.currentResolution = '10sec';
-                        document.getElementById('resolution-select').value = '10sec';
+                    let recommendedResolution = this.getRecommendedResolution(timeRange);
+
+                    if (resolution === 'full' && recommendedResolution !== 'full') {
+                        resolution = recommendedResolution;
+                        this.currentResolution = resolution;
+                        const resolutionSelect = document.getElementById('resolution-select');
+                        if (resolutionSelect) {
+                            resolutionSelect.value = resolution;
+                        }
+                        console.log(`Auto-adjusted resolution to ${resolution} for optimal performance`);
                     }
+
+                    // Performance timing
+                    const startTime = performance.now();
 
                     const response = await fetch(`/api/historical-chart?hours=${timeRange}&resolution=${resolution}`);
                     if (!response.ok) {
@@ -2513,28 +3441,114 @@ class UnifiedMemoryDashboard:
                     }
 
                     const data = await response.json();
+                    const loadTime = performance.now() - startTime;
 
                     this.historicalData = data.points || [];
 
-                    // Check if dataset is too large for browser performance
-                    if (this.historicalData.length > 10000) {
-                        console.warn(`Large dataset (${this.historicalData.length} points), consider using lower resolution`);
-                        // Could auto-reduce resolution here if needed
+                    // Enhanced performance monitoring and optimization
+                    const dataSize = this.historicalData.length;
+                    console.log(`Historical data loaded: ${dataSize} points in ${loadTime.toFixed(2)}ms`);
+
+                    if (dataSize > 15000) {
+                        console.warn(`Very large dataset (${dataSize} points), performance may be affected`);
+                        this.showPerformanceWarning(dataSize);
+                    } else if (dataSize > 10000) {
+                        console.warn(`Large dataset (${dataSize} points), monitoring performance`);
                     }
 
-                    this.updateChart();
+                    // Smooth transition with performance optimization
+                    const renderStart = performance.now();
+                    this.updateChart(true); // Animate transition
+                    const renderTime = performance.now() - renderStart;
+
+                    console.log(`Chart rendered in ${renderTime.toFixed(2)}ms`);
+
                     this.updateUI();
+
+                    console.log(`Switched to historical mode: ${timeRange} hours (${dataSize} points, ${resolution} resolution)`);
                 } catch (error) {
                     console.error('Error loading historical data:', error);
-                    alert(`Failed to load historical data: ${error.message}\\nTrying real-time mode instead.`);
-                    this.switchToRealtimeMode();
+
+                    // Enhanced error handling with user-friendly messages
+                    let errorMessage = 'Failed to load historical data';
+                    if (error.message.includes('500')) {
+                        errorMessage += ': Server error. The requested time range may be too large.';
+                    } else if (error.message.includes('timeout')) {
+                        errorMessage += ': Request timed out. Try a smaller time range or lower resolution.';
+                    } else {
+                        errorMessage += `: ${error.message}`;
+                    }
+
+                    alert(`${errorMessage}\\n\\nSwitching back to live mode.`);
+                    this.switchToLiveMode();
+                } finally {
+                    // Restore title
+                    if (chartTitle && originalTitle) {
+                        setTimeout(() => {
+                            if (this.mode === 'historical') {
+                                chartTitle.textContent = 'Historical Memory Usage';
+                            }
+                        }, 100);
+                    }
                 }
             }
 
-            switchToRealtimeMode() {
-                this.mode = 'realtime';
-                this.updateChart();
+            getRecommendedResolution(timeRange) {
+                // Smart resolution recommendations based on time range
+                if (timeRange === 'all') {
+                    return 'minute'; // 1-minute for "since start"
+                } else if (timeRange === '168') {
+                    return '10sec'; // 10-second for 7 days
+                } else if (timeRange === '24') {
+                    return 'full'; // Full resolution for 24 hours
+                } else {
+                    return 'full'; // Full resolution for shorter periods
+                }
+            }
+
+            showPerformanceWarning(dataSize) {
+                // Show non-intrusive performance warning
+                const warningDiv = document.createElement('div');
+                warningDiv.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    background: #ff9800;
+                    color: white;
+                    padding: 12px 16px;
+                    border-radius: 6px;
+                    font-size: 12px;
+                    z-index: 1000;
+                    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+                    max-width: 300px;
+                `;
+                warningDiv.innerHTML = `
+                    <strong>⚠️ Large Dataset</strong><br>
+                    ${dataSize.toLocaleString()} data points loaded.<br>
+                    Consider using lower resolution for better performance.
+                `;
+
+                document.body.appendChild(warningDiv);
+
+                // Auto-remove after 5 seconds
+                setTimeout(() => {
+                    if (warningDiv.parentNode) {
+                        warningDiv.parentNode.removeChild(warningDiv);
+                    }
+                }, 5000);
+            }
+
+            switchToLiveMode() {
+                this.mode = 'live';
+                this.updateChart(true); // Animate transition
                 this.updateUI();
+
+                console.log(`Switched to live mode: ${this.liveRanges[this.currentLiveRange].label}`);
+            }
+
+            // Backward compatibility method
+            switchToRealtimeMode() {
+                this.switchToLiveMode();
             }
 
             async refreshHistoricalData() {
@@ -2610,25 +3624,82 @@ class UnifiedMemoryDashboard:
                 }
             }
 
-            updateChart() {
-                const data = this.mode === 'realtime' ? this.realtimeData : this.historicalData;
+            updateChart(animate = false) {
+                const data = this.mode === 'live' ? this.liveData : this.historicalData;
+
+                // Create chart if it doesn't exist
+                if (!this.chart) {
+                    const ctx = document.getElementById('memoryChart').getContext('2d');
+                    this.chart = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: [],
+                            datasets: [{
+                                label: 'Menu Bar App (MB)',
+                                data: [],
+                                borderColor: '#2196F3',
+                                backgroundColor: 'rgba(33, 150, 243, 0.1)',
+                                tension: 0.4,
+                                fill: true
+                            }, {
+                                label: 'Main Service (MB)',
+                                data: [],
+                                borderColor: '#4CAF50',
+                                backgroundColor: 'rgba(76, 175, 80, 0.1)',
+                                tension: 0.4,
+                                fill: true
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            interaction: {
+                                intersect: false,
+                                mode: 'index'
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    title: {
+                                        display: true,
+                                        text: 'Memory Usage (MB)'
+                                    }
+                                },
+                                x: {
+                                    title: {
+                                        display: true,
+                                        text: 'Time'
+                                    }
+                                }
+                            },
+                            plugins: {
+                                legend: {
+                                    display: true,
+                                    position: 'top'
+                                }
+                            }
+                        }
+                    });
+                }
 
                 if (!data || data.length === 0) {
-                    chart.data.labels = [];
-                    chart.data.datasets[0].data = [];
-                    chart.data.datasets[1].data = [];
+                    this.chart.data.labels = [];
+                    this.chart.data.datasets[0].data = [];
+                    this.chart.data.datasets[1].data = [];
                 } else {
-                    chart.data.labels = data.map(d => {
+                    this.chart.data.labels = data.map(d => {
                         const date = new Date(d.timestamp);
-                        return this.mode === 'realtime' ?
+                        return this.mode === 'live' ?
                             date.toLocaleTimeString() :
                             this.formatHistoricalTime(date);
                     });
-                    chart.data.datasets[0].data = data.map(d => d.menubar_memory || 0);
-                    chart.data.datasets[1].data = data.map(d => d.service_memory || 0);
+                    this.chart.data.datasets[0].data = data.map(d => d.menubar_memory || 0);
+                    this.chart.data.datasets[1].data = data.map(d => d.service_memory || 0);
                 }
 
-                chart.update('none');
+                // Use smooth transitions for mode/range changes, no animation for live updates
+                const animationMode = animate ? 'active' : 'none';
+                this.chart.update(animationMode);
 
                 // Update data points counter in header
                 const headerDataPointsElement = document.getElementById('header-data-points');
@@ -2648,6 +3719,15 @@ class UnifiedMemoryDashboard:
                     const now = new Date();
                     chartLastUpdate.textContent = 'Updated: ' + now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'});
                 }
+
+                // Update range indicator for live mode
+                if (this.mode === 'live') {
+                    const rangeIndicator = document.getElementById('live-range-indicator');
+                    if (rangeIndicator) {
+                        const range = this.liveRanges[this.currentLiveRange];
+                        rangeIndicator.textContent = `Live: ${range.label} (${data?.length || 0} pts)`;
+                    }
+                }
             }
 
             formatHistoricalTime(date) {
@@ -2659,27 +3739,58 @@ class UnifiedMemoryDashboard:
             }
 
             updateUI() {
-                const realtimeBtn = document.getElementById('realtime-btn');
+                const liveBtn = document.getElementById('realtime-btn'); // Keep existing ID for compatibility
                 const historicalBtn = document.getElementById('historical-btn');
                 const historicalOptions = document.getElementById('historical-options');
+                const liveOptions = document.getElementById('live-options');
                 const chartTitle = document.getElementById('chart-title');
                 const chartModeIndicator = document.getElementById('chart-mode-indicator');
+                const modeBadge = document.getElementById('mode-badge');
 
-                if (this.mode === 'realtime') {
-                    realtimeBtn.style.background = '#4CAF50';
-                    realtimeBtn.style.color = 'white';
-                    historicalBtn.style.background = '#f5f5f5';
-                    historicalBtn.style.color = '#333';
-                    historicalOptions.style.display = 'none';
+                if (this.mode === 'live') {
+                    // Update live mode UI with enhanced styling
+                    if (liveBtn) {
+                        liveBtn.style.background = '#4CAF50';
+                        liveBtn.style.color = 'white';
+                        liveBtn.style.boxShadow = '0 2px 4px rgba(76, 175, 80, 0.3)';
+                    }
+                    if (historicalBtn) {
+                        historicalBtn.style.background = 'white';
+                        historicalBtn.style.color = '#666';
+                        historicalBtn.style.boxShadow = 'none';
+                    }
+                    if (historicalOptions) {
+                        historicalOptions.style.display = 'none';
+                    }
+                    if (liveOptions) {
+                        liveOptions.style.display = 'flex';
+                    }
 
-                    if (chartTitle) chartTitle.textContent = 'Real-time Memory Usage';
-                    if (chartModeIndicator) chartModeIndicator.textContent = 'Real-time';
+                    const range = this.liveRanges[this.currentLiveRange];
+                    if (chartTitle) chartTitle.textContent = `Live Memory Usage`;
+                    if (chartModeIndicator) chartModeIndicator.textContent = `Live: ${range.label}`;
+                    if (modeBadge) {
+                        modeBadge.textContent = 'Live';
+                        modeBadge.style.background = '#4CAF50';
+                    }
                 } else {
-                    realtimeBtn.style.background = '#f5f5f5';
-                    realtimeBtn.style.color = '#333';
-                    historicalBtn.style.background = '#2196F3';
-                    historicalBtn.style.color = 'white';
-                    historicalOptions.style.display = 'flex';
+                    // Update historical mode UI with enhanced styling
+                    if (liveBtn) {
+                        liveBtn.style.background = 'white';
+                        liveBtn.style.color = '#666';
+                        liveBtn.style.boxShadow = 'none';
+                    }
+                    if (historicalBtn) {
+                        historicalBtn.style.background = '#2196F3';
+                        historicalBtn.style.color = 'white';
+                        historicalBtn.style.boxShadow = '0 2px 4px rgba(33, 150, 243, 0.3)';
+                    }
+                    if (historicalOptions) {
+                        historicalOptions.style.display = 'flex';
+                    }
+                    if (liveOptions) {
+                        liveOptions.style.display = 'none';
+                    }
 
                     const rangeText = this.currentTimeRange === 'all' ? 'Since Start' :
                                      this.currentTimeRange === '1' ? 'Last Hour' :
@@ -2688,8 +3799,32 @@ class UnifiedMemoryDashboard:
                                      this.currentTimeRange === '168' ? 'Last 7 Days' :
                                      `Last ${this.currentTimeRange} Hours`;
 
-                    if (chartTitle) chartTitle.textContent = `Historical Memory Usage (${rangeText})`;
+                    if (chartTitle) chartTitle.textContent = `Historical Memory Usage`;
                     if (chartModeIndicator) chartModeIndicator.textContent = `Historical (${rangeText}) • Auto-refresh: 5s`;
+                    if (modeBadge) {
+                        modeBadge.textContent = 'Historical';
+                        modeBadge.style.background = '#2196F3';
+                    }
+                }
+
+                // Update live range selector if it exists
+                const liveRangeSelect = document.getElementById('live-range-select');
+                if (liveRangeSelect) {
+                    liveRangeSelect.value = this.currentLiveRange;
+                }
+
+                // Add visual feedback for range changes
+                this.addVisualFeedback();
+            }
+
+            addVisualFeedback() {
+                // Add subtle animation to indicate UI update
+                const controlBar = document.querySelector('.unified-control-bar');
+                if (controlBar) {
+                    controlBar.style.transform = 'scale(1.01)';
+                    setTimeout(() => {
+                        controlBar.style.transform = 'scale(1)';
+                    }, 150);
                 }
             }
         }
@@ -2700,7 +3835,7 @@ class UnifiedMemoryDashboard:
             const isVisible = historicalOptions.style.display !== 'none';
 
             if (isVisible) {
-                chartManager.switchToRealtimeMode();
+                chartManager.switchToLiveMode();
             } else {
                 historicalOptions.style.display = 'flex';
                 // Auto-select first option with user confirmation for large datasets
@@ -2712,8 +3847,8 @@ class UnifiedMemoryDashboard:
                         if (confirmed) {
                             chartManager.switchToHistoricalMode(selectedRange);
                         } else {
-                            // Reset to real-time mode
-                            chartManager.switchToRealtimeMode();
+                            // Reset to live mode
+                            chartManager.switchToLiveMode();
                             return;
                         }
                     } else {
@@ -2723,7 +3858,13 @@ class UnifiedMemoryDashboard:
             }
         }
 
-        // Helper function to handle range selection changes
+        // New helper function for live range changes
+        function handleLiveRangeChange(selectElement) {
+            const newRange = selectElement.value;
+            chartManager.switchLiveRange(newRange);
+        }
+
+        // Helper function to handle historical range selection changes
         function handleRangeChange(selectElement) {
             const selectedRange = selectElement.value;
             if (selectedRange === 'all') {
@@ -2751,8 +3892,8 @@ class UnifiedMemoryDashboard:
         // Initialize session start time (persistent across page refreshes)
         let globalSessionStartTime = null;
 
-        // Initialize Hybrid Chart Manager
-        const chartManager = new HybridMemoryChart();
+        // Initialize Unified Chart Manager
+        const chartManager = new UnifiedMemoryChart();
 
         // Simple CPU Chart Manager
         class SimpleCPUChart {
@@ -2837,6 +3978,23 @@ class UnifiedMemoryDashboard:
             }
         }, 5000);
 
+        // Performance monitoring for live mode
+        setInterval(() => {
+            if (chartManager && chartManager.mode === 'live') {
+                const range = chartManager.liveRanges[chartManager.currentLiveRange];
+                const dataPoints = chartManager.liveData.length;
+
+                // Log performance metrics every 30 seconds
+                console.log(`Live mode performance: ${range.label}, ${dataPoints}/${range.points} points`);
+
+                // Auto-optimize if too many points are causing performance issues
+                if (dataPoints > range.points * 1.1) {
+                    console.warn(`Live data buffer overflow, trimming to ${range.points} points`);
+                    chartManager.liveData = chartManager.liveData.slice(-range.points);
+                }
+            }
+        }, 30000);
+
         // Initialize chart manager after chart is ready
         setTimeout(async () => {
             await chartManager.initialize();
@@ -2852,16 +4010,17 @@ class UnifiedMemoryDashboard:
         // Update monitoring status every 5 seconds
         setInterval(updateMonitoringStatus, 5000);
     </script>
+    </div> <!-- Close container -->
 </body>
 </html>
         '''
-    
+
     def get_memory_data(self):
         """Get detailed memory usage data."""
         try:
             # System memory information
             system_memory = psutil.virtual_memory()
-            
+
             # Clipboard Monitor specific processes
             clipboard_processes = []
             total_clipboard_memory = 0
@@ -2956,7 +4115,7 @@ class UnifiedMemoryDashboard:
                         })
                 except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
                     continue
-            
+
             # Calculate analytics metrics
             current_total_memory = total_clipboard_memory
             current_time = datetime.now()
@@ -3062,22 +4221,47 @@ class UnifiedMemoryDashboard:
                 'peak_service_cpu': round(self.peak_service_cpu, 2),
                 'peak_total_cpu': round(self.peak_total_cpu, 2)
             }
-            
+
         except Exception as e:
             return {'error': str(e), 'timestamp': datetime.now().isoformat()}
-    
+
     def get_process_data(self):
         """Get process information."""
         memory_data = self.get_memory_data()
+        processes = memory_data.get('clipboard', {}).get('processes', [])
+        if not processes:
+            try:
+                fallback = []
+                for proc in psutil.process_iter(['pid','name','cmdline','memory_info','cpu_percent']):
+                    try:
+                        name = proc.info.get('name') or ''
+                        cmd = ' '.join(proc.info.get('cmdline') or []).lower()
+                        if ('clipboard' in cmd) or ('menu_bar_app.py' in cmd) or ('unified_memory_dashboard.py' in cmd) or (name == 'ClipboardMonitor') or ('clipboard' in (name or '').lower()):
+                            mi = proc.info.get('memory_info')
+                            mem_mb = (mi.rss/1024/1024) if mi else 0
+                            fallback.append({
+                                'pid': proc.info.get('pid'),
+                                'name': name,
+                                'display_name': 'Clipboard Monitor' if 'clipboard' in cmd else (name or 'process'),
+                                'memory_mb': round(mem_mb, 2),
+                                'cpu_percent': proc.info.get('cpu_percent') or 0,
+                                'process_type': 'unknown'
+                            })
+                    except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+                        continue
+                if fallback:
+                    return {'clipboard_processes': fallback, 'timestamp': datetime.now().isoformat(), 'fallback': True}
+            except Exception:
+                pass
         return {
-            'clipboard_processes': memory_data.get('clipboard', {}).get('processes', []),
+            'clipboard_processes': processes,
             'timestamp': datetime.now().isoformat()
         }
-    
+
     def get_system_data(self):
         """Get system information."""
         memory_data = self.get_memory_data()
-        
+
         try:
             # Additional system info
             cpu_percent = psutil.cpu_percent(interval=1)
@@ -3085,7 +4269,7 @@ class UnifiedMemoryDashboard:
             uptime_seconds = time.time() - boot_time
             uptime_hours = int(uptime_seconds // 3600)
             uptime_minutes = int((uptime_seconds % 3600) // 60)
-            
+
             return {
                 'system': memory_data.get('system', {}),
                 'cpu_percent': cpu_percent,
@@ -3094,7 +4278,7 @@ class UnifiedMemoryDashboard:
             }
         except Exception as e:
             return {'error': str(e), 'timestamp': datetime.now().isoformat()}
-    
+
     def collect_memory_data(self):
         """Collect current memory usage and CPU data for WebSocket updates."""
         try:
@@ -3536,7 +4720,7 @@ class UnifiedMemoryDashboard:
 
     def get_comprehensive_dashboard_data(self):
         """Provides a comprehensive payload for the dashboard, including historical and real-time data."""
-        
+
         # Get the latest real-time data
         latest_data = self.get_memory_data()
 
@@ -3548,14 +4732,14 @@ class UnifiedMemoryDashboard:
             if menubar_process:
                 self.peak_menubar_memory = max(self.peak_menubar_memory, menubar_process.get('memory_mb', 0))
                 self.peak_menubar_cpu = max(self.peak_menubar_cpu, menubar_process.get('cpu_percent', 0))
-            
+
             if service_process:
                 self.peak_service_memory = max(self.peak_service_memory, service_process.get('memory_mb', 0))
                 self.peak_service_cpu = max(self.peak_service_cpu, service_process.get('cpu_percent', 0))
 
             total_memory = latest_data['clipboard'].get('total_memory_mb', 0)
             self.peak_total_memory = max(self.peak_total_memory, total_memory)
-            
+
             total_cpu = sum(p.get('cpu_percent', 0) for p in latest_data['clipboard']['processes'])
             self.peak_total_cpu = max(self.peak_total_cpu, total_cpu)
 
@@ -3576,7 +4760,7 @@ class UnifiedMemoryDashboard:
             'interval': self.monitor_interval,
             'advanced_data_points': len(self.advanced_data_history),
         }
-        
+
         return latest_data
 
     def get_dashboard_status(self):
@@ -3669,6 +4853,7 @@ class UnifiedMemoryDashboard:
                 "timestamp": datetime.now().isoformat()
             }
 
+    def get_monitoring_dashboard_data(self):
         """Get comprehensive dashboard data for monitoring dashboard compatibility"""
         try:
             memory_data = self.get_memory_data()
@@ -3761,6 +4946,7 @@ class UnifiedMemoryDashboard:
                     self.data_history.append(data)
 
                     # Limit history size
+                    # Limit history size
                     if len(self.data_history) > self.max_history:
                         self.data_history = self.data_history[-self.max_history:]
 
@@ -3768,6 +4954,37 @@ class UnifiedMemoryDashboard:
                 except Exception as e:
                     print(f"Error collecting data: {e}")
                     time.sleep(5)
+
+        def _start_dev_reloader(self, watched_file):
+            """Start a file watcher thread to restart the server when the file changes (dev only)."""
+            if self.dev_reload:
+                return  # already running
+            self.dev_reload = True
+
+            def watcher():
+                try:
+                    last_mtime = os.path.getmtime(watched_file)
+                except Exception:
+                    last_mtime = None
+                while self.dev_reload:
+                    try:
+                        time.sleep(1.0)
+                        mtime = os.path.getmtime(watched_file)
+                        if last_mtime is not None and mtime != last_mtime:
+                            print("🔁 Detected change in unified_memory_dashboard.py — restarting server...")
+                            # Gracefully shutdown
+                            try:
+                                if self.server:
+                                    self.server.shutdown()
+                            except Exception:
+                                pass
+                            os._exit(3)  # Let parent supervisor restart us; fallback to exit
+                        last_mtime = mtime
+                    except Exception:
+                        continue
+
+            t = threading.Thread(target=watcher, daemon=True)
+            t.start()
 
         # Start background data collection
         data_thread = threading.Thread(target=collect_data)
@@ -3800,6 +5017,11 @@ class UnifiedMemoryDashboard:
         try:
             self.server = HTTPServer(('localhost', self.port), handler)
             print(f"✅ Dashboard server started at http://localhost:{self.port}")
+            # Start dev reloader if requested via env/flag
+            enable_reload = os.environ.get('CLIPBOARD_DASHBOARD_DEV_RELOAD', '0') == '1' or '--dev-reload' in sys.argv
+            if enable_reload:
+                self._start_dev_reloader(os.path.abspath(__file__))
+                print("🛠️ Dev auto-reload enabled (watching unified_memory_dashboard.py)")
             self.server.serve_forever()
         except Exception as e:
             print(f"Error starting dashboard: {e}")
