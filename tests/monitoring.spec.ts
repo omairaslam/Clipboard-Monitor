@@ -8,6 +8,10 @@ test('advanced monitoring toggle updates badge', async ({ page }) => {
 
   await page.goto('http://localhost:8001/', { waitUntil: 'load' });
 
+  // Switch to Analysis & Controls tab where the monitoring controls live
+  await page.getByText('Analysis & Controls', { exact: false }).click();
+  await expect(page.locator('#analysis-tab')).toBeVisible();
+
   // Make sure toggle button is present
   const toggleBtn = page.locator('#monitoringToggleBtn');
   await expect(toggleBtn).toHaveCount(1);
