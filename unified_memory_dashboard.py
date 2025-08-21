@@ -1212,9 +1212,7 @@ class UnifiedMemoryDashboard:
             if (!window.chartManager) {
                 try { if (typeof UnifiedMemoryChart === 'function') { window.chartManager = new UnifiedMemoryChart(); } } catch {}
             }
-            if (!window.cpuChartManager) {
-                try { if (typeof window.SimpleCPUChart === 'function') { window.cpuChartManager = new window.SimpleCPUChart(); } } catch {}
-            }
+
         });
 
         // Helpers moved to /static/js/app-core.js
@@ -1335,10 +1333,7 @@ class UnifiedMemoryDashboard:
 
         // Legacy memory chart initialization removed - now handled by UnifiedMemoryChart class
 
-        // Initialize CPU chart moved to /static/js/charts/cpu-chart.js
-        if (window.cpuChartManager && typeof window.cpuChartManager.initChart === 'function') {
-            window.cpuChartManager.initChart();
-        }
+        // Initialize CPU chart handled by module; inline will not initialize it
 
         // Polling for real-time updates (simpler than WebSockets)
         let isConnected = false;
@@ -2768,10 +2763,7 @@ class UnifiedMemoryDashboard:
         // Initialize Unified Chart Manager
         const chartManager = window.chartManager || new UnifiedMemoryChart(); window.chartManager = chartManager;
 
-        // CPU Chart manager is initialized by the module when it loads; avoid creating here to prevent race-errors
-        if (!window.cpuChartManager && typeof window.SimpleCPUChart === 'function') {
-            window.cpuChartManager = new window.SimpleCPUChart();
-        }
+
 
         // Start memory data polling is now managed by UnifiedMemoryChart (Phase 2)
         // setInterval(fetchMemoryData, 2000);
