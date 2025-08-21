@@ -1878,113 +1878,34 @@ class UnifiedMemoryDashboard:
 
         // updateAnalysisDisplay moved to /static/js/dashboard.js
         function updateAnalysisDisplay(data) { return window.updateAnalysisDisplay?.(data); }
-            /* MIGRATED: updateAnalysisDisplay body moved to /static/js/dashboard.js
-            // legacy body removed
+
+
 
         // updateLeakAnalysisDisplay moved to /static/js/dashboard.js
         function updateLeakAnalysisDisplay(leakData) { return window.updateLeakAnalysisDisplay?.(leakData); }
-            // legacy body removed
+
 
         // updateAnalysisSummary moved to /static/js/dashboard.js
         function updateAnalysisSummary(data, hours) { return window.updateAnalysisSummary?.(data, hours); }
-            // legacy body removed
+
         // Trend Explorer UI builder (inside Growth Trend Analysis card)
         // ensureTrendExplorerUI moved to /static/js/dashboard.js
         function ensureTrendExplorerUI() { return; }
-            // legacy UI builder removed
-        }
-
         // computeRegression moved to /static/js/dashboard.js
         function computeRegression(points, key) { return window.computeRegression?.(points, key); }
-            // legacy regression removed
-        }
 
         // updateTrendExplorer moved to /static/js/dashboard.js
         async function updateTrendExplorer(hours) { return window.updateTrendExplorer?.(hours); }
-            // legacy trend explorer removed
-        }
+
 
 
         // updateMonitoringHistory moved to /static/js/dashboard.js
         function updateMonitoringHistory() { return window.updateMonitoringHistory?.(); }
-            const historyDiv = document.getElementById('monitoring-history');
-            if (!historyDiv) return;
 
-            // This would show a history of monitoring sessions
-            const html = `
-                <div style="padding: 15px; background: #f8f9fa; border-radius: 5px;">
-                    <p><strong>📈 Monitoring Sessions:</strong></p>
-                    <div style="margin-top: 10px;">
-                        <div style="padding: 10px; background: white; border-radius: 3px; margin-bottom: 5px;">
-                            <strong>Current Session:</strong> ${new Date().toLocaleDateString()}<br>
-                            <small>Advanced monitoring data available for analysis</small>
-                        </div>
-                    </div>
-                    <p style="margin-top: 15px; color: #666; font-size: 14px;">
-                        <strong>💡 Tip:</strong> Use the Advanced Monitoring Controls above to collect more detailed analysis data.
-                    </p>
-                </div>
-            `;
-
-            historyDiv.innerHTML = html;
-        }
 
         // updateSessionFindings moved to /static/js/dashboard.js
         function updateSessionFindings(analysisData, leakData) { return window.updateSessionFindings?.(analysisData, leakData); }
-            const container = document.getElementById('session-findings');
-            if (!container) return;
 
-            const hasLeakData = leakData && Object.keys(leakData).some(k => leakData[k] && leakData[k].status);
-            const hasAnalysis = analysisData && Object.keys(analysisData).length > 0;
-            if (!hasLeakData && !hasAnalysis) {
-                container.innerHTML = '<div style="padding: 12px; color: #666;">No session findings yet. Start Advanced Monitoring and stop to analyze the last session.</div>';
-                return;
-            }
-
-            const entries = [];
-            const pushEntry = (name, a, l) => {
-                if (!a && !l) return;
-                const growth = (a && a.growth_rate_mb) ?? (l && l.growth_rate_mb) ?? 0;
-                const totalGrowth = (a && a.total_growth_mb) ?? 0;
-                const points = (a && a.data_points) ?? (l && l.snapshots_analyzed) ?? 0;
-                const severity = (l && l.severity) || (a && a.severity) || 'low';
-                const status = (l && l.status) || (a && a.status) || 'stable';
-                entries.push({ name, growth, totalGrowth, points, severity, status });
-            };
-            pushEntry('Main Service', analysisData.main_service, leakData.main_service);
-            pushEntry('Menu Bar', analysisData.menu_bar, leakData.menu_bar);
-            pushEntry('System', analysisData.system, leakData.system);
-
-            const sevColor = s => s === 'high' ? '#e74c3c' : s === 'medium' ? '#f39c12' : '#27ae60';
-
-            let html = '<div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px;">';
-            entries.forEach(e => {
-                const color = sevColor(e.severity);
-                html += `
-                    <div style="padding:12px; border-left:4px solid ${color}; background:#fff; border-radius:6px; box-shadow: 0 0 0 1px #eee inset;">
-                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-                            <strong>${e.name}</strong>
-                            <span style="color:${color}; font-weight:600;">${e.severity.toUpperCase()}</span>
-                        </div>
-                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; font-variant-numeric: tabular-nums;">
-                            <div>Growth: <strong>${(e.growth||0).toFixed(2)} MB/h</strong></div>
-                            <div>Points: <strong>${e.points}</strong></div>
-                            <div>Total Δ: <strong>${(e.totalGrowth||0).toFixed(2)} MB</strong></div>
-                            <div>Status: <strong style="color:${color}">${e.status}</strong></div>
-                        </div>
-                        <details style="margin-top:6px;">
-                            <summary style="cursor:pointer; color:#555;">Explain this result</summary>
-                            <div style="margin-top:6px; color:#444; font-size: 12px;">
-                                <div><strong>How it’s computed:</strong> Growth = slope of memory vs time (MB/hour) via linear regression. Consistency uses the fit’s R². Spikiness is measured with MAD.</div>
-                                <div style="margin-top:4px;"><strong>Thresholds:</strong> High if slope > 5 MB/h and consistent (R² ≥ 0.6); Medium if slope 2–5 MB/h or R² 0.3–0.6; Low otherwise; Insufficient data if < 2 points.</div>
-                            </div>
-                        </details>
-                    </div>`;
-            });
-            html += '</div>';
-
-            container.innerHTML = html;
-        }
 
         // updateMonitoringStatus moved to /static/js/dashboard.js
         async function updateMonitoringStatus() { return window.updateMonitoringStatus?.(); }
