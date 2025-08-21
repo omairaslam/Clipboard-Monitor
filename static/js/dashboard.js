@@ -322,10 +322,11 @@ export async function updateMonitoringStatus() {
 }
 
 if (typeof window !== 'undefined') {
-  window.updateAnalysisDisplay = updateAnalysisDisplay;
-  window.updateLeakAnalysisDisplay = updateLeakAnalysisDisplay;
-  window.updateAnalysisSummary = updateAnalysisSummary;
-  window.updateMonitoringHistory = updateMonitoringHistory;
-  window.updateSessionFindings = updateSessionFindings;
-  window.updateMonitoringStatus = updateMonitoringStatus;
+  // Expose module implementations under non-colliding names; inline stubs will forward here
+  window.__module_updateAnalysisDisplay = updateAnalysisDisplay;
+  window.__module_updateLeakAnalysisDisplay = updateLeakAnalysisDisplay;
+  window.__module_updateAnalysisSummary = updateAnalysisSummary;
+  window.__module_updateMonitoringHistory = updateMonitoringHistory;
+  window.__module_updateSessionFindings = updateSessionFindings;
+  window.__module_updateMonitoringStatus = updateMonitoringStatus;
 }

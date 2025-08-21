@@ -1871,38 +1871,19 @@ class UnifiedMemoryDashboard:
         }
 
         // updateAnalysisDisplay moved to /static/js/dashboard.js
-        function updateAnalysisDisplay(data) { return window.updateAnalysisDisplay?.(data); }
+        function updateAnalysisDisplay(data) { return window.__module_updateAnalysisDisplay?.(data); }
 
+        function updateLeakAnalysisDisplay(leakData) { return window.__module_updateLeakAnalysisDisplay?.(leakData); }
 
+        function updateAnalysisSummary(data, hours) { return window.__module_updateAnalysisSummary?.(data, hours); }
 
-        // updateLeakAnalysisDisplay moved to /static/js/dashboard.js
-        function updateLeakAnalysisDisplay(leakData) { return window.updateLeakAnalysisDisplay?.(leakData); }
-
-
-        // updateAnalysisSummary moved to /static/js/dashboard.js
-        function updateAnalysisSummary(data, hours) { return window.updateAnalysisSummary?.(data, hours); }
-
-        // Trend Explorer UI builder (inside Growth Trend Analysis card)
-        // ensureTrendExplorerUI moved to /static/js/dashboard.js
         function ensureTrendExplorerUI() { return; }
-        // computeRegression moved to /static/js/dashboard.js
         function computeRegression(points, key) { return window.computeRegression?.(points, key); }
-
-        // updateTrendExplorer moved to /static/js/dashboard.js
         async function updateTrendExplorer(hours) { return window.updateTrendExplorer?.(hours); }
 
-
-
-        // updateMonitoringHistory moved to /static/js/dashboard.js
-        function updateMonitoringHistory() { return window.updateMonitoringHistory?.(); }
-
-
-        // updateSessionFindings moved to /static/js/dashboard.js
-        function updateSessionFindings(analysisData, leakData) { return window.updateSessionFindings?.(analysisData, leakData); }
-
-
-        // updateMonitoringStatus moved to /static/js/dashboard.js
-        async function updateMonitoringStatus() { return window.updateMonitoringStatus?.(); }
+        function updateMonitoringHistory() { return window.__module_updateMonitoringHistory?.(); }
+        function updateSessionFindings(analysisData, leakData) { return window.__module_updateSessionFindings?.(analysisData, leakData); }
+        async function updateMonitoringStatus() { return window.__module_updateMonitoringStatus?.(); }
 
         async function refreshAllData() {
             // Show loading state
