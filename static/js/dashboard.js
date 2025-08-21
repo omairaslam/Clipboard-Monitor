@@ -29,9 +29,16 @@ window.fetchMemoryData = async function fetchMemoryData() {
 
 // bootstrap managers after DOM is loaded
 window.addEventListener('DOMContentLoaded', async () => {
-  window.chartManager = new UnifiedMemoryChart();
-  window.cpuChartManager = new SimpleCPUChart();
+  // Wait until inline script defines updateDashboard (attached to window in non-module scripts)
+  const start = performance.now();
+  while (!window.updateDashboard && performance.now() - start < 4000) {
+    await new Promise(r => setTimeout(r, 50));
+  }
+  window.chartManager = window.chartManager || new UnifiedMemoryChart();
   await window.chartManager.initialize();
+  // Kick a manual fetch in case the first poll ran before updateDashboard was ready
+  setTimeout(() => { if (typeof window.fetchMemoryData === 'function') window.fetchMemoryData(); }, 200);
+  // CPU manager is initialized inline to ensure Chart canvas exists; we avoid double-init here
 });
 
 

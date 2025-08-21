@@ -1878,300 +1878,30 @@ class UnifiedMemoryDashboard:
 
         // updateAnalysisDisplay moved to /static/js/dashboard.js
         function updateAnalysisDisplay(data) { return window.updateAnalysisDisplay?.(data); }
-            const leakAnalysis = document.getElementById('leak-analysis');
-            const trendAnalysis = document.getElementById('trend-analysis');
-
-            let leakHtml = '<div style="display: grid; gap: 12px;">';
-            let trendHtml = '<div style="display: grid; gap: 12px;">';
-
-            for (const [process, analysis] of Object.entries(data)) {
-                const statusColor = analysis.severity === 'high' ? '#e74c3c' :
-                                  analysis.severity === 'medium' ? '#f39c12' : '#27ae60';
-
-                leakHtml += `
-                    <div style="padding: 15px; border-left: 4px solid ${statusColor}; background: rgba(0,0,0,0.05);">
-                        <h4>${process.replace('_', ' ').toUpperCase()}</h4>
-                        <p><strong>Status:</strong> <span style="color: ${statusColor};">${analysis.status}</span></p>
-                        <p><strong>Growth Rate:</strong> ${analysis.growth_rate_mb?.toFixed(2) || 0} MB/hour</p>
-                        <p><strong>Data Points:</strong> ${analysis.data_points || 0}</p>
-                    </div>
-                `;
-
-                trendHtml += `
-                    <div style="padding: 15px; background: rgba(0,0,0,0.05); border-radius: 8px;">
-                        <h4>${process.replace('_', ' ').toUpperCase()}</h4>
-                        <p><strong>Start Memory:</strong> ${analysis.start_memory_mb?.toFixed(2) || 0} MB</p>
-                        <p><strong>End Memory:</strong> ${analysis.end_memory_mb?.toFixed(2) || 0} MB</p>
-                        <p><strong>Total Growth:</strong> ${analysis.total_growth_mb?.toFixed(2) || 0} MB</p>
-                    </div>
-                `;
-            }
-
-            leakHtml += '</div>';
-            trendHtml += '</div>';
-
-            leakAnalysis.innerHTML = leakHtml;
-            // Only populate trend-analysis if Trend Explorer UI not initialized yet
-            const trendContainer = document.getElementById('trend-analysis');
-            if (trendContainer && trendContainer.dataset.init !== '1') {
-                trendContainer.innerHTML = trendHtml;
-            }
-        }
+            /* MIGRATED: updateAnalysisDisplay body moved to /static/js/dashboard.js
+            // legacy body removed
 
         // updateLeakAnalysisDisplay moved to /static/js/dashboard.js
         function updateLeakAnalysisDisplay(leakData) { return window.updateLeakAnalysisDisplay?.(leakData); }
-            const leakAnalysis = document.getElementById('leak-analysis');
-            if (!leakAnalysis) return;
-
-            if (!leakData || Object.keys(leakData).length === 0) {
-                leakAnalysis.innerHTML = '<div style="padding: 20px; text-align: center; color: #666;">No leak analysis data available. Start advanced monitoring to collect data.</div>';
-                return;
-            }
-
-            let html = '<div style="display: grid; gap: 12px;">';
-            html += `<div style="padding: 10px; background: #e8f5e9; border-radius: 5px; margin-bottom: 15px;">
-                <strong>🔍 Advanced Leak Detection Results</strong><br>
-                <small>Based on advanced monitoring data collection</small>
-            </div>`;
-
-            for (const [key, analysis] of Object.entries(leakData)) {
-                if (typeof analysis === 'object' && analysis.status) {
-                    const statusColor = analysis.severity === 'high' ? '#e74c3c' :
-                                      analysis.severity === 'medium' ? '#f39c12' : '#27ae60';
-
-                    html += `
-                        <div style="padding: 15px; border-left: 4px solid ${statusColor}; background: rgba(0,0,0,0.05); border-radius: 5px;">
-                            <h4 style="margin: 0 0 10px 0;">${key.replace('_', ' ').toUpperCase()}</h4>
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                                <div>
-                                    <p><strong>Status:</strong> <span style="color: ${statusColor};">${analysis.status}</span></p>
-                                    <p><strong>Severity:</strong> <span style="color: ${statusColor};">${analysis.severity}</span></p>
-                                </div>
-                                <div>
-
-                                    <p><strong>Growth Rate:</strong> ${analysis.growth_rate_mb?.toFixed(2) || 0} MB/hour</p>
-                                    <p><strong>Snapshots:</strong> ${analysis.snapshots_analyzed || 0}</p>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                }
-            }
-
-            html += '</div>';
-            leakAnalysis.innerHTML = html;
-        }
+            // legacy body removed
 
         // updateAnalysisSummary moved to /static/js/dashboard.js
         function updateAnalysisSummary(data, hours) { return window.updateAnalysisSummary?.(data, hours); }
-            const summaryDiv = document.getElementById('analysis-summary');
-            if (!summaryDiv) return;
-
-            const processCount = Object.keys(data).length;
-            const highSeverityCount = Object.values(data).filter(d => d.severity === 'high').length;
-            const mediumSeverityCount = Object.values(data).filter(d => d.severity === 'medium').length;
-
-            const html = `
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                    <div>
-                        <strong>📊 Analysis Period:</strong> ${hours} hours<br>
-                        <strong>🔍 Processes Analyzed:</strong> ${processCount}
-                    </div>
-                    <div>
-                        <strong>🚨 High Risk:</strong> <span style="color: #e74c3c;">${highSeverityCount}</span><br>
-                        <strong>⚠️ Medium Risk:</strong> <span style="color: #f39c12;">${mediumSeverityCount}</span>
-                    </div>
-                </div>
-                <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #ddd;">
-                    <small style="color: #666;">Last updated: ${new Date().toLocaleTimeString()}</small>
-                </div>
-            `;
-
-            summaryDiv.innerHTML = html;
-        }
+            // legacy body removed
         // Trend Explorer UI builder (inside Growth Trend Analysis card)
         // ensureTrendExplorerUI moved to /static/js/dashboard.js
         function ensureTrendExplorerUI() { return; }
-            const container = document.getElementById('trend-analysis');
-            if (!container || container.dataset.init === '1') return;
-            container.dataset.init = '1';
-            container.innerHTML = `
-                <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
-                    <div style="display:flex; gap:6px;">
-                        <button id="trend-tab-proc" class="btn" style="padding:6px 10px; border:1px solid #ddd; border-radius:4px; background:#2196F3; color:#fff;">Processes</button>
-                        <button id="trend-tab-growth" class="btn" style="padding:6px 10px; border:1px solid #ddd; border-radius:4px; background:#f5f5f5; color:#333;">Growth & Consistency</button>
-                        <button id="trend-tab-spikes" class="btn" style="padding:6px 10px; border:1px solid #ddd; border-radius:4px; background:#f5f5f5; color:#333;">Spikes & Outliers</button>
-                    </div>
-                    <div style="margin-left:auto; display:flex; align-items:center; gap:8px; font-size:12px; color:#555;">
-                        <span>Range:</span>
-                        <select id="trend-range" style="padding:4px 6px; border:1px solid #ddd; border-radius:4px;">
-                            <option value="1">1h</option>
-                            <option value="6">6h</option>
-                            <option value="24" selected>24h</option>
-                            <option value="168">7d</option>
-                            <option value="all">All</option>
-                        </select>
-                        <span>Res:</span>
-                        <select id="trend-resolution" style="padding:4px 6px; border:1px solid #ddd; border-radius:4px;">
-                            <option value="full">Full</option>
-                            <option value="10sec">10s</option>
-                            <option value="minute" selected>1m</option>
-                            <option value="hour">1h</option>
-                        </select>
-                    </div>
-                </div>
-                <div id="trend-pane-proc">
-                    <div style="display:flex; align-items:center; gap:10px; margin-bottom:6px; font-size:12px; color:#555;">
-                        <label><input type="checkbox" id="chk-menubar" checked> Menu Bar</label>
-                        <label><input type="checkbox" id="chk-service" checked> Service</label>
-                        <label><input type="checkbox" id="chk-total"> Total</label>
-                        <span id="trend-status" style="margin-left:auto;">--</span>
-                    </div>
-                    <div class="chart-wrapper" style="height:260px;">
-                        <canvas id="trend-proc-chart"></canvas>
-                    </div>
-                </div>
-                <div id="trend-pane-growth" style="display:none;">
-                    <div id="trend-growth-content" style="font-size:13px; color:#333;"></div>
-                </div>
-                <div id="trend-pane-spikes" style="display:none;">
-                    <div id="trend-spikes-content" style="font-size:13px; color:#333;"></div>
-                </div>
-            `;
-
-            // Tab switching
-            const setActive = (name) => {
-                ['proc','growth','spikes'].forEach(n => {
-                    document.getElementById(`trend-pane-${n}`).style.display = (n===name)?'block':'none';
-                    const b = document.getElementById(`trend-tab-${n}`);
-                    if (b) { b.style.background = (n===name)?'#2196F3':'#f5f5f5'; b.style.color = (n===name)?'#fff':'#333'; }
-                });
-            };
-            document.getElementById('trend-tab-proc').onclick = () => setActive('proc');
-            document.getElementById('trend-tab-growth').onclick = () => setActive('growth');
-            document.getElementById('trend-tab-spikes').onclick = () => setActive('spikes');
-            setActive('proc');
+            // legacy UI builder removed
         }
 
         // computeRegression moved to /static/js/dashboard.js
         function computeRegression(points, key) { return window.computeRegression?.(points, key); }
-            // points: [{timestamp, key values}], key: 'menubar_memory' etc.
-            if (!points || points.length < 2) return { slopePerHour: 0, r2: 0 };
-            const xs = []; const ys = [];
-            const t0 = new Date(points[0].timestamp).getTime();
-            points.forEach(p => {
-                const t = new Date(p.timestamp).getTime();
-                xs.push((t - t0) / 3600000); // hours since start
-                ys.push(p[key] || 0);
-            });
-            const n = xs.length;
-            const sumX = xs.reduce((a,b)=>a+b,0);
-            const sumY = ys.reduce((a,b)=>a+b,0);
-            const sumXX = xs.reduce((a,b)=>a+b*b,0);
-            const sumXY = xs.reduce((a, x, i)=>a + x*ys[i], 0);
-            const meanY = sumY / n;
-            const denom = (n*sumXX - sumX*sumX) || 1e-9;
-            const slope = (n*sumXY - sumX*sumY) / denom; // MB per hour
-            // r^2
-            const ssTot = ys.reduce((a,y)=>a + Math.pow(y-meanY,2),0) || 1e-9;
-            const intercept = meanY - slope*(sumX/n);
-            const ssRes = ys.reduce((a,y,i)=>{
-                const yhat = slope*xs[i] + intercept; return a + Math.pow(y - yhat, 2);
-            },0);
-            const r2 = Math.max(0, 1 - ssRes/ssTot);
-            return { slopePerHour: slope, r2 };
+            // legacy regression removed
         }
 
         // updateTrendExplorer moved to /static/js/dashboard.js
         async function updateTrendExplorer(hours) { return window.updateTrendExplorer?.(hours); }
-            try {
-                ensureTrendExplorerUI();
-                const rangeSel = document.getElementById('trend-range');
-                const resSel = document.getElementById('trend-resolution');
-                if (hours) rangeSel.value = String(hours);
-                let range = rangeSel.value;
-                let res = resSel.value;
-                // Auto adjust resolution for large ranges
-                if (range === 'all' && res === 'full') res = 'minute';
-                if (range === '168' && res === 'full') res = '10sec';
-
-                const resp = await fetch(`/api/historical-chart?hours=${range}&resolution=${res}`);
-                const data = await resp.json();
-                const points = data.points || [];
-                const statusEl = document.getElementById('trend-status');
-                if (statusEl) statusEl.textContent = `${points.length} pts • ${data.resolution} • ${data.time_range}`;
-
-                // Render Processes chart
-                const ctx = document.getElementById('trend-proc-chart').getContext('2d');
-                const labels = points.map(p => new Date(p.timestamp).toLocaleTimeString());
-                const menubar = points.map(p => p.menubar_memory || 0);
-                const service = points.map(p => p.service_memory || 0);
-                const total = points.map(p => (p.total_memory || ((p.menubar_memory||0)+(p.service_memory||0))));
-                if (trendProcChart) trendProcChart.destroy();
-                trendProcChart = new Chart(ctx, {
-                    type: 'line',
-                    data: { labels, datasets: [
-                        { label: 'Menu Bar', data: menubar, borderColor:'#2196F3', tension:0.3, fill:false, hidden:false },
-                        { label: 'Service', data: service, borderColor:'#4CAF50', tension:0.3, fill:false, hidden:false },
-                        { label: 'Total', data: total, borderColor:'#9C27B0', tension:0.3, fill:false, hidden:true }
-                    ]},
-                    options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:true}}, elements:{point:{radius:0}} }
-                });
-                // Wire toggles
-                document.getElementById('chk-menubar').onchange = (e)=>{ trendProcChart.data.datasets[0].hidden = !e.target.checked; trendProcChart.update('none'); };
-                document.getElementById('chk-service').onchange = (e)=>{ trendProcChart.data.datasets[1].hidden = !e.target.checked; trendProcChart.update('none'); };
-                document.getElementById('chk-total').onchange = (e)=>{ trendProcChart.data.datasets[2].hidden = !e.target.checked; trendProcChart.update('none'); };
-
-                // Growth & Consistency
-                const sMenubar = computeRegression(points, 'menubar_memory');
-                const sService = computeRegression(points, 'service_memory');
-                const growthHtml = `
-                    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px,1fr)); gap:10px;">
-                        <div style="border-left:4px solid ${sMenubar.slopePerHour>5?'#e74c3c':sMenubar.slopePerHour>2?'#f39c12':'#27ae60'}; background:#fff; padding:10px; border-radius:6px; box-shadow:0 0 0 1px #eee inset;">
-                            <div style="display:flex; justify-content:space-between;"><strong>Menu Bar</strong><span>${points.length} pts</span></div>
-                            <div>Growth: <strong>${sMenubar.slopePerHour.toFixed(2)} MB/h</strong></div>
-                            <div>Consistency (R²): <strong>${sMenubar.r2.toFixed(2)}</strong></div>
-                        </div>
-                        <div style="border-left:4px solid ${sService.slopePerHour>5?'#e74c3c':sService.slopePerHour>2?'#f39c12':'#27ae60'}; background:#fff; padding:10px; border-radius:6px; box-shadow:0 0 0 1px #eee inset;">
-                            <div style="display:flex; justify-content:space-between;"><strong>Main Service</strong><span>${points.length} pts</span></div>
-                            <div>Growth: <strong>${sService.slopePerHour.toFixed(2)} MB/h</strong></div>
-                            <div>Consistency (R²): <strong>${sService.r2.toFixed(2)}</strong></div>
-                        </div>
-                    </div>`;
-                document.getElementById('trend-growth-content').innerHTML = growthHtml;
-
-                // Spikes & Outliers (top spikes)
-                function computeSpikes(arr) {
-                    const deltas = [];
-                    for (let i=1;i<arr.length;i++){ const d = (arr[i]||0)-(arr[i-1]||0); deltas.push({i, d}); }
-                    deltas.sort((a,b)=>Math.abs(b.d)-Math.abs(a.d));
-                    return deltas.slice(0,5);
-                }
-                const spikesM = computeSpikes(menubar);
-                const spikesS = computeSpikes(service);
-                let spikesHtml = '<div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">';
-                const fmt = (o, lbl) => {
-                    const t = labels[o.i] || '--';
-                    const val = o.d.toFixed(2);
-                    const color = o.d>0 ? (Math.abs(o.d)>50?'#e74c3c':'#f39c12') : '#27ae60';
-                    return `<div style="padding:8px; background:#fff; border-radius:6px; box-shadow:0 0 0 1px #eee inset;">
-                        <div><strong>${lbl}</strong></div>
-                        <div><span style="color:${color}">${o.d>0?'▲':'▼'} ${Math.abs(val)} MB</span> at ${t}</div>
-                    </div>`;
-                };
-                spikesHtml += '<div>' + spikesM.map(s=>fmt(s,'Menu Bar')).join('') + '</div>';
-                spikesHtml += '<div>' + spikesS.map(s=>fmt(s,'Main Service')).join('') + '</div>';
-                spikesHtml += '</div>';
-                document.getElementById('trend-spikes-content').innerHTML = spikesHtml;
-
-                // Change handlers
-                document.getElementById('trend-range').onchange = ()=> updateTrendExplorer();
-                document.getElementById('trend-resolution').onchange = ()=> updateTrendExplorer();
-
-            } catch (e) {
-                const container = document.getElementById('trend-analysis');
-                if (container) container.innerHTML = `<div style="color:#e74c3c; padding:10px;">❌ Trend Explorer error: ${e.message}</div>`;
-            }
+            // legacy trend explorer removed
         }
 
 
