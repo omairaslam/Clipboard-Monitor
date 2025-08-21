@@ -1213,7 +1213,7 @@ class UnifiedMemoryDashboard:
                 try { if (typeof UnifiedMemoryChart === 'function') { window.chartManager = new UnifiedMemoryChart(); } } catch {}
             }
             if (!window.cpuChartManager) {
-                try { if (typeof SimpleCPUChart === 'function') { window.cpuChartManager = new SimpleCPUChart(); } } catch {}
+                try { if (typeof window.SimpleCPUChart === 'function') { window.cpuChartManager = new window.SimpleCPUChart(); } } catch {}
             }
         });
 
@@ -1433,8 +1433,7 @@ class UnifiedMemoryDashboard:
                         statusLight.style.background = '#f44336';
                         statusText.textContent = 'Disconnected';
                         statusText.style.color = '#f44336';
-            // expose to modules
-            window.updateDashboard = updateDashboard;
+
                     }
                     isConnected = false;
                 }
@@ -1909,215 +1908,6 @@ class UnifiedMemoryDashboard:
 
         // updateMonitoringStatus moved to /static/js/dashboard.js
         async function updateMonitoringStatus() { return window.updateMonitoringStatus?.(); }
-            try {
-                const response = await fetch('/api/current');
-                const data = await response.json();
-
-                const statusIndicator = document.getElementById('status-indicator');
-                const statusText = document.getElementById('status-text');
-                const dataPointsSpan = document.getElementById('data-points');
-                const collectionRateSpan = document.getElementById('collection-rate');
-                const durationSpan = document.getElementById('monitoring-duration');
-                const lastUpdateSpan = document.getElementById('last-update');
-                const collectionAnimation = document.getElementById('collection-animation');
-                const toggleBtn = document.getElementById('monitoringToggleBtn');
-                const nextSampleSpan = document.getElementById('next-sample');
-
-                const lt = data.long_term_monitoring || data.monitoring_status || {};
-                const isActive = (lt.status === 'active') || (!!lt.active);
-                const advancedDataPoints = lt.data_points || lt.advanced_data_points || 0;
-                const basicDataPoints = data.data_history_length || 0;
-                const duration = lt.monitoring_duration_hours || 0;
-                const interval = lt.interval || 30;
-
-                // Update status indicator and text (and header badge)
-                if (statusIndicator && statusText) {
-                    statusIndicator.className = isActive ? 'status-active' : 'status-inactive';
-                    statusText.textContent = isActive ? 'ACTIVE' : 'INACTIVE';
-                    statusText.style.color = isActive ? '#4CAF50' : '#666';
-                }
-                // Also update the top-right Advanced badge blink
-                updateAdvancedStatus(isActive);
-
-                // Update Live Collection strip
-                const dot = document.getElementById('live-status-dot');
-                const liveText = document.getElementById('live-status-text');
-                const liveInterval = document.getElementById('live-interval');
-                const liveNext = document.getElementById('live-next');
-                const livePoints = document.getElementById('live-adv-points');
-                const liveDuration = document.getElementById('live-duration');
-                const miniBtn = document.getElementById('monitoringToggleBtnMini');
-                if (dot) dot.style.background = isActive ? '#4CAF50' : '#ccc';
-                if (liveText) liveText.textContent = isActive ? 'ACTIVE' : 'INACTIVE';
-                if (liveInterval) liveInterval.textContent = `Every ${interval}s`;
-                if (livePoints) livePoints.textContent = advancedDataPoints.toLocaleString();
-                if (liveDuration) liveDuration.textContent = `${duration.toFixed(2)}h`;
-                if (miniBtn) {
-                    if (isActive) {
-                        miniBtn.textContent = '🛑 Stop'; miniBtn.style.background = '#f44336';
-                    } else { miniBtn.textContent = '🚀 Start'; miniBtn.style.background = '#4CAF50'; }
-                }
-                const nextEl = document.getElementById('live-next');
-                if (nextEl) {
-                    const st = window.__liveCountdown || { active:false };
-                    // Reset countdown if status flipped or interval changed or points increased (sample taken)
-                    const pointsChanged = (st.lastPoints ?? 0) !== advancedDataPoints;
-                    if (!st.active && isActive) {
-                        st.active = true; st.interval = interval; st.remaining = interval; st.lastPoints = advancedDataPoints;
-                        if (st.timerId) clearInterval(st.timerId);
-                        st.timerId = setInterval(() => {
-                            st.remaining = Math.max(0, st.remaining - 1);
-                            nextEl.textContent = `${st.remaining}s`;
-                            if (st.remaining === 0) { st.remaining = interval; }
-                        }, 1000);
-                    } else if (st.active && !isActive) {
-                        st.active = false; nextEl.textContent = '--'; st.remaining = 0; st.lastPoints = advancedDataPoints;
-                        if (st.timerId) clearInterval(st.timerId); st.timerId = null;
-                    } else if (st.active && isActive) {
-                        // Keep ticking; if points changed, restart full interval
-                        if (pointsChanged) { st.remaining = interval; st.lastPoints = advancedDataPoints; }
-                    }
-                    window.__liveCountdown = st; // persist
-                    // Update display if needed
-                    if (st.active) nextEl.textContent = `${st.remaining}s`;
-                // Update Last Sample line when a new point arrives
-                try {
-                    if (window.__liveCountdown?.active) {
-                        const st = window.__liveCountdown;
-                        const pointsChanged = (st.lastPoints ?? 0) !== advancedDataPoints;
-                        const lastEl = document.getElementById('live-last-sample');
-                        const needInit = lastEl && !lastEl.dataset.init;
-                        if (pointsChanged || needInit) {
-                            const lastEl = document.getElementById('live-last-sample');
-                            if (lastEl) {
-                                // Use /api/current since processes tab is removed
-                                const resp = await fetch('/api/current');
-                                const procData = await resp.json();
-                                const procs = (procData && procData.clipboard && Array.isArray(procData.clipboard.processes)) ? procData.clipboard.processes : [];
-                                const service = procs.find(p => (p.process_type||'') === 'main_service') || procs[0];
-                                const menu = procs.find(p => (p.process_type||'') === 'menu_bar') || procs[1];
-                                // Keep last values for deltas
-                                window.__liveLastSample = window.__liveLastSample || { service:{}, menu:{}, total:{} };
-                                const prev = window.__liveLastSample;
-                                const fmtDelta = (curr, prevVal, suffix='') => {
-                                    if (typeof prevVal !== 'number') return '';
-                                    const d = +(curr - prevVal).toFixed(2);
-                                    if (Math.abs(d) < 0.01) return '';
-                                    const up = d > 0; const big = Math.abs(d) > (suffix==='%'?5:50);
-                                    const color = up ? (big ? '#FF5722' : '#FF9800') : '#4CAF50';
-                                    const arrow = up ? '▲' : '▼';
-                                    return ` <span style="color:${color}">${arrow}${Math.abs(d)}${suffix}</span>`;
-                                };
-                                const timeStr = new Date().toLocaleTimeString();
-                                const sMem = service?.memory_mb ?? 0; const sCpu = service?.cpu_percent ?? 0;
-                                const mMem = menu?.memory_mb ?? 0; const mCpu = menu?.cpu_percent ?? 0;
-                                const tMem = +(sMem + mMem).toFixed(2); const tCpu = +(sCpu + mCpu).toFixed(2);
-                                const html = `Last ${timeStr} • Service ${sMem.toFixed(1)} MB${fmtDelta(sMem, prev.service.memory_mb)} | ${sCpu.toFixed(1)}%${fmtDelta(sCpu, prev.service.cpu_percent, '%')} • Menu ${mMem.toFixed(1)} MB${fmtDelta(mMem, prev.menu.memory_mb)} | ${mCpu.toFixed(1)}%${fmtDelta(mCpu, prev.menu.cpu_percent, '%')} • Total ${tMem.toFixed(1)} MB${fmtDelta(tMem, prev.total.memory_mb)} | ${tCpu.toFixed(1)}%${fmtDelta(tCpu, prev.total.cpu_percent, '%')}`;
-                                lastEl.innerHTML = html;
-                                // Save current as previous
-                                window.__liveLastSample = {
-                                    service: { memory_mb: sMem, cpu_percent: sCpu },
-                                    menu: { memory_mb: mMem, cpu_percent: mCpu },
-                                    total: { memory_mb: tMem, cpu_percent: tCpu }
-                                };
-                            }
-                        }
-                    }
-                } catch (e) { console.warn('Live last sample update failed:', e); }
-
-                }
-
-                // Update advanced data points with animation if increasing
-                const advancedDataPointsSpan = document.getElementById('advanced-data-points');
-                if (advancedDataPointsSpan) {
-                    const currentAdvancedPoints = parseInt(advancedDataPointsSpan.textContent) || 0;
-                    if (advancedDataPoints > currentAdvancedPoints && isActive) {
-                        advancedDataPointsSpan.style.animation = 'pulse-dot 0.5s';
-                        setTimeout(() => advancedDataPointsSpan.style.animation = '', 500);
-                    }
-                    advancedDataPointsSpan.textContent = advancedDataPoints.toLocaleString();
-                }
-
-                // Update basic data points (always collecting)
-                const basicDataPointsSpan = document.getElementById('basic-data-points');
-                if (basicDataPointsSpan) {
-                    const currentBasicPoints = parseInt(basicDataPointsSpan.textContent) || 0;
-                    if (basicDataPoints > currentBasicPoints) {
-                        basicDataPointsSpan.style.animation = 'pulse-dot 0.5s';
-                        setTimeout(() => basicDataPointsSpan.style.animation = '', 500);
-                    }
-                    basicDataPointsSpan.textContent = basicDataPoints.toLocaleString();
-                }
-
-                // Update collection rate
-                if (collectionRateSpan) {
-                    if (isActive) {
-                        collectionRateSpan.textContent = `Every ${interval}s`;
-                        collectionRateSpan.style.color = '#4CAF50';
-                    } else {
-                        collectionRateSpan.textContent = 'Stopped';
-                        collectionRateSpan.style.color = '#666';
-                    }
-                }
-
-                // Update duration
-                if (durationSpan) {
-                    durationSpan.textContent = `${duration.toFixed(2)} hours`;
-                }
-
-                // Update last update time
-                if (lastUpdateSpan) {
-                    lastUpdateSpan.textContent = new Date().toLocaleTimeString();
-                }
-
-                // Show/hide collection animation
-                if (collectionAnimation) {
-                    collectionAnimation.style.display = isActive ? 'block' : 'none';
-                }
-
-                // Update banner monitoring indicator
-                const monitoringIndicator = document.getElementById('monitoring-status-indicator');
-                if (monitoringIndicator) {
-                    if (isActive) {
-                        monitoringIndicator.style.display = 'flex';
-                    } else {
-                        monitoringIndicator.style.display = 'none';
-                    }
-                }
-
-                // Sync button state with actual monitoring status
-                if (toggleBtn) {
-                    if (isActive && !isMonitoringActive) {
-                        isMonitoringActive = true;
-                        toggleBtn.style.background = '#f44336';
-                        toggleBtn.innerHTML = '🛑 Stop Advanced Monitoring';
-                        toggleBtn.style.animation = 'pulse 2s infinite';
-                    } else if (!isActive && isMonitoringActive) {
-                        isMonitoringActive = false;
-                        toggleBtn.style.background = '#4CAF50';
-                        toggleBtn.innerHTML = '🚀 Start Advanced Monitoring';
-                        toggleBtn.style.animation = 'none';
-                    }
-                }
-
-            } catch (error) {
-                console.error('Error updating monitoring status:', error);
-
-                // Show error state
-                const statusText = document.getElementById('status-text');
-                const lastUpdateSpan = document.getElementById('last-update');
-
-                if (statusText) {
-                    statusText.textContent = 'ERROR';
-                    statusText.style.color = '#f44336';
-                }
-
-                if (lastUpdateSpan) {
-                    lastUpdateSpan.textContent = 'Connection Error';
-                    lastUpdateSpan.style.color = '#f44336';
-                }
-            }
-        }
 
         async function refreshAllData() {
             // Show loading state
@@ -2978,8 +2768,10 @@ class UnifiedMemoryDashboard:
         // Initialize Unified Chart Manager
         const chartManager = window.chartManager || new UnifiedMemoryChart(); window.chartManager = chartManager;
 
-        // CPU Chart manager moved to /static/js/charts/cpu-chart.js
-        const cpuChartManager = window.cpuChartManager || new SimpleCPUChart(); window.cpuChartManager = cpuChartManager;
+        // CPU Chart manager is initialized by the module when it loads; avoid creating here to prevent race-errors
+        if (!window.cpuChartManager && typeof window.SimpleCPUChart === 'function') {
+            window.cpuChartManager = new window.SimpleCPUChart();
+        }
 
         // Start memory data polling is now managed by UnifiedMemoryChart (Phase 2)
         // setInterval(fetchMemoryData, 2000);
@@ -3015,8 +2807,10 @@ class UnifiedMemoryDashboard:
         }, 30000);
 
         // Initialize chart manager after chart is ready
-        setTimeout(async () => {
-            await chartManager.initialize();
+        setTimeout(() => {
+            if (chartManager && typeof chartManager.initialize === 'function') {
+                chartManager.initialize();
+            }
         }, 1000);
 
         // Pause/resume polling based on tab visibility
