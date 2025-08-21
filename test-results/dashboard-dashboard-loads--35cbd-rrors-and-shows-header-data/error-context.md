@@ -131,7 +131,7 @@
             - generic [ref=e128]: "--"
           - generic [ref=e129]:
             - generic [ref=e130]: "📈 Points:"
-            - generic [ref=e131]: 144 pts
+            - generic [ref=e131]: 2 pts
           - generic [ref=e132]:
             - generic [ref=e133]: "📊 Peak Mem:"
             - generic [ref=e134]: "--"
@@ -155,9 +155,9 @@
         - generic [ref=e152]:
           - generic [ref=e153]: "Live: 5 Minutes"
           - generic [ref=e154]: •
-          - generic [ref=e155]: 144 pts
+          - generic [ref=e155]: 2 pts
           - generic [ref=e156]: •
-          - generic [ref=e157]: "Updated: 09:33:11 PM"
+          - generic [ref=e157]: "Updated: 09:42:34 PM"
       - generic [ref=e158]:
         - generic [ref=e159]:
           - generic [ref=e160]: "Mode:"

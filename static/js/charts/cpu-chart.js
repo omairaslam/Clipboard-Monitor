@@ -112,5 +112,18 @@ export class SimpleCPUChart {
 // Expose globally for onclick handlers
 if (typeof window !== 'undefined') {
   window.SimpleCPUChart = SimpleCPUChart;
+  // Auto-boot the CPU chart manager when DOM is ready
+  window.addEventListener('DOMContentLoaded', () => {
+    try {
+      if (!window.cpuChartManager) {
+        window.cpuChartManager = new SimpleCPUChart();
+      }
+      if (typeof window.cpuChartManager.initChart === 'function') {
+        window.cpuChartManager.initChart();
+      }
+    } catch (e) {
+      console.warn('CPU chart auto-init skipped:', e);
+    }
+  });
 }
 

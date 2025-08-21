@@ -66,6 +66,11 @@ export async function fetchSystemData() {
     }
   } catch (e) { console.error('Error fetching system data:', e); }
 }
+// expose functions used by inline scripts
+if (typeof window !== 'undefined') {
+  window.fetchSystemData = fetchSystemData;
+  window.loadAnalysisData = loadAnalysisData;
+}
 
 export async function loadAnalysisData() {
   try {
