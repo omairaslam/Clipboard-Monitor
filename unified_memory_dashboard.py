@@ -2768,10 +2768,10 @@ class UnifiedMemoryDashboard:
         // Start memory data polling is now managed by UnifiedMemoryChart (Phase 2)
         // setInterval(fetchMemoryData, 2000);
 
-        // Fetch additional data every 10 seconds
+        // Fetch additional data every 10 seconds (guarded until modules attach globals)
         setInterval(() => {
-            fetchSystemData();
-            loadAnalysisData();
+            try { if (typeof window.fetchSystemData === 'function') window.fetchSystemData(); } catch {}
+            try { if (typeof window.loadAnalysisData === 'function') window.loadAnalysisData(); } catch {}
         }, 10000);
 
         // Auto-refresh historical data every 5 seconds when in historical mode (faster updates)
@@ -2811,9 +2811,9 @@ class UnifiedMemoryDashboard:
         });
 
         // Initial fetch (memory handled by chart manager on initialize)
-        fetchSystemData();
-        loadAnalysisData();
-        updateMonitoringStatus();
+        if (typeof window.fetchSystemData === 'function') window.fetchSystemData();
+        if (typeof window.loadAnalysisData === 'function') window.loadAnalysisData();
+        if (typeof window.updateMonitoringStatus === 'function') window.updateMonitoringStatus();
 
         // Update monitoring status every 5 seconds
         setInterval(updateMonitoringStatus, 5000);
