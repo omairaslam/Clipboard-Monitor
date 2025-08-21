@@ -291,12 +291,21 @@ export async function updateMonitoringStatus() {
     const data = await response.json();
     const statusIndicator = document.getElementById('status-indicator');
     const statusText = document.getElementById('status-text');
-    const dataPointsSpan = document.getElementById('data-points');
+    const dataPointsSpan = document.getElementById('advanced-data-points');
     const collectionRateSpan = document.getElementById('collection-rate');
     const toggleBtn = document.getElementById('monitoringToggleBtn');
     const isActive = data.long_term_monitoring && data.long_term_monitoring.status === 'active';
     if (statusIndicator) statusIndicator.style.background = isActive ? '#4caf50' : '#ccc';
     if (statusText) statusText.textContent = isActive ? 'ACTIVE' : 'INACTIVE';
+    // Update top banner advanced badge
+    const advancedBadge = document.getElementById('advanced-status');
+    if (advancedBadge) {
+      if (typeof window.updateAdvancedStatus === 'function') window.updateAdvancedStatus(isActive);
+      else {
+        advancedBadge.textContent = isActive ? '🔴 Advanced' : '⚫ Advanced';
+        advancedBadge.style.background = isActive ? '#F44336' : '#999';
+      }
+    }
     if (dataPointsSpan) dataPointsSpan.textContent = data.long_term_monitoring?.data_points || 0;
     if (collectionRateSpan) collectionRateSpan.textContent = isActive ? `${data.long_term_monitoring?.interval || 0}s` : 'Stopped';
     if (toggleBtn) {
