@@ -98,7 +98,7 @@ export async function toggleAdvancedMonitoring() {
   if (!window.isMonitoringActive) {
     try {
       const interval = document.getElementById('monitorInterval').value;
-      const response = await fetch(`/api/start_advanced?interval=${interval}`);
+      const response = await fetch(`/api/start_monitoring?interval=${interval}`);
       const result = await response.json();
       if (result.status === 'started') {
         window.isMonitoringActive = true;
@@ -113,7 +113,7 @@ export async function toggleAdvancedMonitoring() {
     } catch (e) { showToast('❌ Error starting monitoring: ' + e, 'error'); }
   } else {
     try {
-      const response = await fetch('/api/stop_advanced');
+      const response = await fetch('/api/stop_monitoring');
       const result = await response.json();
       if (result.status === 'stopped') {
         window.isMonitoringActive = false;

@@ -26,6 +26,8 @@ export class SimpleCPUChart {
         }
       }
     });
+    // Expose chart instance globally so inline code can push points
+    if (typeof window !== 'undefined') window.cpuChart = cpuChart;
     return cpuChart;
   }
 

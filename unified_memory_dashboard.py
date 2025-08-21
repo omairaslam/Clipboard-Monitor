@@ -1666,27 +1666,28 @@ class UnifiedMemoryDashboard:
                 chartManager.addRealtimePoint(realtimePoint);
             }
 
-            // Update CPU chart (only if not paused)
-            if (cpuChartManager && !cpuChartManager.isPaused) {
+            // Update CPU chart (only if chart exists and not paused)
+            if (window.cpuChartManager && !window.cpuChartManager.isPaused && window.cpuChart) {
+                const chart = window.cpuChart;
                 const cpuTime = new Date(data.timestamp).toLocaleTimeString();
-                cpuChart.data.labels.push(cpuTime);
-                cpuChart.data.datasets[0].data.push(data.menubar_cpu || 0);
-                cpuChart.data.datasets[1].data.push(data.service_cpu || 0);
+                chart.data.labels.push(cpuTime);
+                chart.data.datasets[0].data.push(data.menubar_cpu || 0);
+                chart.data.datasets[1].data.push(data.service_cpu || 0);
 
                 // Keep only last 50 data points for performance
-                if (cpuChart.data.labels.length > 50) {
-                    cpuChart.data.labels.shift();
-                    cpuChart.data.datasets[0].data.shift();
-                    cpuChart.data.datasets[1].data.shift();
+                if (chart.data.labels.length > 50) {
+                    chart.data.labels.shift();
+                    chart.data.datasets[0].data.shift();
+                    chart.data.datasets[1].data.shift();
                 }
 
                 // Update CPU chart point count
                 const cpuPointsCount = document.getElementById('cpu-chart-points-count');
                 if (cpuPointsCount) {
-                    cpuPointsCount.textContent = cpuChart.data.labels.length + ' pts';
+                    cpuPointsCount.textContent = chart.data.labels.length + ' pts';
                 }
 
-                cpuChart.update('none');
+                chart.update('none');
             }
 
             } catch (error) {
