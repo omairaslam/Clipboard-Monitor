@@ -107,6 +107,12 @@ export async function toggleAdvancedMonitoring() {
           toggleBtn.innerHTML = '🛑 Stop Advanced Monitoring';
           toggleBtn.style.animation = 'pulse 2s infinite';
         }
+        // Immediate badge flip for responsiveness; periodic status will keep it in sync
+        const badge = document.getElementById('advanced-status');
+        if (badge) {
+          if (typeof window.updateAdvancedStatus === 'function') window.updateAdvancedStatus(true);
+          else { badge.textContent = '🔴 Advanced'; badge.style.background = '#F44336'; }
+        }
         showToast(`✅ ${result.message} — collecting every ${result.interval}s`, 'success');
         if (typeof window.updateMonitoringStatus === 'function') window.updateMonitoringStatus();
       }
@@ -121,6 +127,12 @@ export async function toggleAdvancedMonitoring() {
           toggleBtn.style.background = '#4CAF50';
           toggleBtn.innerHTML = '🚀 Start Advanced Monitoring';
           toggleBtn.style.animation = 'none';
+        }
+        // Immediate badge flip off
+        const badge = document.getElementById('advanced-status');
+        if (badge) {
+          if (typeof window.updateAdvancedStatus === 'function') window.updateAdvancedStatus(false);
+          else { badge.textContent = '⚫ Advanced'; badge.style.background = '#999'; }
         }
         const duration = result.duration_seconds ? Math.round(result.duration_seconds) : 0;
         const minutes = Math.floor(duration / 60);
