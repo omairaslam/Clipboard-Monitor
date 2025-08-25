@@ -22,7 +22,7 @@ window.fetchMemoryData = async function fetchMemoryData() {
     }
     return true;
   } catch (e) {
-    console.error('Error fetching memory data:', e);
+    if (window.CM_DEBUG) console.error('Error fetching memory data:', e);
     return false;
   }
 }
@@ -64,7 +64,7 @@ export async function fetchSystemData() {
       const el = document.getElementById('header-uptime');
       if (el) el.textContent = data.uptime;
     }
-  } catch (e) { console.error('Error fetching system data:', e); }
+  } catch (e) { if (window.CM_DEBUG) console.error('Error fetching system data:', e); }
 }
 // expose functions used by inline scripts
 if (typeof window !== 'undefined') {
@@ -88,7 +88,7 @@ export async function loadAnalysisData() {
     if (typeof window.updateLeakAnalysisDisplay === 'function') window.updateLeakAnalysisDisplay(leakData);
     if (typeof window.updateSessionFindings === 'function') window.updateSessionFindings(data, leakData);
   } catch (e) {
-    if (e.name !== 'AbortError') console.error('Error loading analysis data:', e);
+    if (e.name !== 'AbortError' && window.CM_DEBUG) console.error('Error loading analysis data:', e);
   }
 }
 
@@ -440,7 +440,7 @@ export async function updateMonitoringStatus() {
       } catch {}
     }
   } catch (e) {
-    console.error('Error updating monitoring status:', e);
+    if (window.CM_DEBUG) console.error('Error updating monitoring status:', e);
     const statusText = document.getElementById('status-text');
     const lastUpdateSpan = document.getElementById('last-update');
     if (statusText) statusText.textContent = 'ERROR';
