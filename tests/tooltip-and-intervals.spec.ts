@@ -41,9 +41,7 @@ test('points tooltip updates after increment and countdown behaves at 10s', asyn
   await miniBtn.click();
 });
 
-  // Restore
-  await miniBtn.click();
-});
+
 
 // Quick check at 30s interval for countdown updates
 
