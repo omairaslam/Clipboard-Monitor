@@ -94,6 +94,7 @@ export async function loadAnalysisData() {
 
 export async function toggleAdvancedMonitoring() {
   const toggleBtn = document.getElementById('monitoringToggleBtn');
+  const toggleBtnMini = document.getElementById('monitoringToggleBtnMini');
   window.isMonitoringActive = window.isMonitoringActive || false;
   if (!window.isMonitoringActive) {
     try {
@@ -107,12 +108,22 @@ export async function toggleAdvancedMonitoring() {
           toggleBtn.innerHTML = '🛑 Stop Advanced Monitoring';
           toggleBtn.style.animation = 'pulse 2s infinite';
         }
+        if (toggleBtnMini) {
+          toggleBtnMini.style.background = '#f44336';
+          toggleBtnMini.textContent = '🛑 Stop';
+          toggleBtnMini.style.animation = 'pulse 2s infinite';
+        }
         // Immediate badge flip for responsiveness; periodic status will keep it in sync
         const badge = document.getElementById('advanced-status');
         if (badge) {
           if (typeof window.updateAdvancedStatus === 'function') window.updateAdvancedStatus(true);
           else { badge.textContent = '🔴 Advanced'; badge.style.background = '#F44336'; }
         }
+        // Start countdown immediately
+        window.__liveCountdown = window.__liveCountdown || { active: false, interval: 30, remaining: 0, timerId: null, lastPoints: 0 };
+        window.__liveCountdown.active = true;
+        window.__liveCountdown.interval = Number(interval) || 30;
+        window.__liveCountdown.remaining = window.__liveCountdown.interval;
         showToast(`✅ ${result.message} — collecting every ${result.interval}s`, 'success');
         if (typeof window.updateMonitoringStatus === 'function') window.updateMonitoringStatus();
       }
@@ -128,12 +139,19 @@ export async function toggleAdvancedMonitoring() {
           toggleBtn.innerHTML = '🚀 Start Advanced Monitoring';
           toggleBtn.style.animation = 'none';
         }
+        if (toggleBtnMini) {
+          toggleBtnMini.style.background = '#4CAF50';
+          toggleBtnMini.textContent = '🚀 Start';
+          toggleBtnMini.style.animation = 'none';
+        }
         // Immediate badge flip off
         const badge = document.getElementById('advanced-status');
         if (badge) {
           if (typeof window.updateAdvancedStatus === 'function') window.updateAdvancedStatus(false);
           else { badge.textContent = '⚫ Advanced'; badge.style.background = '#999'; }
         }
+        // Stop countdown
+        if (window.__liveCountdown) { window.__liveCountdown.active = false; window.__liveCountdown.remaining = 0; }
         const duration = result.duration_seconds ? Math.round(result.duration_seconds) : 0;
         const minutes = Math.floor(duration / 60);
         const seconds = duration % 60;
