@@ -12,13 +12,13 @@ This document summarizes the unified memory dashboard work, focusing on Option 1
 - CPU chart (static/js/charts/cpu-chart.js)
   - Auto-boot on DOMContentLoaded and expose `window.cpuChart`
   - `window.cpuChartManager` created once by the module; inline references are guarded
-- Memory chart (UnifiedMemoryChart in unified_memory_dashboard.py)
+- Memory chart (Hybrid/Unified manager in static/js/charts/hybrid-memory.js)
   - Owns live polling, live/historical switching, and downsampling
-  - Persists `umc_mode`, `umc_live_range`, `umc_time_range`, and `umc_resolution`
+  - Persists `umc_mode`, `umc_live_range`, `umc_hist_range`, and `umc_hist_res`
   - Updates UI via DOM ids (mode badge, title, range selectors)
 - Monitoring
   - JS uses `/api/start_monitoring` and `/api/stop_monitoring`
-  - Status polling via `/api/current`; also instantly flips `#advanced-status` on toggle for responsive UX
+  - Status polling via `/api/current` with a unified shape (`monitoring_status`), backward compatible with `long_term_monitoring`
 
 ## Key UI IDs
 - Memory: `#chart-title`, `#mode-badge`, `#live-range-select`, `#historical-range`, `#resolution-select`, `#memoryChart`

@@ -39,6 +39,15 @@ Option C: CLI
 - `tests/perf-resolution.spec.ts` measures how long the chart title takes to settle after a resolution switch
 - Soft threshold: 1500ms (warns in console if exceeded; does not fail tests)
 
+## Phase 3 scenarios
+- Mini banner sync: status dot/text, interval, next countdown changes, points increase, duration increments
+- Points tooltip shows last increment time; last sample timestamp shown below strip
+- Mini Start/Stop mirrors main toggle (colors + pulse animation)
+
+## Debug logging
+- Set `CM_DEBUG=1` in the environment before starting the server to enable verbose server logs
+- BrokenPipeError writes are handled silently by default; use CM_DEBUG only when troubleshooting
+
 ## MCP (Augment) notes
 - If MCP runner is enabled in your Augment build, run the Playwright tool from Integrations/MCP or the Command Palette
 - If not visible, use the VS Code Tasks/buttons above

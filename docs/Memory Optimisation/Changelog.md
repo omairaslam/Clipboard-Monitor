@@ -18,7 +18,10 @@
   - Persisted state (mode & live range)
 - Perf sentinel: non-blocking threshold (1.5s) for resolution settle
 
-## Phase 3 (in progress)
-- Monitoring points increment test (Analysis & Controls)
-- Additional UX polish for monitoring counters and indicators
+## Phase 3 (complete)
+- Server hardening and CM_DEBUG logging toggle
+- Live banner sync + polish: status, interval, countdown, points flash + tooltip, duration, last sample
+- Tests: banner sync, points increment, perf sentinel
+- /api/current duplicate-write fix
+- Playwright artifacts ignored in git
 
