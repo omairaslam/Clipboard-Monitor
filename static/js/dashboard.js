@@ -174,38 +174,39 @@ if (typeof window !== 'undefined') {
 
 // Analysis renderers and monitoring status
 export function updateAnalysisDisplay(data) {
-  const leakAnalysis = document.getElementById('leak-analysis');
   const trendAnalysis = document.getElementById('trend-analysis');
   if (window.CM_DEBUG) console.log('[analysis] renderer: updateAnalysisDisplay');
   if (!data || typeof data !== 'object') {
     const msg = '<div style="color:#e74c3c; padding:10px;">❌ Unexpected analysis payload</div>';
-    if (leakAnalysis) leakAnalysis.innerHTML = msg;
     if (trendAnalysis) trendAnalysis.innerHTML = msg;
     return;
   }
-  let leakHtml = '<div style="display: grid; gap: 12px;">';
   let trendHtml = '<div style="display: grid; gap: 12px;">';
   for (const [process, analysis] of Object.entries(data)) {
     const statusColor = analysis.severity === 'high' ? '#e74c3c' : analysis.severity === 'medium' ? '#f39c12' : '#27ae60';
-    leakHtml += `
-      <div style="padding: 15px; border-left: 4px solid ${statusColor}; background: rgba(0,0,0,0.05);">
-        <h4>${process.replace('_', ' ').toUpperCase()}</h4>
-        <p><strong>Status:</strong> <span style="color: ${statusColor};">${analysis.status}</span></p>
-        <p><strong>Growth Rate:</strong> ${(analysis.growth_rate_mb?.toFixed(2) || 0)} MB/hour</p>
-        <p><strong>Data Points:</strong> ${analysis.data_points || 0}</p>
-      </div>`;
     trendHtml += `
       <div style="padding: 15px; background: rgba(0,0,0,0.05); border-radius: 8px;">
         <h4>${process.replace('_', ' ').toUpperCase()}</h4>
+        <p><strong>Status:</strong> <span style="color: ${statusColor};">${analysis.status}</span></p>
         <p><strong>Start Memory:</strong> ${(analysis.start_memory_mb?.toFixed(2) || 0)} MB</p>
         <p><strong>End Memory:</strong> ${(analysis.end_memory_mb?.toFixed(2) || 0)} MB</p>
         <p><strong>Total Growth:</strong> ${(analysis.total_growth_mb?.toFixed(2) || 0)} MB</p>
+        <p><strong>Growth Rate:</strong> ${(analysis.growth_rate_mb?.toFixed(2) || 0)} MB/hour</p>
+        <p><strong>Data Points:</strong> ${analysis.data_points || 0}</p>
       </div>`;
   }
-  leakHtml += '</div>'; trendHtml += '</div>';
-  if (leakAnalysis) leakAnalysis.innerHTML = leakHtml;
+  trendHtml += '</div>';
   const trendContainer = document.getElementById('trend-analysis');
-  if (trendContainer && trendContainer.dataset.init !== '1') trendContainer.innerHTML = trendHtml;
+  if (trendContainer) {
+    // Ensure existing stub persists by updating only the cards region
+    let cards = document.getElementById('trend-cards');
+    if (!cards) {
+      cards = document.createElement('div');
+      cards.id = 'trend-cards';
+      trendContainer.appendChild(cards);
+    }
+    cards.innerHTML = trendHtml;
+  }
 }
 
 export function updateLeakAnalysisDisplay(leakData) {
