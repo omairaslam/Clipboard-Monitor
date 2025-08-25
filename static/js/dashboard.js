@@ -176,6 +176,13 @@ if (typeof window !== 'undefined') {
 export function updateAnalysisDisplay(data) {
   const leakAnalysis = document.getElementById('leak-analysis');
   const trendAnalysis = document.getElementById('trend-analysis');
+  if (window.CM_DEBUG) console.log('[analysis] renderer: updateAnalysisDisplay');
+  if (!data || typeof data !== 'object') {
+    const msg = '<div style="color:#e74c3c; padding:10px;">❌ Unexpected analysis payload</div>';
+    if (leakAnalysis) leakAnalysis.innerHTML = msg;
+    if (trendAnalysis) trendAnalysis.innerHTML = msg;
+    return;
+  }
   let leakHtml = '<div style="display: grid; gap: 12px;">';
   let trendHtml = '<div style="display: grid; gap: 12px;">';
   for (const [process, analysis] of Object.entries(data)) {

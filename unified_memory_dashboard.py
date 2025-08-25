@@ -1880,7 +1880,7 @@ class UnifiedMemoryDashboard:
 
         async function loadAnalysisData() {
             try {
-                if (typeof isTabActive === 'function' && !isTabActive('analysis')) return; // Skip if tab not visible
+                if (typeof window !== 'undefined' && window.CM_DEBUG) console.log('[analysis] loadAnalysisData: running (guard disabled)');
                 // Abort stale requests
                 if (analysisAbortController) analysisAbortController.abort();
                 analysisAbortController = new AbortController();
@@ -1892,18 +1892,29 @@ class UnifiedMemoryDashboard:
 
                 // Fetch analysis data
                 const response = await fetch(`/api/analysis?hours=${hours}`, { signal });
+                if (window.CM_DEBUG) console.log('[analysis] /api/analysis status', response.status);
                 const data = await response.json();
+                if (!data || typeof data !== 'object') {
+                    const analysisSummary = document.getElementById('analysis-summary');
+                    const msg = `<div style=\"color:#e74c3c; padding:10px;\">❌ Unexpected analysis payload</div>`;
+                    if (analysisSummary) analysisSummary.innerHTML = msg;
+                }
+                if (window.CM_DEBUG) console.log('[analysis] updateAnalysisDisplay ->', !!window.__module_updateAnalysisDisplay);
                 updateAnalysisDisplay(data);
 
                 // Fetch leak analysis
                 const leakResponse = await fetch('/api/leak_analysis', { signal });
+                if (window.CM_DEBUG) console.log('[analysis] /api/leak_analysis status', leakResponse.status);
                 const leakData = await leakResponse.json();
+                if (window.CM_DEBUG) console.log('[analysis] updateLeakAnalysisDisplay ->', !!window.__module_updateLeakAnalysisDisplay);
                 updateLeakAnalysisDisplay(leakData);
 
                 // Update Last Session Findings board
+                if (window.CM_DEBUG) console.log('[analysis] updateSessionFindings ->', !!window.__module_updateSessionFindings);
                 updateSessionFindings(data, leakData);
 
                 // Update analysis summary
+                if (window.CM_DEBUG) console.log('[analysis] updateAnalysisSummary ->', !!window.__module_updateAnalysisSummary);
                 updateAnalysisSummary(data, hours);
 
                 // Update monitoring history
@@ -1929,19 +1940,37 @@ class UnifiedMemoryDashboard:
         }
 
         // updateAnalysisDisplay moved to /static/js/dashboard.js
-        function updateAnalysisDisplay(data) { return window.__module_updateAnalysisDisplay?.(data); }
+        function updateAnalysisDisplay(data) {
+            if (window.CM_DEBUG) console.log('[analysis] forward updateAnalysisDisplay');
+            return window.__module_updateAnalysisDisplay?.(data);
+        }
 
-        function updateLeakAnalysisDisplay(leakData) { return window.__module_updateLeakAnalysisDisplay?.(leakData); }
+        function updateLeakAnalysisDisplay(leakData) {
+            if (window.CM_DEBUG) console.log('[analysis] forward updateLeakAnalysisDisplay');
+            return window.__module_updateLeakAnalysisDisplay?.(leakData);
+        }
 
-        function updateAnalysisSummary(data, hours) { return window.__module_updateAnalysisSummary?.(data, hours); }
+        function updateAnalysisSummary(data, hours) {
+            if (window.CM_DEBUG) console.log('[analysis] forward updateAnalysisSummary');
+            return window.__module_updateAnalysisSummary?.(data, hours);
+        }
 
         function ensureTrendExplorerUI() { return; }
         function computeRegression(points, key) { return window.computeRegression?.(points, key); }
         async function updateTrendExplorer(hours) { return window.updateTrendExplorer?.(hours); }
 
-        function updateMonitoringHistory() { return window.__module_updateMonitoringHistory?.(); }
-        function updateSessionFindings(analysisData, leakData) { return window.__module_updateSessionFindings?.(analysisData, leakData); }
-        async function updateMonitoringStatus() { return window.__module_updateMonitoringStatus?.(); }
+        function updateMonitoringHistory() {
+            if (window.CM_DEBUG) console.log('[analysis] forward updateMonitoringHistory');
+            return window.__module_updateMonitoringHistory?.();
+        }
+        function updateSessionFindings(analysisData, leakData) {
+            if (window.CM_DEBUG) console.log('[analysis] forward updateSessionFindings');
+            return window.__module_updateSessionFindings?.(analysisData, leakData);
+        }
+        async function updateMonitoringStatus() {
+            if (window.CM_DEBUG) console.log('[analysis] forward updateMonitoringStatus');
+            return window.__module_updateMonitoringStatus?.();
+        }
 
         async function refreshAllData() {
             // Show loading state
