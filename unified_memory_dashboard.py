@@ -367,7 +367,14 @@ class UnifiedMemoryDashboard:
                 self.wfile.write(data.encode())
             elif path.startswith('/api/historical'):
                 # Parse query parameters for time range (already parsed above)
-                hours = int(query_params.get('hours', [24])[0])
+                hours_param = query_params.get('hours', [24])[0]
+                try:
+                    if isinstance(hours_param, str) and hours_param == 'all':
+                        hours = 'all'
+                    else:
+                        hours = int(hours_param)
+                except Exception:
+                    hours = 24
 
                 self.send_response(200)
                 self.send_header('Content-type', 'application/json')
