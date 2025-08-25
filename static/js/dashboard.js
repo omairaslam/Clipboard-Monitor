@@ -301,15 +301,24 @@ export async function updateMonitoringStatus() {
   try {
     const response = await fetch('/api/current');
     const data = await response.json();
+
+    // Support both payload shapes: monitoring_status (new) and long_term_monitoring (compat)
+    const ms = data.monitoring_status || data.long_term_monitoring || {};
+    const isActive = (ms.status === 'active') || (ms.active === true);
+    const interval = ms.interval || 0;
+    const advPoints = (typeof ms.data_points === 'number') ? ms.data_points : (ms.advanced_data_points || 0);
+
+    // Controls panel widgets
     const statusIndicator = document.getElementById('status-indicator');
     const statusText = document.getElementById('status-text');
     const dataPointsSpan = document.getElementById('advanced-data-points');
     const collectionRateSpan = document.getElementById('collection-rate');
     const toggleBtn = document.getElementById('monitoringToggleBtn');
-    const isActive = data.long_term_monitoring && data.long_term_monitoring.status === 'active';
+
     if (statusIndicator) statusIndicator.style.background = isActive ? '#4caf50' : '#ccc';
     if (statusText) statusText.textContent = isActive ? 'ACTIVE' : 'INACTIVE';
-    // Update top banner advanced badge
+
+    // Top banner badge
     const advancedBadge = document.getElementById('advanced-status');
     if (advancedBadge) {
       if (typeof window.updateAdvancedStatus === 'function') window.updateAdvancedStatus(isActive);
@@ -318,8 +327,52 @@ export async function updateMonitoringStatus() {
         advancedBadge.style.background = isActive ? '#F44336' : '#999';
       }
     }
-    if (dataPointsSpan) dataPointsSpan.textContent = data.long_term_monitoring?.data_points || 0;
-    if (collectionRateSpan) collectionRateSpan.textContent = isActive ? `${data.long_term_monitoring?.interval || 0}s` : 'Stopped';
+
+    if (dataPointsSpan) dataPointsSpan.textContent = advPoints;
+    if (collectionRateSpan) collectionRateSpan.textContent = isActive ? `${interval}s` : 'Stopped';
+
+    // Mirror into Live Collection strip (mini banner)
+    const liveDot = document.getElementById('live-status-dot');
+    const liveText = document.getElementById('live-status-text');
+    const liveInterval = document.getElementById('live-interval');
+    const liveNext = document.getElementById('live-next');
+    const livePts = document.getElementById('live-adv-points');
+    const liveDuration = document.getElementById('live-duration');
+
+    if (liveDot) liveDot.style.background = isActive ? '#4CAF50' : '#ccc';
+    if (liveText) liveText.textContent = isActive ? 'ACTIVE' : 'INACTIVE';
+    if (liveInterval) liveInterval.textContent = isActive ? `Every ${interval}s` : 'Stopped';
+    if (livePts) livePts.textContent = String(advPoints);
+
+    // Compute duration from start_time if available
+    const startIso = ms.start_time || null;
+    if (startIso && liveDuration) {
+      const start = new Date(startIso).getTime();
+      const now = Date.now();
+      const hours = Math.max(0, (now - start) / 3600000);
+      liveDuration.textContent = hours.toFixed(2) + 'h';
+    } else if (liveDuration) {
+      liveDuration.textContent = '0.00h';
+    }
+
+    // Initialize/reset countdown for next sample (approximate)
+    window.__liveCountdown = window.__liveCountdown || { active: false, interval: 30, remaining: 0, timerId: null, lastPoints: 0 };
+    const lc = window.__liveCountdown;
+    if (isActive) {
+      lc.active = true;
+      lc.interval = interval || lc.interval || 30;
+      // Reset remaining periodically to avoid drift
+      if (!lc.remaining || lc.remaining <= 0 || (typeof advPoints === 'number' && advPoints !== lc.lastPoints)) {
+        lc.remaining = lc.interval;
+        lc.lastPoints = advPoints;
+      }
+      if (liveNext) liveNext.textContent = formatCountdown(lc.remaining);
+    } else {
+      lc.active = false;
+      lc.remaining = 0;
+      if (liveNext) liveNext.textContent = '--';
+    }
+
     if (toggleBtn) {
       if (isActive && !window.isMonitoringActive) {
         window.isMonitoringActive = true;
@@ -339,6 +392,30 @@ export async function updateMonitoringStatus() {
     const lastUpdateSpan = document.getElementById('last-update');
     if (statusText) statusText.textContent = 'ERROR';
     if (lastUpdateSpan) lastUpdateSpan.textContent = 'Error fetching status';
+  }
+}
+
+// Format seconds into mm:ss
+function formatCountdown(sec) {
+  const s = Math.max(0, Math.floor(sec));
+  const m = Math.floor(s / 60);
+  const r = s % 60;
+  return m > 0 ? `${m}m ${r}s` : `${r}s`;
+}
+
+// Install a 1s ticker to update the mini banner countdown
+if (typeof window !== 'undefined') {
+  if (!window.__liveCountdownTicker) {
+    window.__liveCountdownTicker = setInterval(() => {
+      try {
+        const lc = window.__liveCountdown;
+        if (!lc || !lc.active) return;
+        lc.remaining = (lc.remaining || lc.interval || 30) - 1;
+        const liveNext = document.getElementById('live-next');
+        if (liveNext) liveNext.textContent = formatCountdown(lc.remaining);
+        if (lc.remaining <= 0) lc.remaining = lc.interval || 30;
+      } catch {}
+    }, 1000);
   }
 }
 

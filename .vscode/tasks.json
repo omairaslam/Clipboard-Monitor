@@ -562,5 +562,24 @@
             "presentation": { "reveal": "always", "panel": "shared" },
             "options": { "cwd": "${workspaceFolder}", "env": { "TERM": "xterm-256color" }, "shell": { "executable": "/bin/bash", "args": ["-lc"] } }
         }
+,
+        {
+            "label": "🧪 Playwright: Run Suite",
+            "type": "shell",
+            "command": "npx playwright test --timeout=120000 && (npx playwright show-report --host 127.0.0.1 --port 8899 >/dev/null 2>&1 &) && sleep 1 && open http://127.0.0.1:8899 || true",
+            "problemMatcher": [],
+            "presentation": { "reveal": "always", "panel": "new", "focus": true },
+            "options": { "shell": { "executable": "/bin/bash", "args": ["-lc"] } },
+            "group": { "kind": "test", "isDefault": false }
+        },
+        {
+            "label": "📊 Playwright: Show Report",
+            "type": "shell",
+            "command": "(npx playwright show-report --host 127.0.0.1 --port 8899 >/dev/null 2>&1 &) && sleep 1 && open http://127.0.0.1:8899 || true",
+            "problemMatcher": [],
+            "presentation": { "reveal": "always", "panel": "shared" },
+            "options": { "shell": { "executable": "/bin/bash", "args": ["-lc"] } },
+            "group": { "kind": "test", "isDefault": false }
+        }
     ]
 }

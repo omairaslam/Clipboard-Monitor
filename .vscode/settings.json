@@ -133,6 +133,19 @@
             "tooltip": "Restart (stop if running, then start) and open http://localhost:8001",
             "color": "default"
         }
+,
+        {
+            "label": "🧪 Playwright",
+            "task": "🧪 Playwright: Run Suite",
+            "tooltip": "Run Playwright full test suite and open HTML report",
+            "color": "default"
+        },
+        {
+            "label": "📊 Report",
+            "task": "📊 Playwright: Show Report",
+            "tooltip": "Serve and open last Playwright HTML report",
+            "color": "default"
+        }
     ],
     "trae.tab.enableRename": true,
     "trae.tab.enableAutoImport": true,
