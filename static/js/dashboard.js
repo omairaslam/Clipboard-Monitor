@@ -360,7 +360,14 @@ export async function updateMonitoringStatus() {
     if (liveDot) liveDot.style.background = isActive ? '#4CAF50' : '#ccc';
     if (liveText) liveText.textContent = isActive ? 'ACTIVE' : 'INACTIVE';
     if (liveInterval) liveInterval.textContent = isActive ? `Every ${interval}s` : 'Stopped';
-    if (livePts) livePts.textContent = String(advPoints);
+
+    // Total session points in title + tooltip
+    if (livePts) {
+      livePts.textContent = String(advPoints);
+      const lastInc = window.__lastAdvPointsTimestamp ? new Date(window.__lastAdvPointsTimestamp) : null;
+      if (lastInc) livePts.setAttribute('title', `Last increment at ${lastInc.toLocaleTimeString()}`);
+      else livePts.removeAttribute('title');
+    }
 
     // Compute duration from start_time if available
     const startIso = ms.start_time || null;
@@ -426,6 +433,11 @@ export async function updateMonitoringStatus() {
         setTimeout(() => livePts.classList.remove('point-flash'), 400);
       }
       window.__lastAdvPoints = advPoints;
+      window.__lastAdvPointsTimestamp = Date.now();
+      // Refresh tooltip immediately
+      try {
+        livePts.setAttribute('title', `Last increment at ${new Date(window.__lastAdvPointsTimestamp).toLocaleTimeString()}`);
+      } catch {}
     }
   } catch (e) {
     console.error('Error updating monitoring status:', e);
