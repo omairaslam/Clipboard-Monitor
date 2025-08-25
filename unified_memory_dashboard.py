@@ -238,6 +238,9 @@ class UnifiedMemoryDashboard:
         self.max_history = 2000  # Increased for longer history
         self.server = None
 
+        # Logging verbosity (Phase 3)
+        self.debug_logging = os.environ.get('CM_DEBUG', '0') in ('1', 'true', 'True')
+
         # Advanced features
         self.leak_detector = AdvancedMemoryLeakDetector()
         self.monitoring_active = False
@@ -472,10 +475,11 @@ class UnifiedMemoryDashboard:
                         pass
 
                 except Exception as e:
-                    print(f"Error in historical-chart API: {e}")
-                    print(f"Request parameters: hours={hours_param}, resolution={resolution}")
-                    import traceback
-                    traceback.print_exc()
+                    if self.dashboard.debug_logging:
+                        print(f"Error in historical-chart API: {e}")
+                        print(f"Request parameters: hours={hours_param}, resolution={resolution}")
+                        import traceback
+                        traceback.print_exc()
 
                     self.send_response(500)
                     self.send_header('Content-type', 'application/json')

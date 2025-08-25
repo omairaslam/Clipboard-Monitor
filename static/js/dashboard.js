@@ -404,6 +404,29 @@ export async function updateMonitoringStatus() {
         toggleBtn.style.animation = 'none';
       }
     }
+
+    // Tooltips for clarity
+    if (liveNext) liveNext.setAttribute('title', 'Next sample ETA (approx)');
+    if (liveInterval) liveInterval.setAttribute('title', 'Server-configured interval');
+
+    // Last sample timestamp
+    const lastSampleDiv = document.getElementById('live-last-sample');
+    if (lastSampleDiv && data && data.timestamp) {
+      try {
+        const t = new Date(data.timestamp);
+        lastSampleDiv.textContent = `Last sample: ${t.toLocaleTimeString()}`;
+      } catch {}
+    }
+
+    // Flash points when they increase
+    if (typeof window.__lastAdvPoints !== 'number') window.__lastAdvPoints = advPoints;
+    if (advPoints > window.__lastAdvPoints) {
+      if (livePts) {
+        livePts.classList.add('point-flash');
+        setTimeout(() => livePts.classList.remove('point-flash'), 400);
+      }
+      window.__lastAdvPoints = advPoints;
+    }
   } catch (e) {
     console.error('Error updating monitoring status:', e);
     const statusText = document.getElementById('status-text');
