@@ -12,6 +12,9 @@ test('points tooltip updates after increment and countdown behaves at 10s', asyn
   const intervalSel = page.locator('#monitorInterval');
   const nextText = page.locator('#live-next');
 
+  // Ensure last-inc element is present before reading
+  await expect(lastInc).toHaveCount(1);
+
   await intervalSel.selectOption('10');
   await miniBtn.click();
   await expect(points).toHaveText(/\d+/);
