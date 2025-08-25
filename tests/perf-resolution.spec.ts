@@ -1,5 +1,7 @@
 import { test, expect } from '@playwright/test';
 
+const SOFT_MS = parseInt(process.env.PERF_SOFT_MS || '1500', 10);
+
 // Non-blocking performance check: measure time to settle title after resolution switch
 
 test('resolution switch settles under soft threshold', async ({ page }) => {
@@ -19,15 +21,11 @@ test('resolution switch settles under soft threshold', async ({ page }) => {
   await expect(title).toHaveText(/Historical Memory Usage/, { timeout: 15000 });
   const elapsed = Date.now() - start;
 
-  // Soft threshold 1500ms
-  const SOFT_MS = 1500;
-  console.log(`[perf] resolution switch settle ms=${elapsed}`);
-  // Non-blocking: only warn if exceeded
+  console.log(`[perf] resolution switch settle ms=${elapsed} (soft=${SOFT_MS})`);
   if (elapsed > SOFT_MS) {
     console.warn(`[perf] settle time ${elapsed}ms exceeded soft threshold ${SOFT_MS}ms`);
   }
 
-  // Keep test green regardless; the console warning serves as sentinel
   await expect(title).toHaveText(/Historical Memory Usage/);
 });
 

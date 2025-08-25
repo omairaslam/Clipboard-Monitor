@@ -1113,6 +1113,7 @@ class UnifiedMemoryDashboard:
                     <em>Collects per‑process memory and CPU at the chosen interval. Use the controls to start/stop a session; results appear below.</em>
                 </div>
                 <div id="live-last-sample" style="margin-top:6px; font-size:12px; color:#333; font-variant-numeric: tabular-nums;"></div>
+                <div id="live-last-inc" style="margin-top:2px; font-size:12px; color:#666; font-variant-numeric: tabular-nums;"><em>Last inc: --</em></div>
             </div>
 
             <!-- Monitoring Controls Section (Moved from Controls Tab) -->

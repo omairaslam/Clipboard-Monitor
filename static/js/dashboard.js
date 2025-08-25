@@ -356,6 +356,7 @@ export async function updateMonitoringStatus() {
     const liveNext = document.getElementById('live-next');
     const livePts = document.getElementById('live-adv-points');
     const liveDuration = document.getElementById('live-duration');
+    const liveLastInc = document.getElementById('live-last-inc');
 
     if (liveDot) liveDot.style.background = isActive ? '#4CAF50' : '#ccc';
     if (liveText) liveText.textContent = isActive ? 'ACTIVE' : 'INACTIVE';
@@ -365,8 +366,14 @@ export async function updateMonitoringStatus() {
     if (livePts) {
       livePts.textContent = String(advPoints);
       const lastInc = window.__lastAdvPointsTimestamp ? new Date(window.__lastAdvPointsTimestamp) : null;
-      if (lastInc) livePts.setAttribute('title', `Last increment at ${lastInc.toLocaleTimeString()}`);
-      else livePts.removeAttribute('title');
+      if (lastInc) {
+        const t = lastInc.toLocaleTimeString();
+        livePts.setAttribute('title', `Last increment at ${t}`);
+        if (liveLastInc) liveLastInc.innerHTML = `<em>Last inc: ${t}</em>`;
+      } else {
+        livePts.removeAttribute('title');
+        if (liveLastInc) liveLastInc.innerHTML = '<em>Last inc: --</em>';
+      }
     }
 
     // Compute duration from start_time if available
@@ -465,7 +472,11 @@ if (typeof window !== 'undefined') {
         if (!lc || !lc.active) return;
         lc.remaining = (lc.remaining || lc.interval || 30) - 1;
         const liveNext = document.getElementById('live-next');
-        if (liveNext) liveNext.textContent = formatCountdown(lc.remaining);
+        if (liveNext) {
+          liveNext.textContent = formatCountdown(lc.remaining);
+          liveNext.classList.add('flash');
+          setTimeout(() => liveNext.classList.remove('flash'), 120);
+        }
         if (lc.remaining <= 0) lc.remaining = lc.interval || 30;
       } catch {}
     }, 1000);

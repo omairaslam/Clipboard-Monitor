@@ -242,6 +242,16 @@ body {
     100% { background: transparent; }
 }
 
+
+/* Subtle countdown flash */
+#live-next {
+    transition: color 0.1s ease, transform 0.1s ease;
+}
+#live-next.flash {
+    color: #1976d2;
+    transform: scale(1.06);
+}
+
 .tabs {
     display: flex;
     background: rgba(255,255,255,0.95);
