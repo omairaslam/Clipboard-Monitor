@@ -356,7 +356,19 @@ export async function updateMonitoringStatus() {
     const liveNext = document.getElementById('live-next');
     const livePts = document.getElementById('live-adv-points');
     const liveDuration = document.getElementById('live-duration');
-    const liveLastInc = document.getElementById('live-last-inc');
+    let liveLastInc = document.getElementById('live-last-inc');
+    if (!liveLastInc) {
+      // Retro-fit missing element if server HTML is older
+      const lastSample = document.getElementById('live-last-sample');
+      if (lastSample && lastSample.parentElement) {
+        const div = document.createElement('div');
+        div.id = 'live-last-inc';
+        div.style.cssText = 'margin-top:2px; font-size:12px; color:#666; font-variant-numeric: tabular-nums;';
+        div.innerHTML = '<em>Last inc: --</em>';
+        lastSample.parentElement.insertBefore(div, lastSample.nextSibling);
+        liveLastInc = div;
+      }
+    }
 
     if (liveDot) liveDot.style.background = isActive ? '#4CAF50' : '#ccc';
     if (liveText) liveText.textContent = isActive ? 'ACTIVE' : 'INACTIVE';
@@ -492,3 +504,21 @@ if (typeof window !== 'undefined') {
   window.__module_updateSessionFindings = updateSessionFindings;
   window.__module_updateMonitoringStatus = updateMonitoringStatus;
 }
+
+export async function copyLatestAnalysisJson() {
+  try {
+    const timeRangeElement = document.getElementById('analysisTimeRange') || document.getElementById('timeRange');
+    const hours = timeRangeElement ? timeRangeElement.value : 24;
+    const resp = await fetch(`/api/analysis?hours=${hours}`);
+    const data = await resp.json();
+    await navigator.clipboard.writeText(JSON.stringify(data, null, 2));
+    showToast('✅ Copied latest analysis JSON to clipboard', 'success');
+  } catch (e) {
+    showToast('❌ Failed to copy analysis JSON: ' + e, 'error');
+  }
+}
+
+if (typeof window !== 'undefined') {
+  window.copyLatestAnalysisJson = copyLatestAnalysisJson;
+}
+
