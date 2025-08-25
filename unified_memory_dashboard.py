@@ -313,7 +313,11 @@ class UnifiedMemoryDashboard:
                 self.send_response(200)
                 self.send_header('Content-type', 'text/html')
                 self.end_headers()
-                self.wfile.write(self.dashboard.render_dashboard_html().encode())
+                try:
+                    self.wfile.write(self.dashboard.render_dashboard_html().encode())
+                except BrokenPipeError:
+                    # Client disconnected; ignore to prevent noisy logs during tests
+                    pass
             elif path == '/favicon.ico':
                 # Avoid 404 noise in console; no favicon needed
                 self.send_response(204)
@@ -329,7 +333,10 @@ class UnifiedMemoryDashboard:
                 self.send_header('Expires', '0')
                 self.end_headers()
                 data = json.dumps(self.dashboard.get_memory_data())
-                self.wfile.write(data.encode())
+                try:
+                    self.wfile.write(data.encode())
+                except BrokenPipeError:
+                    pass
             elif path == '/api/current':
                 # Current status including monitoring state (for Controls tab)
                 self.send_response(200)
@@ -339,6 +346,10 @@ class UnifiedMemoryDashboard:
                 self.send_header('Expires', '0')
                 self.end_headers()
                 data = json.dumps(self.dashboard.get_comprehensive_dashboard_data())
+                try:
+                    self.wfile.write(data.encode())
+                except BrokenPipeError:
+                    pass
                 self.wfile.write(data.encode())
             elif path == '/api/data':
                 # Comprehensive dashboard data for monitoring dashboard compatibility
@@ -349,7 +360,10 @@ class UnifiedMemoryDashboard:
                 self.send_header('Expires', '0')
                 self.end_headers()
                 data = json.dumps(self.dashboard.get_comprehensive_dashboard_data())
-                self.wfile.write(data.encode())
+                try:
+                    self.wfile.write(data.encode())
+                except BrokenPipeError:
+                    pass
             elif path == '/api/system':
                 self.send_response(200)
                 self.send_header('Content-type', 'application/json')
@@ -358,13 +372,19 @@ class UnifiedMemoryDashboard:
                 self.send_header('Expires', '0')
                 self.end_headers()
                 data = json.dumps(self.dashboard.get_system_data())
-                self.wfile.write(data.encode())
+                try:
+                    self.wfile.write(data.encode())
+                except BrokenPipeError:
+                    pass
             elif path == '/api/history':
                 self.send_response(200)
                 self.send_header('Content-type', 'application/json')
                 self.end_headers()
                 data = json.dumps(self.dashboard.data_history[-200:])
-                self.wfile.write(data.encode())
+                try:
+                    self.wfile.write(data.encode())
+                except BrokenPipeError:
+                    pass
             elif path.startswith('/api/historical'):
                 # Parse query parameters for time range (already parsed above)
                 hours_param = query_params.get('hours', [24])[0]
@@ -380,7 +400,10 @@ class UnifiedMemoryDashboard:
                 self.send_header('Content-type', 'application/json')
                 self.end_headers()
                 data = json.dumps(self.dashboard.get_historical_data(hours))
-                self.wfile.write(data.encode())
+                try:
+                    self.wfile.write(data.encode())
+                except BrokenPipeError:
+                    pass
             elif path.startswith('/api/analysis'):
                 # Parse query parameters for time range (already parsed above)
                 hours_param = query_params.get('hours', [24])[0]
@@ -396,7 +419,10 @@ class UnifiedMemoryDashboard:
                 self.send_header('Content-type', 'application/json')
                 self.end_headers()
                 data = json.dumps(self.dashboard.get_analysis_data(hours))
-                self.wfile.write(data.encode())
+                try:
+                    self.wfile.write(data.encode())
+                except BrokenPipeError:
+                    pass
             elif path.startswith('/api/historical-chart'):
                 # Enhanced historical data for chart
                 try:
@@ -440,7 +466,10 @@ class UnifiedMemoryDashboard:
                     self.send_header('Access-Control-Allow-Origin', '*')
                     self.end_headers()
                     data = json.dumps(chart_data)
-                    self.wfile.write(data.encode())
+                    try:
+                        self.wfile.write(data.encode())
+                    except BrokenPipeError:
+                        pass
 
                 except Exception as e:
                     print(f"Error in historical-chart API: {e}")
@@ -459,7 +488,10 @@ class UnifiedMemoryDashboard:
                         'time_range': 'error',
                         'debug_info': f"hours_param={hours_param}, resolution={resolution}"
                     })
-                    self.wfile.write(error_data.encode())
+                    try:
+                        self.wfile.write(error_data.encode())
+                    except BrokenPipeError:
+                        pass
             elif path.startswith('/api/start_monitoring'):
                 # Parse query parameters for interval (already parsed above)
                 interval = int(query_params.get('interval', [30])[0])
@@ -468,13 +500,19 @@ class UnifiedMemoryDashboard:
                 self.send_header('Content-type', 'application/json')
                 self.end_headers()
                 result = self.dashboard.start_advanced_monitoring(interval)
-                self.wfile.write(json.dumps(result).encode())
+                try:
+                    self.wfile.write(json.dumps(result).encode())
+                except BrokenPipeError:
+                    pass
             elif path == '/api/stop_monitoring':
                 self.send_response(200)
                 self.send_header('Content-type', 'application/json')
                 self.end_headers()
                 result = self.dashboard.stop_advanced_monitoring()
-                self.wfile.write(json.dumps(result).encode())
+                try:
+                    self.wfile.write(json.dumps(result).encode())
+                except BrokenPipeError:
+                    pass
             elif path == '/api/force_gc':
                 self.send_response(200)
                 self.send_header('Content-type', 'application/json')

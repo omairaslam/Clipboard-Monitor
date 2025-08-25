@@ -224,11 +224,13 @@ body {
 .status-active {
     background: #4CAF50 !important;
     animation: pulse-dot 2s infinite;
+    transition: background 0.2s ease, transform 0.2s ease;
 }
 
 .status-inactive {
     background: #ccc !important;
     animation: none;
+    transition: background 0.2s ease, transform 0.2s ease;
 }
 .tabs {
     display: flex;
