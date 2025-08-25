@@ -353,7 +353,6 @@ class UnifiedMemoryDashboard:
                     self.wfile.write(data.encode())
                 except BrokenPipeError:
                     pass
-                self.wfile.write(data.encode())
             elif path == '/api/data':
                 # Comprehensive dashboard data for monitoring dashboard compatibility
                 self.send_response(200)
