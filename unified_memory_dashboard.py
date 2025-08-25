@@ -1920,8 +1920,12 @@ class UnifiedMemoryDashboard:
                 // Update monitoring history
                 updateMonitoringHistory();
 
-                // Update Trend Explorer
-                updateTrendExplorer(hours);
+                // Update Trend Explorer (only if a module implementation exists)
+                if (window.__module_updateTrendExplorer) {
+                    updateTrendExplorer(hours);
+                } else if (window.CM_DEBUG) {
+                    console.log('[analysis] skip updateTrendExplorer (module not present)');
+                }
 
             } catch (error) {
                 console.error('Error loading analysis data:', error);
@@ -1957,7 +1961,15 @@ class UnifiedMemoryDashboard:
 
         function ensureTrendExplorerUI() { return; }
         function computeRegression(points, key) { return window.computeRegression?.(points, key); }
-        async function updateTrendExplorer(hours) { return window.updateTrendExplorer?.(hours); }
+        async function updateTrendExplorer(hours) {
+            // Avoid self-recursion: only call module implementation if present
+            if (window.__module_updateTrendExplorer) {
+                if (window.CM_DEBUG) console.log('[analysis] forward updateTrendExplorer');
+                return window.__module_updateTrendExplorer(hours);
+            } else {
+                if (window.CM_DEBUG) console.log('[analysis] updateTrendExplorer noop (module not present)');
+            }
+        }
 
         function updateMonitoringHistory() {
             if (window.CM_DEBUG) console.log('[analysis] forward updateMonitoringHistory');
