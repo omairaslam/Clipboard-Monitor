@@ -239,6 +239,10 @@ export function updateLeakAnalysisDisplay(leakData) {
 export function updateAnalysisSummary(data, hours) {
   const summaryDiv = document.getElementById('analysis-summary');
   if (!summaryDiv) return;
+  // Cache last analysis payload for fallback
+  window.__lastAnalysisData = data;
+  window.__lastAnalysisHours = hours;
+
   const processCount = Object.keys(data).length;
   const highSeverityCount = Object.values(data).filter(d => d.severity === 'high').length;
   const mediumSeverityCount = Object.values(data).filter(d => d.severity === 'medium').length;
@@ -259,14 +263,27 @@ export function updateAnalysisSummary(data, hours) {
     </div>
     <div style="margin-top: 10px; font-size: 12px; color: #666;">Time Range: Last ${hours} hours</div>`;
   summaryDiv.innerHTML = html;
+
+  // Fallback: if still showing loading soon after, trigger a reload
+  setTimeout(() => {
+    const s = document.getElementById('analysis-summary');
+    if (!s) return;
+    const txt = (s.textContent || '').toLowerCase();
+    if (txt.includes('loading')) {
+      window.loadAnalysisData?.();
+    }
+  }, 1500);
 }
 
 export function updateMonitoringHistory() {
   const historyDiv = document.getElementById('monitoring-history');
   if (!historyDiv) return;
+  // If we have cached analysis data, show counts to avoid an empty feel
+  const cached = window.__lastAnalysisData;
   const html = `
     <div style="padding: 15px; background: #f8f9fa; border-radius: 5px;">
       <p><strong>📈 Monitoring Sessions:</strong></p>
+      ${cached ? `<div style='font-size:12px; color:#666;'>Showing recent analysis (${Object.keys(cached).length} processes)</div>` : ''}
       <div style="margin-top: 10px;">
         <div style="padding: 10px; background: white; border-radius: 3px; margin-bottom: 5px;">
           <strong>Current Session:</strong> ${new Date().toLocaleDateString()}<br>
