@@ -98,7 +98,7 @@ body {
     left: 0 !important;
     transform: none !important;
 }
-.chart-wrapper canvas {
+.chart-wrapper canvas, #trend-sparklines canvas {
     max-height: 280px !important;
     max-width: 100% !important;
     width: 100% !important; /* Force canvas to respect container width */
@@ -394,10 +394,19 @@ body {
 .loading { position: relative; background: linear-gradient(90deg, #f0f0f0 25%, #f7f7f7 37%, #f0f0f0 63%); background-size: 400% 100%; animation: shimmer 1.4s ease infinite; height: 14px; border-radius: 4px; }
 @keyframes shimmer { 0% { background-position: 100% 0; } 100% { background-position: -100% 0; } }
 
-/* Sparkline canvas */
+/* Sparkline canvas (legacy inline tables) */
 .spark-cell { width: 140px; display: inline-block; }
 .sparkline { width: 140px; height: 28px; display: block; border: 1px solid #eee; background: #fafafa; }
 .cell-inner { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
 .process-table td.process-memory, .process-table td.process-cpu { text-align: right; }
 .cell-inner .value { min-width: 70px; text-align: right; font-variant-numeric: tabular-nums; }
 
+/* Hide legacy inline sparklines under Growth Trend Analysis when Trend Explorer is present */
+#trend-analysis #menubar-sparkline, #trend-analysis #service-sparkline { display: none !important; }
+#trend-analysis strong:has(+ #menubar-sparkline),
+#trend-analysis strong:has(+ #service-sparkline) { display: none !important; }
+
+
+
+/* Hide legacy inline sparklines in Growth Trend Analysis; use Trend Explorer block instead */
+#menubar-sparkline, #service-sparkline { display: none !important; }

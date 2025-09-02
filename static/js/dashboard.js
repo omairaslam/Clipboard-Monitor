@@ -1,5 +1,4 @@
-import { showToast, safeUpdateElement } from './app-core.js';
-import { UnifiedMemoryChart } from './charts/hybrid-memory.js';
+// Non-module version: use globals from app-core.js and hybrid-memory.js
 
 // expose fetchMemoryData so UnifiedMemoryChart can call it
 window.fetchMemoryData = async function fetchMemoryData() {
@@ -19,6 +18,18 @@ window.fetchMemoryData = async function fetchMemoryData() {
           session: data.session
         });
       }
+    // Health score (server-computed)
+    if (data && data.health && typeof data.health.score === 'number') {
+      const el = document.getElementById('header-health-score');
+      if (el) el.textContent = data.health.score.toFixed(1) + '%';
+      const banner = document.getElementById('health-banner');
+      if (banner) {
+        const s = data.health.score;
+        banner.style.background = s >= 80 ? '#e8f5e9' : s >= 60 ? '#fff8e1' : '#ffebee';
+        banner.style.borderLeft = '4px solid ' + (s >= 80 ? '#4CAF50' : s >= 60 ? '#f39c12' : '#e74c3c');
+      }
+    }
+
     }
     return true;
   } catch (e) {
@@ -28,22 +39,32 @@ window.fetchMemoryData = async function fetchMemoryData() {
 }
 
 // bootstrap managers after DOM is loaded
-window.addEventListener('DOMContentLoaded', async () => {
+window.addEventListener('DOMContentLoaded', () => {
   // Wait until inline script defines updateDashboard (attached to window in non-module scripts)
   const start = performance.now();
-  while (!window.updateDashboard && performance.now() - start < 4000) {
-    await new Promise(r => setTimeout(r, 50));
-  }
-  window.chartManager = window.chartManager || new UnifiedMemoryChart();
-  await window.chartManager.initialize();
-  // Kick a manual fetch in case the first poll ran before updateDashboard was ready
-  setTimeout(() => { if (typeof window.fetchMemoryData === 'function') window.fetchMemoryData(); }, 200);
+  const boot = () => {
+    if (!window.updateDashboard && performance.now() - start < 4000) {
+      setTimeout(boot, 50);
+      return;
+    }
+    if (window.UnifiedMemoryChart) {
+      window.chartManager = window.chartManager || new window.UnifiedMemoryChart();
+      if (typeof window.chartManager.initialize === 'function') {
+        window.chartManager.initialize().then(() => {
+          setTimeout(() => { if (typeof window.fetchMemoryData === 'function') window.fetchMemoryData(); }, 200);
+        }).catch(() => {});
+      }
+    } else {
+      if (window.CM_DEBUG) console.warn('UnifiedMemoryChart not defined yet; skipping chart init');
+    }
+  };
+  boot();
   // CPU manager is initialized inline to ensure Chart canvas exists; we avoid double-init here
 });
 
 
 // Analysis/system/monitoring migration
-export async function fetchSystemData() {
+async function fetchSystemData() {
   try {
     const response = await fetch('/api/system');
     const data = await response.json();
@@ -72,7 +93,7 @@ if (typeof window !== 'undefined') {
   window.loadAnalysisData = loadAnalysisData;
 }
 
-export async function loadAnalysisData() {
+async function loadAnalysisData() {
   try {
     if (typeof window.isTabActive === 'function' && !window.isTabActive('analysis')) return;
     if (window.analysisAbortController) window.analysisAbortController.abort();
@@ -87,12 +108,17 @@ export async function loadAnalysisData() {
     const leakData = await leakResponse.json();
     if (typeof window.updateLeakAnalysisDisplay === 'function') window.updateLeakAnalysisDisplay(leakData);
     if (typeof window.updateSessionFindings === 'function') window.updateSessionFindings(data, leakData);
+    // Also update Trend Explorer from the module directly to ensure sparklines render, even if wrappers are skipped
+    if (typeof window.__module_updateTrendExplorer === 'function') {
+      if (window.CM_DEBUG) console.log('[analysis] dashboard.js -> updateTrendExplorer', hours);
+      window.__module_updateTrendExplorer(hours);
+    }
   } catch (e) {
     if (e.name !== 'AbortError' && window.CM_DEBUG) console.error('Error loading analysis data:', e);
   }
 }
 
-export async function toggleAdvancedMonitoring() {
+async function toggleAdvancedMonitoring() {
   const toggleBtn = document.getElementById('monitoringToggleBtn');
   const toggleBtnMini = document.getElementById('monitoringToggleBtnMini');
   window.isMonitoringActive = window.isMonitoringActive || false;
@@ -173,7 +199,7 @@ if (typeof window !== 'undefined') {
 }
 
 // Analysis renderers and monitoring status
-export function updateAnalysisDisplay(data) {
+function updateAnalysisDisplay(data) {
   const trendAnalysis = document.getElementById('trend-analysis');
   if (window.CM_DEBUG) console.log('[analysis] renderer: updateAnalysisDisplay');
   if (!data || typeof data !== 'object') {
@@ -198,6 +224,25 @@ export function updateAnalysisDisplay(data) {
   trendHtml += '</div>';
   const trendContainer = document.getElementById('trend-analysis');
   if (trendContainer) {
+    // Remove any inline loading text within this container
+    const loading = trendContainer.querySelector('.loading');
+
+    // Top offenders section (if present) — fire-and-forget async refresh
+    (async function refreshTopOffenders(){
+      try {
+        const el = document.getElementById('top-offenders');
+        if (el) {
+          const hoursEl = document.getElementById('analysisTimeRange') || document.getElementById('timeRange');
+          const hours = hoursEl ? hoursEl.value : 24;
+          const resp = await fetch(`/api/top_offenders?hours=${hours}`);
+          const offenders = await resp.json();
+          el.innerHTML = offenders.map(o => `<div style="display:flex; justify-content:space-between; padding:6px 8px; background:#f8f9fa; border-radius:4px; margin-bottom:4px;"><span>${o.name}</span><span style=\"font-variant-numeric:tabular-nums; color:#666;\">${o.total_growth_mb.toFixed(2)} MB • ${o.growth_rate_mb_per_hour.toFixed(2)} MB/h</span></div>`).join('');
+        }
+      } catch {}
+    })();
+
+    if (loading) loading.remove();
+
     // Ensure existing stub persists by updating only the cards region
     let cards = document.getElementById('trend-cards');
     if (!cards) {
@@ -209,20 +254,144 @@ export function updateAnalysisDisplay(data) {
   }
 }
 
-export function updateLeakAnalysisDisplay(leakData) {
+function updateLeakAnalysisDisplay(leakData) {
   const leakAnalysis = document.getElementById('leak-analysis');
   if (!leakAnalysis) return;
+
+  const header = (meta, extra = '') => {
+    const parts = [];
+    if (meta) {
+      const on = meta.monitoring_active ? '🟢' : '⚪️';
+      parts.push(`${on} Monitoring ${meta.monitoring_active ? 'Active' : 'Inactive'}`);
+      if (typeof meta.advanced_points === 'number') parts.push(`Advanced points: ${meta.advanced_points}`);
+      if (typeof meta.snapshots_total === 'number') parts.push(`Snapshots: ${meta.snapshots_total}`);
+      if (typeof meta.interval === 'number') parts.push(`Interval: ${meta.interval}s`);
+    }
+    const snapshotsCountHeader = Number((meta?.snapshots_total ?? meta?.snapshots_analyzed ?? 0));
+    const dotIconHeader = (snapshotsCountHeader >= 2)
+      ? '<span title="Ready: sufficient snapshots for trend analysis" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#2ecc71;box-shadow:0 0 0 0 rgba(46,204,113,0.7);animation:pulseDot 1.6s infinite;margin-right:6px;vertical-align:middle;"></span>'
+      : '<span title="Not ready: collecting snapshots" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#bbb;margin-right:6px;vertical-align:middle;"></span>';
+    const metaLine = `<div style="margin-top:4px; font-size:11px; color:#2b5a3a; display:flex; align-items:center; gap:8px;">${dotIconHeader}<span>${parts.join(' • ')}</span>${extra}</div>`;
+    return `<div style="padding: 10px; background: #e8f5e9; border-radius: 5px; margin-bottom: 15px;">
+      <strong>🔍 Advanced Leak Detection Results</strong><br>
+      <small>Based on advanced monitoring data collection</small>
+      ${metaLine}
+    </div>`;
+  };
+
+  const extractMeta = (obj) => ({
+    monitoring_active: obj?.monitoring_active,
+    advanced_points: obj?.advanced_points,
+    snapshots_total: obj?.snapshots_total,
+    interval: obj?.interval,
+  });
+
+  // Also update the top meta line (always-on banner under Growth Trend Analysis)
+  try {
+    const metaTop = document.getElementById('analysis-top-meta');
+    if (metaTop && leakData) {
+      const metaA = extractMeta(leakData);
+      const parts = [];
+      const snapshotsCount = Number((metaA && (metaA.snapshots_total ?? leakData.snapshots_analyzed)) ?? 0);
+      const dotIcon = (snapshotsCount >= 2)
+        ? '<span title="Ready: sufficient snapshots for trend analysis" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#2ecc71;box-shadow:0 0 0 0 rgba(46,204,113,0.7);animation:pulseDot 1.6s infinite;margin-right:6px;vertical-align:middle;"></span>'
+        : '<span title="Not ready: collecting snapshots" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#bbb;margin-right:6px;vertical-align:middle;"></span>';
+      if (metaA && metaA.monitoring_active !== undefined) parts.push(`Monitoring: ${metaA.monitoring_active ? 'Active' : 'Inactive'}`);
+      if (metaA && typeof metaA.advanced_points === 'number') parts.push(`Advanced points: ${metaA.advanced_points}`);
+      if (!Number.isNaN(snapshotsCount)) parts.push(`Snapshots: ${snapshotsCount}`);
+      if (metaA && typeof metaA.interval === 'number') parts.push(`Interval: ${metaA.interval}s`);
+
+      // Optional: include trend badge in top meta when available
+      try {
+        const delta = Number(((leakData?.end_memory_mb ?? 0) - (leakData?.start_memory_mb ?? 0)) || 0);
+        const rate = (leakData?.growth_rate_mb?.toFixed?.(2) ?? null);
+        if (!Number.isNaN(delta) && rate !== null) {
+          const badge = `<span style="background:#eef7ff; color:#266eb6; border:1px solid #cfe8ff; padding:2px 6px; border-radius:6px; font-size:11px; margin-left:8px;">${delta>=0?'+':''}${delta.toFixed(2)} MB · ${rate} MB/h</span>`;
+          metaTop.innerHTML = dotIcon + parts.join(' • ') + badge;
+        }
+      } catch {}
+
+      metaTop.innerHTML = dotIcon + parts.join(' • ');
+      metaTop.style.display = (parts.length || dotIcon) ? 'block' : 'none';
+      if (window.CM_DEBUG) console.log('[analysis] metaTop', { snapshotsCount, metaA });
+    }
+  } catch {}
+
+  const showMsg = (msg, meta) => {
+    leakAnalysis.innerHTML = header(meta) + `<div style="padding: 20px; text-align: center; color: #666;">${msg}</div>`;
+  };
+
   if (!leakData || Object.keys(leakData).length === 0) {
-    leakAnalysis.innerHTML = '<div style="padding: 20px; text-align: center; color: #666;">No leak analysis data available. Start advanced monitoring to collect data.</div>';
+    showMsg('No leak analysis data available. Start Advanced Monitoring to collect data.');
     return;
   }
+
+  // Shape A: flat object with status/severity fields (+ meta fields)
+  if (typeof leakData === 'object' && typeof leakData.status === 'string') {
+    const status = leakData.status;
+    const severity = leakData.severity || 'low';
+    const statusColor = severity === 'high' ? '#e74c3c' : severity === 'medium' ? '#f39c12' : '#27ae60';
+    const meta = extractMeta(leakData);
+
+    if (status === 'insufficient_data') {
+      showMsg('Insufficient monitoring data yet. Start Advanced Monitoring and let it run for a minute, then refresh.', meta);
+      return;
+    }
+    if (status === 'analyzing') {
+      showMsg('Analyzing… Please wait while more samples are collected.', meta);
+      return;
+    }
+
+    // Trend badge and copy icon
+    const delta = ((leakData.end_memory_mb ?? 0) - (leakData.start_memory_mb ?? 0)) || 0;
+    const rate = (leakData.growth_rate_mb?.toFixed?.(2) ?? 0);
+    const trendBadge = `<span style="background:#eef7ff; color:#266eb6; border:1px solid #cfe8ff; padding:2px 6px; border-radius:6px; font-size:11px;">${delta>=0?'+':''}${(delta).toFixed(2)} MB · ${rate} MB/h</span>`;
+    const copyIcon = `<span id="copy-analysis-meta" title="Copy analysis meta" style="cursor:pointer; font-size:12px; color:#266eb6;">📋</span>`;
+
+    const html = `
+      ${header(meta, `<span style=\"display:flex; align-items:center; gap:8px;\">${trendBadge}${copyIcon}</span>`)}
+      <div style="padding: 15px; border-left: 4px solid ${statusColor}; background: rgba(0,0,0,0.05); border-radius: 5px;">
+        <h4 style="margin: 0 0 10px 0;">OVERALL</h4>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div>
+            <p><strong>Status:</strong> <span style="color: ${statusColor};">${status}</span></p>
+            <p><strong>Severity:</strong> <span style="color: ${statusColor};">${severity}</span></p>
+          </div>
+          <div>
+            <p><strong>Growth Rate:</strong> ${(leakData.growth_rate_mb?.toFixed?.(2) ?? 0)} MB/hour</p>
+            <p><strong>Snapshots:</strong> ${leakData.snapshots_analyzed || 0}</p>
+          </div>
+        </div>
+      </div>`;
+    leakAnalysis.innerHTML = html;
+    return;
+  }
+
+    // Copy handler
+    try {
+      const btn = document.getElementById('copy-analysis-meta');
+      if (btn) {
+        btn.onclick = async () => {
+          const metaTop = document.getElementById('analysis-top-meta');
+          const text = metaTop ? metaTop.textContent : '';
+          try {
+            await navigator.clipboard.writeText(text);
+            showToast('✅ Copied analysis meta', 'success');
+          } catch (e) {
+            showToast('❌ Failed to copy meta: ' + e, 'error');
+          }
+        };
+      }
+    } catch {}
+
+
+  // Shape B: per-process object map
+  let rendered = 0;
+  let metaFromAny = null;
   let html = '<div style="display: grid; gap: 12px;">';
-  html += `<div style="padding: 10px; background: #e8f5e9; border-radius: 5px; margin-bottom: 15px;">
-    <strong>🔍 Advanced Leak Detection Results</strong><br>
-    <small>Based on advanced monitoring data collection</small>
-  </div>`;
   for (const [key, analysis] of Object.entries(leakData)) {
-    if (typeof analysis === 'object' && analysis.status) {
+    if (!metaFromAny) metaFromAny = extractMeta(analysis);
+    if (analysis && typeof analysis === 'object' && 'status' in analysis) {
       const statusColor = analysis.severity === 'high' ? '#e74c3c' : analysis.severity === 'medium' ? '#f39c12' : '#27ae60';
       html += `
         <div style="padding: 15px; border-left: 4px solid ${statusColor}; background: rgba(0,0,0,0.05); border-radius: 5px;">
@@ -233,18 +402,25 @@ export function updateLeakAnalysisDisplay(leakData) {
               <p><strong>Severity:</strong> <span style="color: ${statusColor};">${analysis.severity}</span></p>
             </div>
             <div>
-              <p><strong>Growth Rate:</strong> ${(analysis.growth_rate_mb?.toFixed(2) || 0)} MB/hour</p>
+              <p><strong>Growth Rate:</strong> ${(analysis.growth_rate_mb?.toFixed?.(2) ?? 0)} MB/hour</p>
               <p><strong>Snapshots:</strong> ${analysis.snapshots_analyzed || 0}</p>
             </div>
           </div>
         </div>`;
+      rendered++;
     }
   }
-  html += '</div>';
+  html = header(metaFromAny) + html + '</div>';
+
+  if (rendered === 0) {
+    showMsg('No renderable leak results yet. Start Advanced Monitoring and try again shortly.', metaFromAny);
+    return;
+  }
+
   leakAnalysis.innerHTML = html;
 }
 
-export function updateAnalysisSummary(data, hours) {
+function updateAnalysisSummary(data, hours) {
   const summaryDiv = document.getElementById('analysis-summary');
   if (!summaryDiv) return;
   // Cache last analysis payload for fallback
@@ -283,7 +459,7 @@ export function updateAnalysisSummary(data, hours) {
   }, 1500);
 }
 
-export function updateMonitoringHistory() {
+function updateMonitoringHistory() {
   const historyDiv = document.getElementById('monitoring-history');
   if (!historyDiv) return;
   // If we have cached analysis data, show counts to avoid an empty feel
@@ -303,7 +479,7 @@ export function updateMonitoringHistory() {
   historyDiv.innerHTML = html;
 }
 
-export function updateSessionFindings(analysisData, leakData) {
+function updateSessionFindings(analysisData, leakData) {
   const container = document.getElementById('session-findings');
   if (!container) return;
   const hasLeakData = leakData && Object.keys(leakData).some(k => leakData[k] && leakData[k].status);
@@ -340,7 +516,7 @@ export function updateSessionFindings(analysisData, leakData) {
   container.innerHTML = html;
 }
 
-export async function updateMonitoringStatus() {
+async function updateMonitoringStatus() {
   try {
     const response = await fetch('/api/current');
     const data = await response.json();
@@ -351,6 +527,20 @@ export async function updateMonitoringStatus() {
     const interval = ms.interval || 0;
     const advPoints = (typeof ms.data_points === 'number') ? ms.data_points : (ms.advanced_data_points || 0);
 
+    // Update always-on top analysis readiness badge
+    try {
+      const readyDot = document.getElementById('analysis-ready-dot');
+      const readyText = document.getElementById('analysis-ready-text');
+      const snapshots = Number((data.snapshots_total ?? data.snapshots_analyzed ?? 0));
+      const ready = snapshots >= 2;
+      if (readyDot) {
+        readyDot.style.background = ready ? '#2ecc71' : '#bbb';
+        readyDot.style.animation = ready ? 'pulseDot 1.6s infinite' : 'none';
+        readyDot.title = ready ? 'Ready: sufficient snapshots for trend analysis' : 'Not ready: collecting snapshots';
+      }
+      if (readyText) readyText.textContent = ready ? 'Ready' : 'Not ready';
+    } catch {}
+
     // Controls panel widgets
     const statusIndicator = document.getElementById('status-indicator');
     const statusText = document.getElementById('status-text');
@@ -360,6 +550,23 @@ export async function updateMonitoringStatus() {
 
     if (statusIndicator) statusIndicator.style.background = isActive ? '#4caf50' : '#ccc';
     if (statusText) statusText.textContent = isActive ? 'ACTIVE' : 'INACTIVE';
+
+
+    // Top bar analysis-ready badge text update + one-time toast
+    try {
+      const readyText = document.getElementById('analysis-ready-text');
+      if (readyText) {
+        const current = await (await fetch('/api/leak_analysis')).json();
+        const snaps = Number(current.snapshots_total ?? current.snapshots_analyzed ?? 0);
+        const wasReady = window.__analysisReadyOnce === true;
+        const isReady = snaps >= 2;
+        readyText.textContent = isReady ? 'Ready' : 'Not ready';
+        if (!wasReady && isReady) {
+          window.__analysisReadyOnce = true;
+          showToast('✅ Analysis ready: sufficient snapshots collected', 'success');
+        }
+      }
+    } catch {}
 
     // Top banner badge
     const advancedBadge = document.getElementById('advanced-status');
@@ -473,6 +680,12 @@ export async function updateMonitoringStatus() {
     if (typeof window.__lastAdvPoints !== 'number') window.__lastAdvPoints = advPoints;
     if (advPoints > window.__lastAdvPoints) {
       if (livePts) {
+
+// One-time toast when analysis becomes ready
+if (typeof window !== 'undefined') {
+  if (!window.__analysisReadyOnce) window.__analysisReadyOnce = false;
+}
+
         livePts.classList.add('point-flash');
         setTimeout(() => livePts.classList.remove('point-flash'), 400);
       }
@@ -504,6 +717,23 @@ function formatCountdown(sec) {
 if (typeof window !== 'undefined') {
   if (!window.__liveCountdownTicker) {
     window.__liveCountdownTicker = setInterval(() => {
+
+// Auto-refresh analysis meta while monitoring is active
+if (typeof window !== 'undefined') {
+  if (!window.__analysisAutoRefresh) {
+    window.__analysisAutoRefresh = setInterval(async () => {
+      try {
+        const current = await (await fetch('/api/current')).json();
+        const ms = current.monitoring_status || current.long_term_monitoring || {};
+        const isActive = (ms.status === 'active') || (ms.active === true);
+        if (!isActive) return;
+        // Refresh analysis (lightweight calls already implemented)
+        await loadAnalysisData();
+      } catch {}
+    }, 5000);
+  }
+}
+
       try {
         const lc = window.__liveCountdown;
         if (!lc || !lc.active) return;
@@ -530,7 +760,7 @@ if (typeof window !== 'undefined') {
   window.__module_updateMonitoringStatus = updateMonitoringStatus;
 }
 
-export async function copyLatestAnalysisJson() {
+async function copyLatestAnalysisJson() {
   try {
     const timeRangeElement = document.getElementById('analysisTimeRange') || document.getElementById('timeRange');
     const hours = timeRangeElement ? timeRangeElement.value : 24;
