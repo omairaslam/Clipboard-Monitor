@@ -1,6 +1,6 @@
 // Core helpers: toast, tooltip, safe DOM updates
 
-export function showToast(message, type = 'info', timeout = 2500) {
+function showToast(message, type = 'info', timeout = 2500) {
   const container = document.getElementById('toast-container');
   if (!container) return;
   const toast = document.createElement('div');
@@ -11,7 +11,7 @@ export function showToast(message, type = 'info', timeout = 2500) {
 }
 
 let currentTooltip = null;
-export function showTooltip(element, text) {
+function showTooltip(element, text) {
   hideTooltip();
   const tooltip = document.createElement('div');
   tooltip.className = 'tooltip';
@@ -34,14 +34,14 @@ export function showTooltip(element, text) {
   currentTooltip = tooltip;
 }
 
-export function hideTooltip() {
+function hideTooltip() {
   if (currentTooltip) {
     currentTooltip.remove();
     currentTooltip = null;
   }
 }
 
-export function safeUpdateElement(id, value) {
+function safeUpdateElement(id, value) {
   const el = document.getElementById(id);
   if (el) el.textContent = value;
 }

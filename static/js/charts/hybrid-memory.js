@@ -1,6 +1,8 @@
-import { showToast } from '../app-core.js';
+// Expect showToast from window (app-core.js)
+const toastFn = (typeof window !== 'undefined' && window.showToast) ? window.showToast : function(){};
 
-export class UnifiedMemoryChart {
+// Non-module build: expose UnifiedMemoryChart via window without redeclaring global symbol
+const UMC = class {
   constructor() {
     this.mode = 'live';
     this.liveData = [];
@@ -47,14 +49,14 @@ export class UnifiedMemoryChart {
       if (ok) {
         this.livePollFailureCount = 0;
         if (this.livePollIntervalMs !== 2000) this.setLivePollInterval(2000);
-        if (this.liveErrorNotified) { showToast('✅ Connection restored', 'success', 1800); this.liveErrorNotified = false; }
+        if (this.liveErrorNotified) { toastFn('✅ Connection restored', 'success', 1800); this.liveErrorNotified = false; }
       } else {
         this.livePollFailureCount += 1;
         let next = this.livePollIntervalMs;
         if (this.livePollFailureCount >= 3 && this.livePollIntervalMs < 5000) next = 5000;
         if (this.livePollFailureCount >= 6 && this.livePollIntervalMs < 10000) next = 10000;
         if (next !== this.livePollIntervalMs) this.setLivePollInterval(next);
-        if (!this.liveErrorNotified && this.livePollFailureCount >= 3) { showToast('⚠️ Connection issues: slowing updates', 'error', 2600); this.liveErrorNotified = true; }
+        if (!this.liveErrorNotified && this.livePollFailureCount >= 3) { toastFn('⚠️ Connection issues: slowing updates', 'error', 2600); this.liveErrorNotified = true; }
       }
     };
     tick();
@@ -72,10 +74,10 @@ export class UnifiedMemoryChart {
       const ok = await window.fetchMemoryData?.();
       if (!ok) {
         this.livePollFailureCount += 1;
-        if (!this.liveErrorNotified && this.livePollFailureCount >= 3) { showToast('⚠️ Connection issues: slowing updates', 'error', 2600); this.liveErrorNotified = true; }
+        if (!this.liveErrorNotified && this.livePollFailureCount >= 3) { toastFn('⚠️ Connection issues: slowing updates', 'error', 2600); this.liveErrorNotified = true; }
       } else {
         this.livePollFailureCount = 0;
-        if (this.liveErrorNotified) { showToast('✅ Connection restored', 'success', 1800); this.liveErrorNotified = false; }
+        if (this.liveErrorNotified) { toastFn('✅ Connection restored', 'success', 1800); this.liveErrorNotified = false; }
       }
     }, this.livePollIntervalMs); }
   }
@@ -118,5 +120,43 @@ export class UnifiedMemoryChart {
     const chartModeIndicator = document.getElementById('chart-mode-indicator');
     if (chartModeIndicator) chartModeIndicator.textContent = this.mode === 'live' ? 'Live' : 'Historical';
   }
+}
+
+// Overlay events and anomalies onto Chart.js instance (exported and attached to window)
+function overlayEventsAndAnomalies(chart, events = [], anomalies = []) {
+  if (!chart) return;
+  const plugs = chart.options.plugins = chart.options.plugins || {};
+  plugs.annotation = plugs.annotation || { annotations: {} };
+  const ann = plugs.annotation.annotations = plugs.annotation.annotations || {};
+  anomalies.forEach((a, i) => {
+    ann['anomaly_' + i] = {
+      type: 'line',
+      xMin: chart.data.labels.length - 1,
+      xMax: chart.data.labels.length - 1,
+      borderColor: '#e74c3c',
+      borderWidth: 1,
+      label: { display: true, content: a.type || 'anomaly', position: 'start', backgroundColor: 'rgba(231,76,60,0.1)' }
+    };
+  });
+  events.slice(-3).forEach((e, i) => {
+    ann['event_' + i] = {
+      type: 'line',
+      xMin: Math.max(0, chart.data.labels.length - (5 - i)),
+      xMax: Math.max(0, chart.data.labels.length - (5 - i)),
+      borderColor: '#3498db',
+      borderWidth: 1,
+      label: { display: true, content: e.type || 'event', backgroundColor: 'rgba(52,152,219,0.1)' }
+    };
+  });
+  try { chart.update('none'); } catch {}
+}
+
+if (typeof window !== 'undefined') {
+  window.overlayEventsAndAnomalies = overlayEventsAndAnomalies;
+}
+
+// Attach class to window for non-module usage
+if (typeof window !== 'undefined') {
+  if (!window.UnifiedMemoryChart) window.UnifiedMemoryChart = UMC;
 }
 

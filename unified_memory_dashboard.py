@@ -677,32 +677,7 @@ class UnifiedMemoryDashboard:
         </script>
 
         <script src="/static/js/dashboard.js"></script>
-        <script src="/static/js/trend-explorer.js"></script>
 
-        <script>
-          // Safety loader: ensure trend-explorer.js is actually loaded (cache-bust if needed)
-          (function ensureTrendExplorerScript(){
-            var attempts = 0;
-            function loaded(){ return typeof window.updateTrendExplorer === 'function'; }
-            function tryLoad(){
-              if (loaded()) return;
-              var s = document.createElement('script');
-              s.src = '/static/js/trend-explorer.js?v=' + Date.now();
-              s.async = true;
-              s.onload = function(){
-                try {
-                  var sel = document.getElementById('analysisTimeRange') || document.getElementById('timeRange') || document.getElementById('historical-range');
-                  var hours = sel ? (sel.value || '24') : '24';
-                  window.updateTrendExplorer && window.updateTrendExplorer(hours);
-                } catch {}
-              };
-              document.head.appendChild(s);
-              if (++attempts < 3 && !loaded()) setTimeout(tryLoad, 800);
-            }
-            // First probe after a short delay; if not loaded, inject with cache-buster
-            setTimeout(function(){ if (!loaded()) tryLoad(); }, 300);
-          })();
-        </script>
 </head>
 <body>
     <div class="container">
@@ -1521,29 +1496,11 @@ class UnifiedMemoryDashboard:
 
 
                 </div>
+                <!-- Trend Analysis section (sparklines removed per request) -->
                 <div id="trend-analysis">
                     <div id="analysis-top-meta" style="font-size:12px; color:#2b5a3a; margin-bottom:6px; display:none;"></div>
                     <div class="loading">Loading trend analysis...</div>
-
-                    <!-- legacy inline two-column sparkline block removed -->
                 </div>
-                    <script>
-                        // Ensure Trend Explorer renders even if module loads late
-                        (function ensureTrendExplorerOnce(){
-                            var attempts = 0;
-                            function fire(){
-                                try {
-                                    var sel = document.getElementById('analysisTimeRange') || document.getElementById('timeRange');
-                                    var hours = sel ? (sel.value || '24') : '24';
-                                    if (typeof window.__module_updateTrendExplorer === 'function') { window.__module_updateTrendExplorer(hours); return true; }
-                                    if (typeof window.updateTrendExplorer === 'function') { window.updateTrendExplorer(hours); return true; }
-                                } catch(e) {}
-                                return false;
-                            }
-                            function tick(){ if (++attempts > 30) return; if (!fire()) setTimeout(tick, 500); }
-                            setTimeout(tick, 300);
-                        })();
-                    </script>
 
             </div>
             <div class="card">
