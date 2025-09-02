@@ -51,12 +51,30 @@
             "label": "Stop All Services",
             "type": "shell",
             "command": "./stop_services.sh",
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
             "problemMatcher": []
         },
         {
             "label": "Check Services Status",
             "type": "shell",
             "command": "./status_services.sh",
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
             "problemMatcher": []
         },
         {
@@ -70,12 +88,30 @@
             "label": "Clear All Logs",
             "type": "shell",
             "command": "./clear_logs.sh",
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
             "problemMatcher": []
         },
         {
             "label": "Clear Logs & Restart All Services",
             "type": "shell",
             "command": "./clear_logs.sh && ./restart_services.sh",
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
             "problemMatcher": []
         },
         {
@@ -315,8 +351,6 @@
                 "isDefault": false
             }
         },
-
-
         {
             "label": "🗑️ Clear Memory Debug Log",
             "type": "shell",
@@ -381,7 +415,6 @@
                 "isDefault": false
             }
         },
-
         {
             "label": "🔬 Memory Leak Analyzer",
             "type": "shell",
@@ -414,7 +447,6 @@
                 "isDefault": false
             }
         },
-
         {
             "label": "📋 External Monitoring Guide",
             "type": "shell",
@@ -462,6 +494,92 @@
                 "kind": "test",
                 "isDefault": false
             }
+        },
+        {
+            "label": "📊 Check Memory Status",
+            "type": "shell",
+            "command": "python3 check_memory_status.py",
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "new",
+                "focus": true,
+                "clear": true,
+                "echo": true
+            },
+            "group": {
+                "kind": "test",
+                "isDefault": false
+            }
+        },
+        {
+            "label": "Start Unified Memory Dashboard",
+            "type": "shell",
+            "command": "pkill -f unified_memory_dashboard.py >/dev/null 2>&1 || true; nohup python3 unified_memory_dashboard.py --auto-start > ~/.ClipboardMonitor/dashboard.out 2>&1 & disown; sleep 1; open http://localhost:8001",
+            "problemMatcher": [],
+            "presentation": { "reveal": "always", "panel": "new" },
+            "options": {
+                "env": { "TERM": "xterm-256color" }
+            },
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            },
+        {
+            "label": "Stop Unified Memory Dashboard",
+            "type": "shell",
+            "command": "pkill -f unified_memory_dashboard.py || true && echo 'Dashboard stopped'",
+            "problemMatcher": [],
+            "presentation": { "reveal": "always", "panel": "shared" }
+        },
+        {
+            "label": "Tail Dashboard Log",
+            "type": "shell",
+            "command": "mkdir -p ~/.ClipboardMonitor && touch ~/.ClipboardMonitor/dashboard.out && tail -f ~/.ClipboardMonitor/dashboard.out",
+            "problemMatcher": [],
+            "presentation": { "reveal": "always", "panel": "new" }
+        },
+        {
+            "label": "Restart Unified Memory Dashboard",
+            "type": "shell",
+            "command": "pkill -f unified_memory_dashboard.py >/dev/null 2>&1 || true; nohup python3 unified_memory_dashboard.py --auto-start > ~/.ClipboardMonitor/dashboard.out 2>&1 & disown; sleep 1; open http://localhost:8001",
+            "problemMatcher": [],
+            "presentation": { "reveal": "always", "panel": "new" }
+        },
+        {
+            "label": "Start Unified Memory Dashboard (Dev Mode)",
+            "type": "shell",
+            "command": "pkill -f unified_memory_dashboard.py >/dev/null 2>&1 || true; python3 unified_memory_dashboard.py --port 8001",
+            "problemMatcher": [],
+            "presentation": { "reveal": "always", "panel": "shared", "focus": true }
+        }
+,
+        {
+            "label": "Restart Unified Memory Dashboard (Toggle)",
+            "type": "shell",
+            "command": "./scripts/restart_dashboard.sh",
+            "problemMatcher": [],
+            "presentation": { "reveal": "always", "panel": "shared" },
+            "options": { "cwd": "${workspaceFolder}", "env": { "TERM": "xterm-256color" }, "shell": { "executable": "/bin/bash", "args": ["-lc"] } }
+        }
+,
+        {
+            "label": "🧪 Playwright: Run Suite",
+            "type": "shell",
+            "command": "npx playwright test --timeout=120000 && (npx playwright show-report --host 127.0.0.1 --port 8899 >/dev/null 2>&1 &) && sleep 1 && open http://127.0.0.1:8899 || true",
+            "problemMatcher": [],
+            "presentation": { "reveal": "always", "panel": "new", "focus": true },
+            "options": { "shell": { "executable": "/bin/bash", "args": ["-lc"] } },
+            "group": { "kind": "test", "isDefault": false }
+        },
+        {
+            "label": "📊 Playwright: Show Report",
+            "type": "shell",
+            "command": "(npx playwright show-report --host 127.0.0.1 --port 8899 >/dev/null 2>&1 &) && sleep 1 && open http://127.0.0.1:8899 || true",
+            "problemMatcher": [],
+            "presentation": { "reveal": "always", "panel": "shared" },
+            "options": { "shell": { "executable": "/bin/bash", "args": ["-lc"] } },
+            "group": { "kind": "test", "isDefault": false }
         }
     ]
 }

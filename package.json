@@ -1,0 +1,31 @@
+{
+  "dependencies": {
+    "playwright": "^1.54.2"
+  },
+  "name": "clipboard-monitor",
+  "version": "1.0.0",
+  "description": "A powerful, modular clipboard monitoring and processing application for macOS with advanced memory monitoring and a clean, user-focused interface.",
+  "main": "debug_chart_position.js",
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.55.0"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/omairaslam/Clipboard-Monitor.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/omairaslam/Clipboard-Monitor/issues"
+  },
+  "homepage": "https://github.com/omairaslam/Clipboard-Monitor#readme"
+}

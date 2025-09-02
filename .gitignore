@@ -55,3 +55,8 @@ venv.bak/
 
 # Logs
 *.log
+
+
+# Playwright artifacts
+playwright-report/
+playwright/.cache/

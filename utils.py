@@ -442,15 +442,23 @@ def get_config(section=None, key=None, default=None):
     # Get the singleton instance
     config_manager = ConfigManager()
 
-    # Force reload to ensure we get the latest config
-    # This is necessary because ConfigManager is a singleton and may have stale data
-    config_manager.reload()
+    # Don't force reload on every call - let the ConfigManager handle caching
+    # Only reload when explicitly needed (e.g., after config changes)
 
     if section is None:
         return config_manager.config
     if key is None:
         return config_manager.get_section(section, default=default or {})
     return config_manager.get_config_value(section, key, default=default)
+
+def reload_config():
+    """
+    Explicitly reload configuration from disk.
+    Use this when you know the config file has been modified externally.
+    """
+    from config_manager import ConfigManager
+    config_manager = ConfigManager()
+    return config_manager.reload()
 
 def set_config_value(section, key, value):
     """Set a configuration value in config.json"""
@@ -478,6 +486,9 @@ def set_config_value(section, key, value):
         # Save back to file
         with config_path.open('w') as f:
             json.dump(config, f, indent=2)
+
+        # Trigger a reload of the ConfigManager to pick up the changes
+        reload_config()
 
         return True
     except (OSError, json.JSONDecodeError, ValueError) as e:
@@ -652,7 +663,7 @@ def log_error(message, log_path=None, multiline_details=None, section_separator=
 __all__ = [
     'show_notification', 'validate_string_input', 'safe_subprocess_run',
     'get_home_directory', 'safe_expanduser', 'ensure_directory_exists',
-    'ContentTracker', 'get_app_paths', 'get_config', 'set_config_value',
+    'ContentTracker', 'get_app_paths', 'get_config', 'reload_config', 'set_config_value',
     'load_clipboard_history', 'get_clipboard_content', 'update_service_status',
     'get_service_status', 'log_event', 'log_error'
 ]
