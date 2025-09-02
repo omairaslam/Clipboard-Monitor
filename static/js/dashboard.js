@@ -108,11 +108,7 @@ async function loadAnalysisData() {
     const leakData = await leakResponse.json();
     if (typeof window.updateLeakAnalysisDisplay === 'function') window.updateLeakAnalysisDisplay(leakData);
     if (typeof window.updateSessionFindings === 'function') window.updateSessionFindings(data, leakData);
-    // Also update Trend Explorer from the module directly to ensure sparklines render, even if wrappers are skipped
-    if (typeof window.__module_updateTrendExplorer === 'function') {
-      if (window.CM_DEBUG) console.log('[analysis] dashboard.js -> updateTrendExplorer', hours);
-      window.__module_updateTrendExplorer(hours);
-    }
+
   } catch (e) {
     if (e.name !== 'AbortError' && window.CM_DEBUG) console.error('Error loading analysis data:', e);
   }
