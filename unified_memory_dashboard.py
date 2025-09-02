@@ -248,6 +248,14 @@ class UnifiedMemoryDashboard:
         self.alert_count = 0
         self.data_file = safe_expanduser("~/Library/Application Support/ClipboardMonitor/unified_memory_data.json")
 
+        # Lightweight events and budgets (for overlays and health score)
+        self.events = []  # [{timestamp, type, message}]
+        self.budgets = {
+            'total_memory_mb': 600.0,
+            'per_process_mb': 400.0,
+            'total_cpu_percent': 200.0  # sum of processes
+        }
+
         # Monitoring configuration
         self.monitor_interval = 30  # seconds
         self.time_range_hours = 24  # hours
@@ -315,6 +323,9 @@ class UnifiedMemoryDashboard:
             if path == '/':
                 self.send_response(200)
                 self.send_header('Content-type', 'text/html')
+                self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
+                self.send_header('Pragma', 'no-cache')
+                self.send_header('Expires', '0')
                 self.end_headers()
                 try:
                     self.wfile.write(self.dashboard.render_dashboard_html().encode())
@@ -461,6 +472,35 @@ class UnifiedMemoryDashboard:
                         'session_start': self.dashboard.session_start_time.isoformat()
                     }
 
+                    # UX fallback: if no points exist in the selected range, synthesize
+                    # two flat points so the Trend Explorer sparklines are visible.
+                    try:
+                        if not chart_data['points']:
+                            from datetime import datetime, timedelta
+                            # Prefer the most recent sample from basic collector
+                            last = self.dashboard.data_history[-1] if len(self.dashboard.data_history) > 0 else None
+                            now = datetime.now()
+                            ts1 = (now - timedelta(seconds=1)).isoformat()
+                            ts2 = now.isoformat()
+                            def mk_point(ts, mb, sv):
+                                mb = float(mb if mb and mb > 0 else 0.5)
+                                sv = float(sv if sv and sv > 0 else 0.5)
+                                return {
+                                    'timestamp': ts,
+                                    'menubar_memory': mb,
+                                    'service_memory': sv,
+                                    'total_memory': mb + sv,
+                                }
+                            if last:
+                                mb = float(last.get('menubar_memory', 0) or 0.5)
+                                sv = float(last.get('service_memory', 0) or 0.5)
+                            else:
+                                mb = 0.5; sv = 0.5
+                            chart_data['points'] = [mk_point(ts1, mb, sv), mk_point(ts2, mb, sv)]
+                            chart_data['total_points'] = 2
+                    except Exception:
+                        pass
+
                     # Returning chart data
 
                     self.send_response(200)
@@ -508,12 +548,40 @@ class UnifiedMemoryDashboard:
                 except BrokenPipeError:
                     pass
             elif path == '/api/stop_monitoring':
+                # Properly stop monitoring and return JSON result
                 self.send_response(200)
                 self.send_header('Content-type', 'application/json')
+                self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
+                self.send_header('Pragma', 'no-cache')
+                self.send_header('Expires', '0')
                 self.end_headers()
                 result = self.dashboard.stop_advanced_monitoring()
                 try:
                     self.wfile.write(json.dumps(result).encode())
+                except BrokenPipeError:
+                    pass
+            elif path == '/api/top_offenders':
+                hours_param = query_params.get('hours', [24])[0]
+                try:
+                    hours = 'all' if hours_param == 'all' else int(hours_param)
+                except Exception:
+                    hours = 24
+                self.send_response(200)
+                self.send_header('Content-type', 'application/json')
+                self.end_headers()
+                data = json.dumps(self.dashboard.get_top_offenders(hours))
+                try:
+                    self.wfile.write(data.encode())
+                except BrokenPipeError:
+                    pass
+            elif path == '/api/events':
+                self.send_response(200)
+                self.send_header('Content-type', 'application/json')
+                self.end_headers()
+                # For now, return any recorded events; future: include GC, restarts, spikes
+                data = json.dumps(self.dashboard.events[-200:])
+                try:
+                    self.wfile.write(data.encode())
                 except BrokenPipeError:
                     pass
             elif path == '/api/force_gc':
@@ -579,13 +647,62 @@ class UnifiedMemoryDashboard:
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Clipboard Monitor - Unified Memory Dashboard</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style></style>
+    <style>
+      @keyframes pulseDot {
+        0%   { box-shadow: 0 0 0 0 rgba(46, 204, 113, 0.7); }
+        70%  { box-shadow: 0 0 0 8px rgba(46, 204, 113, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(46, 204, 113, 0); }
+      }
+      /* Trend Explorer utility classes */
+      .spark-badge { font-size:11px; color:#777; background:#f2f6ff; border:1px solid #e3ecff; padding:0 4px; border-radius:4px; }
+      .spark-btn { font-size:11px; padding:2px 6px; border:1px solid #cfe8ff; border-radius:6px; background:#eef7ff; color:#266eb6; cursor:pointer; }
+      .spark-hint { font-size:11px; color:#555; margin-bottom:4px; }
+    </style>
         <link rel="stylesheet" href="/static/style.css">
-        <script type="module" src="/static/js/app-core.js"></script>
-        <script type="module" src="/static/js/charts/hybrid-memory.js"></script>
-        <script type="module" src="/static/js/charts/cpu-chart.js"></script>
-        <script type="module" src="/static/js/dashboard.js"></script>
+        <script src="/static/js/app-core.js"></script>
 
+        <script src="/static/js/charts/cpu-chart.js"></script>
+        <script>
+          // Early debug logger stub to buffer messages before panel initializes
+          (function(){
+            try {
+              window.__dbgBuf = window.__dbgBuf || [];
+              if (!window.__dbgLog) {
+                window.__dbgLog = function(msg){
+                  try { window.__dbgBuf.push(`[${new Date().toISOString()}] ${msg}`); } catch {}
+                };
+              }
+            } catch {}
+          })();
+        </script>
+
+        <script src="/static/js/dashboard.js"></script>
+        <script src="/static/js/trend-explorer.js"></script>
+
+        <script>
+          // Safety loader: ensure trend-explorer.js is actually loaded (cache-bust if needed)
+          (function ensureTrendExplorerScript(){
+            var attempts = 0;
+            function loaded(){ return typeof window.updateTrendExplorer === 'function'; }
+            function tryLoad(){
+              if (loaded()) return;
+              var s = document.createElement('script');
+              s.src = '/static/js/trend-explorer.js?v=' + Date.now();
+              s.async = true;
+              s.onload = function(){
+                try {
+                  var sel = document.getElementById('analysisTimeRange') || document.getElementById('timeRange') || document.getElementById('historical-range');
+                  var hours = sel ? (sel.value || '24') : '24';
+                  window.updateTrendExplorer && window.updateTrendExplorer(hours);
+                } catch {}
+              };
+              document.head.appendChild(s);
+              if (++attempts < 3 && !loaded()) setTimeout(tryLoad, 800);
+            }
+            // First probe after a short delay; if not loaded, inject with cache-buster
+            setTimeout(function(){ if (!loaded()) tryLoad(); }, 300);
+          })();
+        </script>
 </head>
 <body>
     <div class="container">
@@ -600,9 +717,26 @@ class UnifiedMemoryDashboard:
                         UI v2025-08-14 02:00Z • workspace
                     </span>
                 </div>
+                <div style="display:flex; align-items:center; gap:12px; font-size:12px; color:#333;">
+                  <label style="display:inline-flex; align-items:center; gap:6px; cursor:pointer;">
+                    <input id="global-debug-toggle" type="checkbox" style="margin:0;" /> Enable Debug
+                  </label>
+                  <label style="display:inline-flex; align-items:center; gap:6px; cursor:pointer;">
+                    Poll:
+                    <select id="global-live-interval" style="padding:2px 6px; font-size:12px;">
+                      <option value="1000">1s</option>
+                      <option value="2000" selected>2s</option>
+                      <option value="5000">5s</option>
+                    </select>
+                  </label>
+                </div>
                 <div style="display: flex; gap: 8px; align-items: center; font-size: 11px;">
                     <span style="background: #4CAF50; color: white; padding: 2px 6px; border-radius: 8px; font-weight: bold; display: flex; align-items: center; gap: 3px;">
                         <span>●</span> Connected
+                    </span>
+                    <span id="analysis-ready-badge" title="Analysis readiness" style="display:flex; align-items:center; gap:6px; background:#eef7ff; color:#2b5a3a; padding:2px 6px; border-radius:8px; border:1px solid #cfe8ff;">
+                        <span id="analysis-ready-dot" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#bbb;"></span>
+                        <span id="analysis-ready-text" style="font-weight:600;">Not ready</span>
                     </span>
                     <span id="advanced-status" style="background: #999; color: white; padding: 2px 6px; border-radius: 8px; font-weight: bold; display: flex; align-items: center; gap: 3px;">
                         ⚫ Advanced
@@ -811,7 +945,7 @@ class UnifiedMemoryDashboard:
         <div id="dashboard-tab" class="tab-content active">
 
             <!-- Memory Usage Chart - Only visible in Dashboard tab -->
-            <div class="chart-container" style="margin-bottom: 10px; width: 100%; max-width: 100%; box-sizing: border-box; overflow: hidden; height: 350px;">
+            <div class="chart-container" style="margin-bottom: 10px; width: 100%; max-width: 100%; box-sizing: border-box; overflow: hidden; height: 350px; position: relative;">
                 <!-- Unified Control Bar -->
                 <div class="unified-control-bar" style="
                     background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
@@ -856,6 +990,10 @@ class UnifiedMemoryDashboard:
                             <span id="chart-points-count">-- pts</span>
                             <span style="color: #dee2e6;">•</span>
                             <span id="chart-last-update">--</span>
+                                <span style="color: #dee2e6;">•</span>
+                                <button id="mem-clear-btn" onclick="window.chartManager && window.chartManager.clearChart()" style="border:1px solid #ddd; background:#fff; color:#333; border-radius:4px; padding:2px 6px; cursor:pointer; font-size:11px;">Clear</button>
+                                <span style="color:#dee2e6;">•</span>
+                                <button id="mem-help-toggle" onclick="window.toggleHelp('mem', event)" style="border:1px solid #ddd; background:#fff; color:#333; border-radius:4px; padding:2px 6px; cursor:pointer; font-size:11px;">Help</button>
                         </div>
                     </div>
 
@@ -872,7 +1010,7 @@ class UnifiedMemoryDashboard:
                                 overflow: hidden;
                                 box-shadow: 0 1px 2px rgba(0,0,0,0.05);
                             ">
-                                <button id="realtime-btn" class="mode-btn" onclick="chartManager.switchToLiveMode()" style="
+                                <button id="realtime-btn" class="mode-btn" onclick="if (window.chartManager) window.chartManager.switchToLiveMode(); return false;" style="
                                     padding: 6px 12px;
                                     font-size: 12px;
                                     border: none;
@@ -882,7 +1020,7 @@ class UnifiedMemoryDashboard:
                                     font-weight: 500;
                                     transition: all 0.2s ease;
                                 ">Live</button>
-                                <button id="historical-btn" class="mode-btn" onclick="toggleHistoricalOptions()" style="
+                                <button id="historical-btn" class="mode-btn" onclick="memorySwitchToHistorical()" style="
                                     padding: 6px 12px;
                                     font-size: 12px;
                                     border: none;
@@ -998,63 +1136,119 @@ class UnifiedMemoryDashboard:
                     <div class="chart-wrapper" style="margin-top: 0; position: relative; top: 0;">
                         <canvas id="memoryChart"></canvas>
                     </div>
+                        <!-- Help Overlay: Memory -->
+                        <div>
+                            <div id="mem-help-overlay" data-open="0" style="position:absolute; left:8px; right:8px; top:8px; background:#f9fbfd; border:1px solid #e3f2fd; border-radius:8px; padding:10px 12px; color:#345; font-size:12px; box-shadow:0 6px 12px rgba(0,0,0,0.15); transform: translateY(-110%); transition: transform 0.25s ease; z-index: 999; max-height:75%; overflow:auto;">
+                                <strong>Memory chart controls</strong>
+                                <ul style="margin:6px 0 0 16px; line-height:1.35;">
+                                    <li><b>Mode</b>: Live streams recent data; Historical loads a fixed time window for analysis.</li>
+                                    <li><b>Live Range</b>: Window of recent time shown (older points roll off).</li>
+                                    <li><b>Period</b> (Historical): Time span to load (e.g., 1h, 6h, 24h, All).</li>
+                                    <li><b>Resolution</b> (Historical): Point density/aggregation for performance; Full shows all points.</li>
+                                    <li><b>Data intervals</b>: Live updates ~every 2s; Historical returns data spaced by selected resolution.</li>
+                                    <li><b>Status row</b>: Pts shows number of points; Updated/Loaded shows last refresh.</li>
+                                    <li><b>Clear</b>: Clears on‑screen series and counters (does not delete server history or change mode).</li>
+                                </ul>
+                                <div style="margin-top:6px; color:#567;">Tip: For large periods, choose a coarser Resolution to keep the chart responsive.</div>
+                            </div>
+                        </div>
                 </div>
             </div>
 
             <!-- CPU Usage Chart -->
-            <div class="chart-container" style="margin-bottom: 8px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                    <div class="row-12" style="align-items: center;">
-                        <h3 style="font-size: 16px; margin: 0; color: #333;">⚡ <span id="cpu-chart-title">Real-time CPU Usage</span></h3>
-                        <span style="font-size: 11px; color: #666; font-style: italic;">Data collected every 2 seconds</span>
+            <div class="chart-container" style="margin-bottom: 8px; width: 100%; max-width: 100%; box-sizing: border-box; overflow: hidden; height: 350px; position: relative;">
+                <!-- Unified Control Bar (CPU) -->
+                <div class="unified-control-bar" style="
+                    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+                    border: 1px solid #dee2e6;
+                    border-radius: 8px;
+                    padding: 8px 12px;
+                    margin-bottom: 8px;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+                    width: 100%; max-width: 100%; box-sizing: border-box; overflow: hidden;">
+                    <!-- Top Row: Title and Status -->
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <h3 style="font-size: 16px; margin: 0; color: #333; font-weight: 600;">⚡ <span id="cpu-chart-title">Live CPU Usage</span></h3>
+                            <div class="chart-badge" id="cpu-mode-badge" style="background:#4CAF50;color:#fff;padding:2px 8px;border-radius:12px;font-size:10px;font-weight:500;text-transform:uppercase;">Live</div>
+                        </div>
+                        <div class="chart-status" style="display:flex;align-items:center;gap:8px;font-size:11px;color:#666;background:rgba(255,255,255,0.7);padding:4px 8px;border-radius:4px;">
+                            <span id="cpu-chart-mode-indicator">Live</span>
+                            <span style="color:#dee2e6;">•</span>
+                            <span id="cpu-chart-points-count">-- pts</span>
+                            <span style="color:#dee2e6;">•</span>
+                            <span id="cpu-last-refresh">--</span>
+                                <span style="color:#dee2e6;">•</span>
+                                <button id="cpu-clear-btn" onclick="window.cpuChartManager && window.cpuChartManager.clearChart()" style="border:1px solid #ddd; background:#fff; color:#333; border-radius:4px; padding:2px 6px; cursor:pointer; font-size:11px;">Clear</button>
+                                <span style="color:#dee2e6;">•</span>
+                                <button id="cpu-help-toggle" onclick="window.toggleHelp('cpu', event)" style="border:1px solid #ddd; background:#fff; color:#333; border-radius:4px; padding:2px 6px; cursor:pointer; font-size:11px;">Help</button>
+                        </div>
                     </div>
-                    <div class="row-12" style="align-items: center;">
-                        <!-- Mode Toggle -->
-                        <div style="display: flex; gap: 4px;">
-                            <button id="cpu-realtime-btn" class="chart-mode-btn" onclick="cpuChartManager.switchToRealtimeMode()"
-                                    style="padding: 3px 6px; font-size: 10px; border: 1px solid #ddd; background: #4CAF50; color: white; border-radius: 3px; cursor: pointer;">
-                                Real-time
-                            </button>
-                            <button id="cpu-historical-btn" class="chart-mode-btn" onclick="cpuChartManager.switchToHistoricalMode()"
-                                    style="padding: 3px 6px; font-size: 10px; border: 1px solid #ddd; background: #f5f5f5; color: #333; border-radius: 3px; cursor: pointer;">
-                                Historical
-                            </button>
+
+                    <!-- Bottom Row: Controls -->
+                    <div style="display:flex;justify-content:space-between;align-items:center;">
+                        <!-- Left: Mode Controls -->
+                        <div class="mode-controls" style="display:flex;align-items:center;gap:8px;">
+                            <span style="font-size:12px;color:#666;font-weight:500;">Mode:</span>
+                            <div class="mode-toggle" style="display:flex;background:white;border:1px solid #dee2e6;border-radius:6px;overflow:hidden;box-shadow:0 1px 2px rgba(0,0,0,0.05);">
+                                <button id="cpu-realtime-btn" class="mode-btn" onclick="cpuChartManager.switchToRealtimeMode()" style="padding:6px 12px;font-size:12px;border:none;background:#4CAF50;color:#fff;cursor:pointer;font-weight:500;transition:all 0.2s ease;">Live</button>
+                                <button id="cpu-historical-btn" class="mode-btn" onclick="cpuChartManager.switchToHistoricalMode()" style="padding:6px 12px;font-size:12px;border:none;background:white;color:#666;cursor:pointer;font-weight:500;transition:all 0.2s ease;">Historical</button>
+                            </div>
                         </div>
 
-                        <!-- Historical Options (hidden by default) -->
-                        <div id="cpu-historical-options" style="display: none; gap: 4px;">
-                            <select id="cpu-time-range" onchange="cpuChartManager.loadHistoricalData()"
-                                    style="padding: 3px 5px; font-size: 10px; border: 1px solid #ddd; border-radius: 3px;">
+                        <!-- Center: Range Controls (historical) -->
+                        <div id="cpu-live-options" style="display:flex;align-items:center;gap:6px;">
+
+                            <span style="font-size:12px;color:#666;font-weight:500;">Range:</span>
+                            <select id="cpu-live-range-select" onchange="cpuChartManager.changeLiveRange(this.value)" style="padding:6px 10px;font-size:12px;border:1px solid #dee2e6;border-radius:4px;background:white;color:#333;cursor:pointer;font-weight:500;min-width:100px;">
+                                <option value="2m">2 Minutes</option>
+                                <option value="5m">5 Minutes</option>
+                                <option value="15m">15 Minutes</option>
+                            </select>
+                        </div>
+
+                        <div id="cpu-historical-options" style="display:none;align-items:center;gap:6px;">
+                            <span style="font-size:12px;color:#666;font-weight:500;">Period:</span>
+                            <select id="cpu-time-range" onchange="cpuChartManager.loadHistoricalData()" style="padding:6px 10px;font-size:12px;border:1px solid #dee2e6;border-radius:4px;background:white;color:#333;cursor:pointer;font-weight:500;min-width:120px;">
                                 <option value="1h">Last Hour</option>
                                 <option value="6h">Last 6 Hours</option>
                                 <option value="24h">Last 24 Hours</option>
                                 <option value="7d">Last 7 Days</option>
                             </select>
                         </div>
-
-
-
-                        <!-- Chart Status and Legend -->
-                        <div style="display: flex; align-items: center; gap: 12px;">
-                            <div id="cpu-chart-status" style="font-size: 10px; color: #666;">
-                                <span id="cpu-chart-mode-indicator">Real-time</span> •
-                                <span id="cpu-chart-points-count">-- pts</span>
+                        <!-- Help Overlay: CPU -->
+                        <div>
+                            <div id="cpu-help-overlay" data-open="0" style="position:absolute; left:8px; right:8px; top:8px; background:#f9fbfd; border:1px solid #e3f2fd; border-radius:8px; padding:10px 12px; color:#345; font-size:12px; box-shadow:0 6px 12px rgba(0,0,0,0.15); transform: translateY(-110%); transition: transform 0.25s ease; z-index: 999; max-height:75%; overflow:auto;">
+                                <strong>CPU chart controls</strong>
+                                <ul style="margin:6px 0 0 16px; line-height:1.35;">
+                                    <li><b>Mode</b>: Live streams recent CPU; Historical loads a fixed window for analysis.</li>
+                                    <li><b>Live Range</b>: Recent window width (e.g., 2m, 5m, 15m).</li>
+                                    <li><b>Period</b> (Historical): Time span to load (e.g., 1h, 6h, 24h).</li>
+                                    <li><b>Resolution</b> (Historical): Aggregation density; use coarser for longer periods.</li>
+                                    <li><b>Data intervals</b>: Live updates about every 2s; Historical depends on resolution.</li>
+                                    <li><b>Status row</b>: Pts = points shown; Updated = last refresh time.</li>
+                                    <li><b>Clear</b>: Clears on‑screen series only; does not delete history.</li>
+                                </ul>
+                                <div style="margin-top:6px; color:#567;">Tip: Use Live for spikes, Historical for trends. Coarser resolution helps performance on large windows.</div>
                             </div>
-                            <div id="cpu-chart-legend" style="display: flex; align-items: center; gap: 12px; font-size: 12px;">
-                                <div style="display: flex; align-items: center; gap: 4px;">
-                                    <div style="width: 12px; height: 12px; background: #2196F3; border-radius: 2px;"></div>
-                                    <span>Menu Bar App</span>
-                                </div>
-                                <div style="display: flex; align-items: center; gap: 4px;">
-                                    <div style="width: 12px; height: 12px; background: #4CAF50; border-radius: 2px;"></div>
-                                    <span>Main Service</span>
-                                </div>
+                        </div>
+
+                        <!-- Right: Data Info, Debug Link and Legend -->
+                        <div style="display:flex;align-items:center;gap:16px;">
+                            <div class="data-info" style="display:flex;align-items:center;gap:6px;font-size:11px;color:#666;background:rgba(255,255,255,0.7);padding:4px 8px;border-radius:4px;">
+                                <span id="cpu-frequency-label">Data: 2s intervals</span>
+                            </div>
+                            <div class="legend-info" style="display:flex;align-items:center;gap:12px;font-size:12px;">
+                                <div style="display:flex;align-items:center;gap:4px;"><div style="width:12px;height:12px;background:#2196F3;border-radius:2px;"></div><span>Menu Bar App</span></div>
+                                <div style="display:flex;align-items:center;gap:4px;"><div style="width:12px;height:12px;background:#4CAF50;border-radius:2px;"></div><span>Main Service</span></div>
                             </div>
                         </div>
                     </div>
-                </div>
-                <div class="chart-wrapper">
-                    <canvas id="cpuChart"></canvas>
+
+                    <!-- Chart Canvas -->
+                    <div class="chart-wrapper" style="margin-top: 0; position: relative; top: 0;">
+                        <canvas id="cpuChart"></canvas>
+                    </div>
                 </div>
             </div>
 
@@ -1205,11 +1399,14 @@ class UnifiedMemoryDashboard:
                 <div class="card">
                     <h3>🎯 Quick Actions</h3>
                     <div style="display: flex; flex-direction: column; gap: 10px;">
-                        <button onclick="refreshAnalysisData()" style="background: #2196F3; color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer;">🔄 Refresh Analysis</button>
                         <button onclick="exportAnalysisData()" style="background: #4CAF50; color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer;">📊 Export Data</button>
                         <button onclick="copyLatestAnalysisJson()" style="background: #673ab7; color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer;" title="Copy latest analysis JSON to clipboard">📋 Copy Latest Analysis JSON</button>
                         <button onclick="refreshAllData()" style="background: #2196F3; color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer;" title="Reload all dashboard data from server">🔄 Refresh All Data</button>
+                        <button onclick="openSparkSettings()" style="background: #607d8b; color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer; display:flex; align-items:center; gap:6px;" title="Trend Explorer Settings">
+                            ⚙️ Settings
+                        </button>
                     </div>
+                    <div style="margin-top:8px; font-size:11px; color:#666;">Analysis auto-refreshes every 5s while monitoring is active.</div>
                 </div>
             </div>
 
@@ -1228,11 +1425,132 @@ class UnifiedMemoryDashboard:
                     This section analyzes memory behavior over time for the Menu Bar and Main Service processes.
                     We compute growth rate (MB/hour) using a simple regression of memory vs time, estimate Consistency using R² (how well a straight line explains the trend),
                     and surface the biggest spikes to help spot anomalous jumps. Use the Range and Res controls to change the analysis window and resolution.
+                <!-- Trend Explorer Settings Modal -->
+                <div id="spark-settings-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:9999;">
+                  <div id="spark-settings-panel" style="background:#fff; width:380px; max-width:90vw; margin:10vh auto; padding:16px; border-radius:8px; box-shadow:0 8px 30px rgba(0,0,0,0.2); resize:both; overflow:auto;">
+                    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; cursor:move;" id="spark-settings-drag">
+                      <div style="font-weight:700; color:#123;">⚙️ Trend Explorer Settings</div>
+                      <button onclick="closeSparkSettings()" style="background:none; border:none; font-size:18px; cursor:pointer;">✖</button>
+                    </div>
+                    <div style="display:grid; gap:10px; font-size:13px; color:#333;">
+                      <label style="display:flex; align-items:center; gap:8px;">
+                        <input id="spark-anim-enabled" type="checkbox" checked>
+                        <span>Animate sparkline endpoint</span>
+                      </label>
+                      <label style="display:flex; align-items:center; gap:8px;">
+                        <span style="min-width:120px;">Animation duration</span>
+                        <select id="spark-anim-ms" style="flex:1; padding:6px;">
+                          <option value="0">0 ms (off)</option>
+                          <option value="100">100 ms</option>
+                          <option value="180" selected>180 ms</option>
+                          <option value="300">300 ms</option>
+                        </select>
+                      </label>
+                      <label style="display:flex; align-items:center; gap:8px;">
+                        <span style="min-width:120px;">Tooltip mode</span>
+                        <select id="spark-tooltip-mode" style="flex:1; padding:6px;">
+                          <option value="custom" selected>Custom tooltip</option>
+                          <option value="native">Native browser tip</option>
+                          <option value="off">Off</option>
+                        </select>
+                      </label>
+                      <fieldset style="border:1px solid #eee; border-radius:6px; padding:8px;">
+                        <legend style="font-size:12px; color:#555;">Series</legend>
+                        <div style="display:grid; gap:6px;">
+                          <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
+                            <label style="display:flex; align-items:center; gap:8px;">
+                              <input id="spark-show-menubar" type="checkbox" checked>
+                              <span>Menu Bar (MB)</span>
+                            </label>
+                            <label style="display:flex; align-items:center; gap:6px; font-size:12px;">
+                              <span>Style</span>
+                              <select id="spark-style-menubar">
+                                <option value="line" selected>Line</option>
+                                <option value="area">Area</option>
+                              </select>
+                            </label>
+                          </div>
+                          <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
+                            <label style="display:flex; align-items:center; gap:8px;">
+                              <input id="spark-show-service" type="checkbox" checked>
+                              <span>Main Service (MB)</span>
+                            </label>
+                            <label style="display:flex; align-items:center; gap:6px; font-size:12px;">
+                              <span>Style</span>
+                              <select id="spark-style-service">
+                                <option value="line" selected>Line</option>
+                                <option value="area">Area</option>
+                              </select>
+                            </label>
+                          </div>
+                          <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
+                            <label style="display:flex; align-items:center; gap:8px;">
+                              <input id="spark-show-total" type="checkbox" checked>
+                              <span>Total (MB)</span>
+                            </label>
+                            <label style="display:flex; align-items:center; gap:6px; font-size:12px;">
+                              <span>Style</span>
+                              <select id="spark-style-total">
+                                <option value="line" selected>Line</option>
+                                <option value="area">Area</option>
+                              </select>
+                            </label>
+                          </div>
+                        </div>
+                      </fieldset>
+                      <label style="display:flex; align-items:center; gap:8px; margin-top:6px;">
+                        <input id="spark-pulse-enabled" type="checkbox" checked>
+                        <span>Pulse last point on update</span>
+                      </label>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:12px;">
+                      <button id="spark-reset-btn" style="background:none; color:#666; border:none; padding:8px 12px; border-radius:6px; cursor:pointer; text-decoration:underline;">Reset defaults</button>
+                      <div>
+                        <button onclick="closeSparkSettings()" style="background:#eee; color:#333; border:none; padding:8px 12px; border-radius:6px; cursor:pointer;">Cancel</button>
+                        <button onclick="(function(){ saveSparkSettings(); })()" style="background:#90caf9; color:#0d47a1; border:none; padding:8px 12px; border-radius:6px; cursor:pointer;">Apply</button>
+                        <button onclick="saveSparkSettings()" style="background:#2196F3; color:white; border:none; padding:8px 12px; border-radius:6px; cursor:pointer;">Save</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div id="health-banner" style="display:flex; justify-content:space-between; align-items:center; padding:8px; border-radius:6px; margin-bottom:8px; background:#f8f9fa; border-left:4px solid #999;">
+                  <div style="font-size:12px; color:#333;">Health Score</div>
+                  <div id="header-health-score" style="font-size:16px; font-weight:700; color:#333;">--%</div>
+                </div>
+
+
                 </div>
                 <div id="trend-analysis">
+                    <div id="analysis-top-meta" style="font-size:12px; color:#2b5a3a; margin-bottom:6px; display:none;"></div>
                     <div class="loading">Loading trend analysis...</div>
+
+                    <!-- legacy inline two-column sparkline block removed -->
                 </div>
+                    <script>
+                        // Ensure Trend Explorer renders even if module loads late
+                        (function ensureTrendExplorerOnce(){
+                            var attempts = 0;
+                            function fire(){
+                                try {
+                                    var sel = document.getElementById('analysisTimeRange') || document.getElementById('timeRange');
+                                    var hours = sel ? (sel.value || '24') : '24';
+                                    if (typeof window.__module_updateTrendExplorer === 'function') { window.__module_updateTrendExplorer(hours); return true; }
+                                    if (typeof window.updateTrendExplorer === 'function') { window.updateTrendExplorer(hours); return true; }
+                                } catch(e) {}
+                                return false;
+                            }
+                            function tick(){ if (++attempts > 30) return; if (!fire()) setTimeout(tick, 500); }
+                            setTimeout(tick, 300);
+                        })();
+                    </script>
+
             </div>
+            <div class="card">
+                <h3>🔥 Top Offenders (Memory Growth)</h3>
+                <div id="top-offenders"><div class="loading">Loading top offenders…</div></div>
+            </div>
+
 
             <div class="card">
                 <h3>📊 Advanced Monitoring History</h3>
@@ -1265,59 +1583,17 @@ class UnifiedMemoryDashboard:
             const sel = document.getElementById('analysisTimeRange');
             const saved = localStorage.getItem('analysisTimeRange');
             if (sel && saved) sel.value = saved;
-            // if modules provided chart manager, avoid double init
-            if (!window.chartManager) {
-                try { if (typeof UnifiedMemoryChart === 'function') { window.chartManager = new UnifiedMemoryChart(); } } catch {}
-            }
-
+            // avoid double init — dashboard.js bootstraps chartManager
         });
 
         // Helpers moved to /static/js/app-core.js
         // Chart management functions
         let chartPaused = false;
 
-        // Legacy chart functions (removed duplicate chartManager declaration)
-        // The real chartManager is initialized later as HybridMemoryChart
-
-        // Simple sparkline drawer with tiny history buffers per PID (moved near top for availability)
-        const sparkHistory = { mem: new Map(), cpu: new Map() };
+        // Legacy sparkline function is now no-op (removed legacy UI)
         function drawSparkline(canvasId, value, kind = 'mem', maxPoints = 10) {
-            const canvas = document.getElementById(canvasId);
-            if (!canvas) return;
-            const ctx = canvas.getContext('2d');
-            const map = kind === 'cpu' ? sparkHistory.cpu : sparkHistory.mem;
-            if (!map.has(canvasId)) map.set(canvasId, []);
-            const history = map.get(canvasId);
-            history.push(Math.max(0, value));
-            if (history.length > maxPoints) history.shift();
-            // Clear
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            // Normalize
-            const h = canvas.height, w = canvas.width;
-            const min = Math.min(...history);
-            const max = Math.max(...history);
-            const range = Math.max(0.001, max - min);
-            // Draw bars
-            const barW = 5, gap = 2;
-            const startX = Math.max(0, w - (barW + gap) * history.length);
-            history.forEach((v, i) => {
-                const norm = (v - min) / range;
-                const barH = Math.max(2, Math.round(norm * (h - 2)));
-                const x = startX + i * (barW + gap);
-                const y = h - barH;
-                // Color coding
-                let color = '#4CAF50';
-                const val = v;
-                if (kind === 'cpu') {
-                    if (val > 70) color = '#FF5722';
-                    else if (val > 40) color = '#FF9800';
-                } else {
-                    if (val > 400) color = '#FF5722';
-                    else if (val > 200) color = '#FF9800';
-                }
-                ctx.fillStyle = color;
-                ctx.fillRect(x, y, barW, barH);
-            });
+            // intentionally empty; legacy inline canvases removed
+            return;
         }
 
         // Utility functions
@@ -1503,11 +1779,11 @@ class UnifiedMemoryDashboard:
                 const menuBarProcess = processes.find(p => p.process_type === 'menu_bar') || {};
                 const serviceProcess = processes.find(p => p.process_type === 'main_service') || {};
 
-                const menubarMemory = menuBarProcess.memory_mb || 0;
-                const serviceMemory = serviceProcess.memory_mb || 0;
-                const menubarCpu = menuBarProcess.cpu_percent || 0;
-                const serviceCpu = serviceProcess.cpu_percent || 0;
-                const totalMemory = clipboard.total_memory_mb || 0;
+                const menubarMemory = menuBarProcess.memory_mb ?? 0;
+                const serviceMemory = serviceProcess.memory_mb ?? 0;
+                const menubarCpu = menuBarProcess.cpu_percent ?? 0;
+                const serviceCpu = serviceProcess.cpu_percent ?? 0;
+                const totalMemory = (clipboard.total_memory_mb ?? (menubarMemory + serviceMemory)) || 0;
 
                 // Use server-provided peak values
                 const peakMenubarMemory = data.peak_menubar_memory || 0;
@@ -1711,7 +1987,7 @@ class UnifiedMemoryDashboard:
                 safeUpdateElement('header-last-updated', lastUpdateTime);
                 safeUpdateElement('last-updated', lastUpdateTime);
 
-            // Add real-time point to hybrid chart manager
+            // Legacy inline sparklines removed
             const realtimePoint = {
                 timestamp: data.timestamp,
                 menubar_memory: data.menubar_memory,
@@ -1719,8 +1995,8 @@ class UnifiedMemoryDashboard:
                 total_memory: data.total_memory
             };
 
-            if (chartManager && chartManager.isInitialized) {
-                chartManager.addRealtimePoint(realtimePoint);
+            if (window.chartManager) {
+                window.chartManager.addRealtimePoint(realtimePoint);
             }
 
             // Update CPU chart (only if chart exists and not paused)
@@ -1731,18 +2007,21 @@ class UnifiedMemoryDashboard:
                 chart.data.datasets[0].data.push(data.menubar_cpu || 0);
                 chart.data.datasets[1].data.push(data.service_cpu || 0);
 
-                // Keep only last 50 data points for performance
-                if (chart.data.labels.length > 50) {
+                // Keep only last N data points based on live range (CPU)
+                const maxPoints = (function(){
+                    try { const m = localStorage.getItem('cpu_live_range') || '2m'; return { '2m': 60, '5m': 150, '15m': 450 }[m] || 60; } catch { return 60; }
+                })();
+                while (chart.data.labels.length > maxPoints) {
                     chart.data.labels.shift();
                     chart.data.datasets[0].data.shift();
                     chart.data.datasets[1].data.shift();
                 }
 
-                // Update CPU chart point count
+                // Update CPU chart point count and last update time
                 const cpuPointsCount = document.getElementById('cpu-chart-points-count');
-                if (cpuPointsCount) {
-                    cpuPointsCount.textContent = chart.data.labels.length + ' pts';
-                }
+                if (cpuPointsCount) cpuPointsCount.textContent = chart.data.labels.length + ' pts';
+                const cpuLast = document.getElementById('cpu-last-refresh');
+                if (cpuLast) cpuLast.textContent = `Updated: ${new Date().toLocaleTimeString().slice(0,8)}`;
 
                 chart.update('none');
             }
@@ -1881,7 +2160,7 @@ class UnifiedMemoryDashboard:
         async function loadAnalysisData() {
             try {
                 if (typeof window !== 'undefined' && window.CM_DEBUG) console.log('[analysis] loadAnalysisData: running (guard disabled)');
-                // Abort stale requests
+                // Abort stale requests, but ignore AbortError in logs
                 if (analysisAbortController) analysisAbortController.abort();
                 analysisAbortController = new AbortController();
                 const signal = analysisAbortController.signal;
@@ -1890,8 +2169,14 @@ class UnifiedMemoryDashboard:
                 const timeRangeElement = document.getElementById('analysisTimeRange') || document.getElementById('timeRange');
                 const hours = timeRangeElement ? timeRangeElement.value : 24;
 
-                // Fetch analysis data
-                const response = await fetch(`/api/analysis?hours=${hours}`, { signal });
+                // Fetch analysis data (handle abort silently)
+                let response;
+                try {
+                    response = await fetch(`/api/analysis?hours=${hours}`, { signal });
+                } catch (e) {
+                    if (e && e.name === 'AbortError') return; // expected during refresh
+                    throw e;
+                }
                 if (window.CM_DEBUG) console.log('[analysis] /api/analysis status', response.status);
                 const data = await response.json();
                 if (!data || typeof data !== 'object') {
@@ -1902,8 +2187,14 @@ class UnifiedMemoryDashboard:
                 if (window.CM_DEBUG) console.log('[analysis] updateAnalysisDisplay ->', !!window.__module_updateAnalysisDisplay);
                 updateAnalysisDisplay(data);
 
-                // Fetch leak analysis
-                const leakResponse = await fetch('/api/leak_analysis', { signal });
+                // Fetch leak analysis (handle abort silently)
+                let leakResponse;
+                try {
+                    leakResponse = await fetch('/api/leak_analysis', { signal });
+                } catch (e) {
+                    if (e && e.name === 'AbortError') return;
+                    throw e;
+                }
                 if (window.CM_DEBUG) console.log('[analysis] /api/leak_analysis status', leakResponse.status);
                 const leakData = await leakResponse.json();
                 if (window.CM_DEBUG) console.log('[analysis] updateLeakAnalysisDisplay ->', !!window.__module_updateLeakAnalysisDisplay);
@@ -1921,9 +2212,54 @@ class UnifiedMemoryDashboard:
                 updateMonitoringHistory();
 
                 // Update Trend Explorer (only if a module implementation exists)
-                if (window.__module_updateTrendExplorer) {
-                    updateTrendExplorer(hours);
+                if (typeof window.__module_updateTrendExplorer === 'function') {
+                    window.__module_updateTrendExplorer(hours);
                 } else if (window.CM_DEBUG) {
+        // Persist modal size (width/height)
+        (function persistSparkModalSize(){
+            try {
+                const panel = document.getElementById('spark-settings-panel');
+                if (!panel) return;
+                // restore
+                const w = localStorage.getItem('spark_settings_width');
+                const h = localStorage.getItem('spark_settings_height');
+                if (w) panel.style.width = w;
+                if (h) panel.style.height = h;
+                // observe changes after user resizes
+                let resizeTimer;
+                const saveSz = () => {
+                    localStorage.setItem('spark_settings_width', panel.style.width || `${panel.offsetWidth}px`);
+                    localStorage.setItem('spark_settings_height', panel.style.height || `${panel.offsetHeight}px`);
+                };
+                const onResize = () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(saveSz, 200); };
+                new ResizeObserver(onResize).observe(panel);
+            } catch {}
+        })();
+
+        // Modal focus trap + Enter-to-save
+        (function a11ySparkModal(){
+            const modal = document.getElementById('spark-settings-modal');
+            const panel = document.getElementById('spark-settings-panel');
+            const getFocusable = () => panel ? panel.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])') : [];
+            document.addEventListener('keydown', (e) => {
+                if (modal && modal.style.display === 'block') {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        const saveBtn = panel && panel.querySelector('button[onclick^="saveSparkSettings"]');
+                        if (saveBtn) saveBtn.click();
+                    }
+                    if (e.key === 'Tab') {
+                        const focusables = Array.from(getFocusable());
+                        if (!focusables.length) return;
+                        const first = focusables[0];
+                        const last = focusables[focusables.length - 1];
+                        if (e.shiftKey && document.activeElement === first) { last.focus(); e.preventDefault(); }
+                        else if (!e.shiftKey && document.activeElement === last) { first.focus(); e.preventDefault(); }
+                    }
+                }
+            });
+        })();
+
                     console.log('[analysis] skip updateTrendExplorer (module not present)');
                 }
 
@@ -1954,6 +2290,67 @@ class UnifiedMemoryDashboard:
             return window.__module_updateLeakAnalysisDisplay?.(leakData);
         }
 
+        // Initialize settings modal with persisted values and extras
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeSparkSettings();
+        });
+        (function initSparkSettingsPanel() {
+            try {
+                const load = (key, def) => localStorage.getItem(key) ?? def;
+                const bool = (v) => v === null ? true : v === 'true';
+                const animEnabled = bool(load('spark_anim_enabled', 'true'));
+                const animMs = Number(load('spark_anim_ms', '180'));
+                const tooltipMode = load('spark_tooltip_mode', 'custom');
+                const showMenubar = bool(load('spark_show_menubar', 'true'));
+                const showService = bool(load('spark_show_service', 'true'));
+                const showTotal = bool(load('spark_show_total', 'true'));
+                const cbA = document.getElementById('spark-anim-enabled'); if (cbA) cbA.checked = animEnabled;
+                const selMs = document.getElementById('spark-anim-ms'); if (selMs) selMs.value = String(animMs);
+                const selTip = document.getElementById('spark-tooltip-mode'); if (selTip) selTip.value = tooltipMode;
+                const cb1 = document.getElementById('spark-show-menubar'); if (cb1) cb1.checked = showMenubar;
+                const cb2 = document.getElementById('spark-show-service'); if (cb2) cb2.checked = showService;
+                const cb3 = document.getElementById('spark-show-total'); if (cb3) cb3.checked = showTotal;
+
+                const resetBtn = document.getElementById('spark-reset-btn');
+                if (resetBtn) resetBtn.onclick = () => {
+                    localStorage.removeItem('spark_anim_enabled');
+                    localStorage.removeItem('spark_anim_ms');
+                    localStorage.removeItem('spark_tooltip_mode');
+                    localStorage.removeItem('spark_show_menubar');
+                    localStorage.removeItem('spark_show_service');
+                    localStorage.removeItem('spark_show_total');
+                    initSparkSettingsPanel();
+                    showToast('✅ Reset to defaults');
+                };
+
+                // Simple drag of the panel
+                const panel = document.getElementById('spark-settings-panel');
+                const drag = document.getElementById('spark-settings-drag');
+                if (panel && drag) {
+                    let sx=0, sy=0, px=0, py=0, dragging=false;
+                    drag.onmousedown = (ev) => { dragging=true; sx=ev.clientX; sy=ev.clientY; const r=panel.getBoundingClientRect(); px=r.left; py=r.top; ev.preventDefault(); };
+                    window.onmousemove = (ev) => { if (!dragging) return; const dx=ev.clientX-sx, dy=ev.clientY-sy; panel.style.margin='0'; panel.style.position='fixed'; panel.style.left=(px+dx)+'px'; panel.style.top=(py+dy)+'px'; };
+                    window.onmouseup = () => { dragging=false; if (panel) { localStorage.setItem('spark_settings_pos_left', panel.style.left); localStorage.setItem('spark_settings_pos_top', panel.style.top); } };
+                }
+            } catch {}
+        })();
+
+        // Extend save to include series toggles
+        (function extendSaveSparkSettings(){
+            const orig = window.saveSparkSettings;
+            window.saveSparkSettings = function(){
+                try {
+                    const showMenubar = document.getElementById('spark-show-menubar').checked;
+                    const showService = document.getElementById('spark-show-service').checked;
+                    const showTotal = document.getElementById('spark-show-total').checked;
+                    localStorage.setItem('spark_show_menubar', String(showMenubar));
+                    localStorage.setItem('spark_show_service', String(showService));
+                    localStorage.setItem('spark_show_total', String(showTotal));
+                } catch {}
+                return orig();
+            }
+        })();
+
         function updateAnalysisSummary(data, hours) {
             if (window.CM_DEBUG) console.log('[analysis] forward updateAnalysisSummary');
             return window.__module_updateAnalysisSummary?.(data, hours);
@@ -1962,12 +2359,13 @@ class UnifiedMemoryDashboard:
         function ensureTrendExplorerUI() { return; }
         function computeRegression(points, key) { return window.computeRegression?.(points, key); }
         async function updateTrendExplorer(hours) {
-            // Avoid self-recursion: only call module implementation if present
-            if (window.__module_updateTrendExplorer) {
+            // Forward to module implementation when available; avoid self-recursion
+            const impl = window.__module_updateTrendExplorer;
+            if (typeof impl === 'function' && impl !== updateTrendExplorer) {
                 if (window.CM_DEBUG) console.log('[analysis] forward updateTrendExplorer');
-                return window.__module_updateTrendExplorer(hours);
+                return impl(hours);
             } else {
-                if (window.CM_DEBUG) console.log('[analysis] updateTrendExplorer noop (module not present)');
+                if (window.CM_DEBUG) console.warn('[analysis] TrendExplorer module not ready or self-referencing; skipping to prevent recursion');
             }
         }
 
@@ -1983,6 +2381,58 @@ class UnifiedMemoryDashboard:
             if (window.CM_DEBUG) console.log('[analysis] forward updateMonitoringStatus');
             return window.__module_updateMonitoringStatus?.();
         }
+
+        function openSparkSettings() {
+            const modal = document.getElementById('spark-settings-modal');
+            if (modal) modal.style.display = 'block';
+            // Restore persisted position
+            try {
+                const panel = document.getElementById('spark-settings-panel');
+                const left = localStorage.getItem('spark_settings_pos_left');
+                const top = localStorage.getItem('spark_settings_pos_top');
+                if (panel && left && top) {
+                    panel.style.margin = '0';
+                    panel.style.position = 'fixed';
+                    panel.style.left = left;
+                    panel.style.top = top;
+                }
+            } catch {}
+        }
+        function closeSparkSettings() {
+            const modal = document.getElementById('spark-settings-modal');
+            if (modal) modal.style.display = 'none';
+        }
+        function saveSparkSettings() {
+            try {
+                const animEnabled = document.getElementById('spark-anim-enabled').checked;
+                const animMs = document.getElementById('spark-anim-ms').value;
+                const tooltipMode = document.getElementById('spark-tooltip-mode').value;
+                const showMenubar = document.getElementById('spark-show-menubar').checked;
+                const showService = document.getElementById('spark-show-service').checked;
+                const showTotal = document.getElementById('spark-show-total').checked;
+                const styleMenubar = document.getElementById('spark-style-menubar').value;
+                const styleService = document.getElementById('spark-style-service').value;
+                const styleTotal = document.getElementById('spark-style-total').value;
+                const pulseEnabled = document.getElementById('spark-pulse-enabled').checked;
+                localStorage.setItem('spark_anim_enabled', String(animEnabled));
+                localStorage.setItem('spark_anim_ms', String(Math.max(0, Number(animMs))));
+                localStorage.setItem('spark_tooltip_mode', tooltipMode);
+                localStorage.setItem('spark_show_menubar', String(showMenubar));
+                localStorage.setItem('spark_show_service', String(showService));
+                localStorage.setItem('spark_show_total', String(showTotal));
+                localStorage.setItem('spark_style_menubar', styleMenubar);
+                localStorage.setItem('spark_style_service', styleService);
+                localStorage.setItem('spark_style_total', styleTotal);
+                localStorage.setItem('spark_pulse_enabled', String(pulseEnabled));
+                closeSparkSettings();
+                showToast('✅ Settings saved');
+                // Trigger a refresh so charts pick up settings
+                if (typeof loadAnalysisData === 'function') loadAnalysisData();
+            } catch (e) {
+                showToast('❌ Failed to save settings: ' + e, 'error');
+            }
+        }
+
 
         async function refreshAllData() {
             // Show loading state
@@ -2019,10 +2469,9 @@ class UnifiedMemoryDashboard:
             } finally {
                 refreshBtn.disabled = false;
             }
-        }
 
-        // Unified Memory Chart Manager Class - Phase 2 (in progress)
-        class UnifiedMemoryChart {
+        // Unified Memory Chart Manager Class (inline stub for compatibility)
+        if (!window.UnifiedMemoryChart) { window.UnifiedMemoryChart = class {
             constructor() {
                 this.mode = 'live'; // 'live' or 'historical'
                 this.liveData = [];
@@ -2053,6 +2502,8 @@ class UnifiedMemoryDashboard:
                 this.livePollFailureCount = 0;
                 this.liveErrorNotified = false; // show toast once during failures
                 this.paused = false; // paused via visibility or external control
+                // Operation token for race-proof async updates
+                this.loadToken = 0;
             }
 
             async initialize() {
@@ -2208,6 +2659,12 @@ class UnifiedMemoryDashboard:
                     }
 
                     this.updateChart();
+
+                        // Ensure at least one point is present to trigger chart draw
+                        if (this.liveData.length === 0 && formattedData.length > 0) {
+                            this.liveData.push(formattedData[formattedData.length - 1]);
+                        }
+
                     console.log(`Loaded ${this.liveData.length} initial data points for ${range.label} live view from recent history`);
                 } catch (error) {
                     console.error('Error loading initial live data:', error);
@@ -2335,96 +2792,124 @@ class UnifiedMemoryDashboard:
                 } finally {
                     // Restore title
                     if (chartTitle) {
+                try { window.__dbgLog && window.__dbgLog(`Historical: entering switch, timeRange=${timeRange}`); } catch {}
+
                         const newTitle = `Live Memory Usage (${range.label})`;
                         chartTitle.textContent = newTitle;
                     }
                 }
             }
 
-            async switchToHistoricalMode(timeRange) {
+
+
+            async switchToHistoricalMode(timeRange) { try { localStorage.setItem('umc_mode', 'historical'); } catch (e) {}
+                // Race-proof: capture token and desired mode
+                const token = ++this.loadToken;
+                const desiredMode = 'historical';
+
                 this.mode = 'historical';
                 this.currentTimeRange = timeRange;
 
-                // Show loading indicator
+                // Immediately reflect Historical mode in the UI while data loads
+                try {
+                    this.stopLivePolling();
+                    const modeBadgeEarly = document.getElementById('mode-badge');
+                    if (modeBadgeEarly) { modeBadgeEarly.textContent = 'Historical'; modeBadgeEarly.style.background = '#2196F3'; }
+                    const modeIndEarly = document.getElementById('chart-mode-indicator');
+                    if (modeIndEarly) modeIndEarly.textContent = 'Historical (loading...)';
+                    const historicalOpts = document.getElementById('historical-options'); if (historicalOpts) historicalOpts.style.display = 'flex';
+                    const liveOpts = document.getElementById('live-options'); if (liveOpts) liveOpts.style.display = 'none';
+                    const liveBtn = document.getElementById('realtime-btn'); if (liveBtn){ liveBtn.style.background = 'white'; liveBtn.style.color = '#666'; liveBtn.style.boxShadow = 'none'; }
+                    const histBtn = document.getElementById('historical-btn'); if (histBtn){ histBtn.style.background = '#2196F3'; histBtn.style.color = 'white'; histBtn.style.boxShadow = '0 2px 4px rgba(33, 150, 243, 0.3)'; }
+                } catch {}
+
+                // Show loading indicator immediately
                 const chartTitle = document.getElementById('chart-title');
-                const originalTitle = chartTitle?.textContent;
-                if (chartTitle) {
-                    chartTitle.textContent = 'Loading historical data...';
-                }
+                if (chartTitle) chartTitle.textContent = 'Loading historical data...';
+
+                    try { window.__dbgLog && window.__dbgLog('Historical: UI set to loading'); } catch {}
 
                 try {
                     // Enhanced auto-adjust resolution for optimal performance
                     let resolution = this.currentResolution;
                     let recommendedResolution = this.getRecommendedResolution(timeRange);
-
                     if (resolution === 'full' && recommendedResolution !== 'full') {
                         resolution = recommendedResolution;
                         this.currentResolution = resolution;
                         const resolutionSelect = document.getElementById('resolution-select');
-                        if (resolutionSelect) {
-                            resolutionSelect.value = resolution;
-                        }
+                        if (resolutionSelect) resolutionSelect.value = resolution;
                         console.log(`Auto-adjusted resolution to ${resolution} for optimal performance`);
                     }
+
+
+                        try { window.__dbgLog && window.__dbgLog(`Historical: auto-adjusted resolution -> ${resolution}`); } catch {}
 
                     // Performance timing
                     const startTime = performance.now();
 
+
+                        try { window.__dbgLog && window.__dbgLog(`Historical: fetching /api/historical-chart?hours=${timeRange}&resolution=${resolution}`); } catch {}
+
                     const response = await fetch(`/api/historical-chart?hours=${timeRange}&resolution=${resolution}`);
-                    if (!response.ok) {
-                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                    }
+
+                        try { window.__dbgLog && window.__dbgLog(`Historical: response status = ${response.status}`); } catch {}
+
+                    if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+
+
+                        try { window.__dbgLog && window.__dbgLog(`Historical: payload points = ${Array.isArray(data?.points) ? data.points.length : 'n/a'}`); } catch {}
 
                     const data = await response.json();
-                    const loadTime = performance.now() - startTime;
 
-                    this.historicalData = data.points || [];
+                        try { window.__dbgLog && window.__dbgLog('Historical: applying dataset'); } catch {}
 
-                    // Enhanced performance monitoring and optimization
-                    const dataSize = this.historicalData.length;
-                    console.log(`Historical data loaded: ${dataSize} points in ${loadTime.toFixed(2)}ms`);
 
-                    if (dataSize > 15000) {
-                        console.warn(`Very large dataset (${dataSize} points), performance may be affected`);
-                        this.showPerformanceWarning(dataSize);
-                    } else if (dataSize > 10000) {
-                        console.warn(`Large dataset (${dataSize} points), monitoring performance`);
+                    // Apply only if still in historical mode (avoid abort that leaves UI stuck)
+                    if (this.mode !== desiredMode) {
+                        console.warn('Historical load completed but mode changed; skipping apply');
+
+                        try { window.__dbgLog && window.__dbgLog(`Historical: dataSize = ${this.historicalData?.length || 0}`); } catch {}
+
                     }
 
+                    this.historicalData = (data && Array.isArray(data.points)) ? data.points : [];
+
+                        try { window.__dbgLog && window.__dbgLog(`Historical: set historicalData (${this.historicalData.length})`); } catch {}
+
+
                     // Smooth transition with performance optimization
+                    const dataSize = this.historicalData.length;
+                    console.log(`Historical data loaded: ${dataSize} points`);
+
                     const renderStart = performance.now();
+
+                        try { window.__dbgLog && window.__dbgLog('Historical: calling updateChart(true)'); } catch {}
+
                     this.updateChart(true); // Animate transition
                     const renderTime = performance.now() - renderStart;
 
+                        try { window.__dbgLog && window.__dbgLog(`Historical: render time ${renderTime.toFixed(2)}ms`); } catch {}
+
                     console.log(`Chart rendered in ${renderTime.toFixed(2)}ms`);
 
+                    // Now that historical points are ready, set UI and badge
+                    const modeBadge = document.getElementById('mode-badge');
+                    if (modeBadge) { modeBadge.textContent = 'Historical'; modeBadge.style.background = '#2196F3'; }
+                    if (chartTitle) chartTitle.textContent = 'Historical Memory Usage';
                     this.updateUI();
+
+                        try { window.__dbgLog && window.__dbgLog('Historical: UI settled to Historical Memory Usage'); } catch {}
 
                     console.log(`Switched to historical mode: ${timeRange} hours (${dataSize} points, ${resolution} resolution)`);
                 } catch (error) {
+                    // If a newer op superseded this, silently ignore error
+                    if (token !== this.loadToken) return;
                     console.error('Error loading historical data:', error);
-
-                    // Enhanced error handling with user-friendly messages
-                    let errorMessage = 'Failed to load historical data';
-                    if (error.message.includes('500')) {
-                        errorMessage += ': Server error. The requested time range may be too large.';
-                    } else if (error.message.includes('timeout')) {
-                        errorMessage += ': Request timed out. Try a smaller time range or lower resolution.';
-                    } else {
-                        errorMessage += `: ${error.message}`;
-                    }
-
-                    alert(`${errorMessage}\\n\\nSwitching back to live mode.`);
+                    alert(`Failed to load historical data: ${error.message}\\n\\nSwitching back to live mode.`);
                     this.switchToLiveMode();
                 } finally {
-                    // Restore title
-                    if (chartTitle && originalTitle) {
-                        setTimeout(() => {
-                            if (this.mode === 'historical') {
-                                chartTitle.textContent = 'Historical Memory Usage';
-                            }
-                        }, 100);
-                    }
+                    // Final title settle if still in historical
+                    if (chartTitle && this.mode === 'historical') chartTitle.textContent = 'Historical Memory Usage';
                 }
             }
 
@@ -2474,9 +2959,15 @@ class UnifiedMemoryDashboard:
             }
 
             switchToLiveMode() {
+                // Race-proof: increment token so any pending historical load won't apply
+                this.loadToken = (this.loadToken || 0) + 1;
                 this.mode = 'live';
                 // Persist
                 try { localStorage.setItem('umc_mode', 'live'); } catch {}
+                const chartTitle = document.getElementById('chart-title');
+                if (chartTitle) chartTitle.textContent = 'Live Memory Usage';
+                const modeBadge = document.getElementById('mode-badge');
+                if (modeBadge) { modeBadge.textContent = 'Live'; modeBadge.style.background = '#4CAF50'; }
                 this.stopLivePolling();
                 // Reset failure state upon explicit switch
                 this.livePollFailureCount = 0;
@@ -2485,6 +2976,20 @@ class UnifiedMemoryDashboard:
                 this.updateChart(true); // Animate transition
                 this.updateUI();
                 console.log(`Switched to live mode: ${this.liveRanges[this.currentLiveRange].label}`);
+            }
+
+            clearChart() {
+                try {
+                    if (!this.chart) return;
+                    this.liveData = [];
+                    this.historicalData = [];
+                    this.chart.data.labels = [];
+                    this.chart.data.datasets[0].data = [];
+                    this.chart.data.datasets[1].data = [];
+                    this.chart.update();
+                    const pts = document.getElementById('chart-points-count'); if (pts) pts.textContent = '0 pts';
+                    const last = document.getElementById('chart-last-update'); if (last) last.textContent = '—';
+                } catch (e) { console.warn('clearChart failed', e); }
             }
 
             // Backward compatibility method
@@ -2555,23 +3060,25 @@ class UnifiedMemoryDashboard:
 
                 // Show loading indicator
                 const chartTitle = document.getElementById('chart-title');
-                const originalTitle = chartTitle?.textContent;
-                if (chartTitle) {
-                    chartTitle.textContent = 'Loading historical data...';
-                }
+                if (chartTitle) chartTitle.textContent = 'Loading historical data...';
 
                 try {
+                    // Kick a short fallback to settle title if the fetch takes long
+                    setTimeout(() => {
+                        const titleEl = document.getElementById('chart-title');
+                        if (this.mode === 'historical' && titleEl && titleEl.textContent.includes('Loading')) {
+                            titleEl.textContent = 'Historical Memory Usage';
+                        }
+                    }, 3000);
                     await this.switchToHistoricalMode(this.currentTimeRange);
                 } catch (error) {
                     console.error('Error changing resolution:', error);
-                    if (chartTitle && originalTitle) {
-                        chartTitle.textContent = originalTitle;
-                    }
+                    if (chartTitle) chartTitle.textContent = 'Historical Memory Usage';
                 }
             }
 
-            updateChart(animate = false) {
-                const data = this.mode === 'live' ? this.liveData : this.historicalData;
+            async updateChart(animate = false) {
+                const data = this.mode === 'live' ? (this.liveData || []) : (this.historicalData || []);
 
                 // Create chart if it doesn't exist
                 if (!this.chart) {
@@ -2634,7 +3141,8 @@ class UnifiedMemoryDashboard:
                     this.chart.data.datasets[1].data = [];
                 } else {
                     this.chart.data.labels = data.map(d => {
-                        const date = new Date(d.timestamp);
+                        // robust timestamp parsing for strings or numbers
+                        const date = (d.timestamp instanceof Date) ? d.timestamp : new Date(d.timestamp);
                         return this.mode === 'live' ?
                             date.toLocaleTimeString() :
                             this.formatHistoricalTime(date);
@@ -2643,15 +3151,34 @@ class UnifiedMemoryDashboard:
                     this.chart.data.datasets[1].data = data.map(d => d.service_memory || 0);
                 }
 
-                // Use smooth transitions for mode/range changes, no animation for live updates
-                const animationMode = animate ? 'active' : 'none';
-                this.chart.update(animationMode);
+                // Ensure full redraw without special mode (more reliable across Chart.js versions)
+                this.chart.update();
+                try { this.chart.resize(); } catch {}
+
+	                // If still empty in live mode, seed a zero point to force axes render
+	                if (this.mode === 'live' && (!data || data.length === 0)) {
+	                    const now = new Date();
+	                    this.chart.data.labels = [now.toLocaleTimeString()];
+	                    this.chart.data.datasets[0].data = [0];
+	                    this.chart.data.datasets[1].data = [0];
+	                }
+
 
                 // Update data points counter in header
                 const headerDataPointsElement = document.getElementById('header-data-points');
                 if (headerDataPointsElement) {
                     headerDataPointsElement.textContent = (data?.length || 0) + ' pts';
                 }
+                // Overlay anomalies and events (if modules available)
+                try {
+                    const respE = await fetch('/api/events');
+                    const events = await respE.json();
+                    const respA = await fetch('/api/current');
+                    const curr = await respA.json();
+                    const anomalies = curr.anomalies || [];
+                    if (window.overlayEventsAndAnomalies) window.overlayEventsAndAnomalies(this.chart, events, anomalies);
+                } catch {}
+
 
                 // Update chart status
                 const chartPointsCount = document.getElementById('chart-points-count');
@@ -2663,7 +3190,15 @@ class UnifiedMemoryDashboard:
                 const chartLastUpdate = document.getElementById('chart-last-update');
                 if (chartLastUpdate) {
                     const now = new Date();
-                    chartLastUpdate.textContent = 'Updated: ' + now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'});
+                    chartLastUpdate.textContent = (this.mode === 'historical') ? 'Loaded' : ('Updated: ' + now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'}));
+                }
+
+                // Ensure title and badge settle in historical
+                if (this.mode === 'historical') {
+                    const ct = document.getElementById('chart-title');
+                    if (ct) ct.textContent = 'Historical Memory Usage';
+                    const mb = document.getElementById('mode-badge');
+                    if (mb) { mb.textContent = 'Historical'; mb.style.background = '#2196F3'; }
                 }
 
                 // Update range indicator for live mode
@@ -2759,9 +3294,14 @@ class UnifiedMemoryDashboard:
                     liveRangeSelect.value = this.currentLiveRange;
                 }
 
+            try { window.__dbgLog && window.__dbgLog('Historical: click received'); } catch {}
+
                 // Add visual feedback for range changes
                 this.addVisualFeedback();
             }
+
+
+
 
             addVisualFeedback() {
                 // Add subtle animation to indicate UI update
@@ -2774,6 +3314,8 @@ class UnifiedMemoryDashboard:
                 }
             }
         }
+        }; }
+
 
         // Helper function for historical options toggle
         function toggleHistoricalOptions() {
@@ -2781,50 +3323,72 @@ class UnifiedMemoryDashboard:
             const isVisible = historicalOptions.style.display !== 'none';
 
             if (isVisible) {
-                chartManager.switchToLiveMode();
+                if (chartManager) chartManager.switchToLiveMode();
             } else {
                 historicalOptions.style.display = 'flex';
-                // Auto-select first option with user confirmation for large datasets
+                // Defer mode/UI change to switchToHistoricalMode to avoid stale state
+                // Auto-select current option with user confirmation for large datasets
                 const rangeSelect = document.getElementById('historical-range');
-                if (rangeSelect) {
-                    const selectedRange = rangeSelect.value;
-                    if (selectedRange === 'all') {
-                        const confirmed = confirm('Loading complete history since service start.\\nThis may take a moment and will use 1-minute resolution for performance.\\nContinue?');
-                        if (confirmed) {
-                            chartManager.switchToHistoricalMode(selectedRange);
-                        } else {
-                            // Reset to live mode
-                            chartManager.switchToLiveMode();
-                            return;
-                        }
+                const selectedRange = rangeSelect ? rangeSelect.value : '1';
+                if (selectedRange === 'all') {
+                    const confirmed = confirm('Loading complete history since service start.\\nThis may take a moment and will use 1-minute resolution for performance.\\nContinue?');
+                    if (confirmed) {
+                        if (chartManager) chartManager.switchToHistoricalMode(selectedRange);
                     } else {
-                        chartManager.switchToHistoricalMode(selectedRange);
+                        if (chartManager) chartManager.switchToLiveMode();
+                        return;
                     }
+                } else {
+                    if (chartManager) chartManager.switchToHistoricalMode(selectedRange);
                 }
             }
         }
 
         // New helper function for live range changes
+        // Robust memory historical switch (avoids early race)
+        function memorySwitchToHistorical(){
+            try { if (window.chartManager?.mode !== 'historical') {
+                const rangeSelect = document.getElementById('historical-range');
+                const selectedRange = rangeSelect ? rangeSelect.value : '1';
+                if (window.chartManager?.switchToHistoricalMode) {
+                    window.chartManager.switchToHistoricalMode(selectedRange);
+                } else {
+                    window.__umc_pending = { mode: 'historical', range: selectedRange };
+                    const chartTitle = document.getElementById('chart-title');
+                    if (chartTitle) chartTitle.textContent = 'Loading historical data...';
+                    const modeBadge = document.getElementById('mode-badge');
+                    if (modeBadge) modeBadge.textContent = 'Historical';
+                }
+                const historicalOptions = document.getElementById('historical-options');
+                if (historicalOptions) historicalOptions.style.display = 'flex';
+            }} catch (e) { console.warn('Historical switch failed early', e); }
+        }
+
         function handleLiveRangeChange(selectElement) {
             const newRange = selectElement.value;
             try { localStorage.setItem('umc_live_range', newRange); } catch {}
-            chartManager.switchLiveRange(newRange);
+            if (window.chartManager) {
+                window.chartManager.switchLiveRange(newRange);
+            } else {
+                // Capture intent to apply once chart manager is ready
+                window.__umc_pending = { mode: 'live', liveRange: newRange };
+            }
         }
 
         // Helper function to handle historical range selection changes
         function handleRangeChange(selectElement) {
             const selectedRange = selectElement.value;
             try { localStorage.setItem('umc_time_range', String(selectedRange)); } catch {}
-            if (selectedRange === 'all') {
-                const confirmed = confirm('Loading complete history since service start.\\nThis may take a moment and will use 1-minute resolution for performance.\\nContinue?');
-                if (confirmed) {
-                    chartManager.switchToHistoricalMode(selectedRange);
-                } else {
-                    // Reset to previous selection
-                    selectElement.value = chartManager.currentTimeRange;
-                }
+            // Let switchToHistoricalMode own state/title; just call it
+            if (window.chartManager) {
+                window.chartManager.switchToHistoricalMode(selectedRange);
             } else {
-                chartManager.switchToHistoricalMode(selectedRange);
+                // Capture pending historical intent and reflect title immediately
+                window.__umc_pending = { mode: 'historical', range: selectedRange };
+                const chartTitle = document.getElementById('chart-title');
+                if (chartTitle) chartTitle.textContent = 'Loading historical data...';
+                const modeBadge = document.getElementById('mode-badge');
+                if (modeBadge) modeBadge.textContent = 'Historical';
             }
         }
 
@@ -2840,8 +3404,39 @@ class UnifiedMemoryDashboard:
         // Initialize session start time (persistent across page refreshes)
         let globalSessionStartTime = null;
 
-        // Initialize Unified Chart Manager
-        const chartManager = window.chartManager || new UnifiedMemoryChart(); window.chartManager = chartManager;
+        // Initialize Unified Chart Manager (defer until class is available)
+        window.chartManager = window.chartManager || null;
+        // Pre-populate persisted live range select even before chart manager is ready
+        try {
+            const savedRange = localStorage.getItem('umc_live_range');
+            const liveRangeSelect = document.getElementById('live-range-select');
+            if (savedRange && liveRangeSelect) liveRangeSelect.value = savedRange;
+        } catch {}
+
+        (function ensureChartManagerReady(){
+            if (!window.chartManager) {
+                if (window.UnifiedMemoryChart) {
+                    window.chartManager = new window.UnifiedMemoryChart();
+                    if (typeof window.chartManager.initialize === 'function') {
+                        window.chartManager.initialize().then(() => {
+                            // Apply any pending mode/range intent captured before init
+                            const pending = window.__umc_pending;
+                            if (pending && pending.mode === 'historical') {
+                                window.chartManager.switchToHistoricalMode(pending.range || window.chartManager.currentTimeRange);
+                                window.__umc_pending = null;
+                            } else if (pending && pending.mode === 'live' && pending.liveRange) {
+                                window.chartManager.switchLiveRange(pending.liveRange);
+                                window.__umc_pending = null;
+                            }
+                            // Always populate header metrics at least once regardless of mode
+                            try { if (typeof window.fetchMemoryData === 'function') window.fetchMemoryData(); } catch {}
+                        }).catch(() => {});
+                    }
+                } else {
+                    return setTimeout(ensureChartManagerReady, 50);
+                }
+            }
+        })();
 
 
 
@@ -2852,6 +3447,8 @@ class UnifiedMemoryDashboard:
         setInterval(() => {
             try { if (typeof window.fetchSystemData === 'function') window.fetchSystemData(); } catch {}
             try { if (typeof window.loadAnalysisData === 'function') window.loadAnalysisData(); } catch {}
+            // Also ensure header is periodically populated even if live polling is off
+            try { if (typeof window.fetchMemoryData === 'function') window.fetchMemoryData(); } catch {}
         }, 10000);
 
         // Auto-refresh historical data every 5 seconds when in historical mode (faster updates)
@@ -2885,10 +3482,14 @@ class UnifiedMemoryDashboard:
             }
         }, 1000);
 
-        // Pause/resume polling based on tab visibility
+        // Pause/resume polling based on tab visibility (guard chartManager)
         document.addEventListener('visibilitychange', () => {
-            chartManager.paused = document.hidden;
+            if (window.chartManager) {
+                window.chartManager.paused = document.hidden;
+            }
         });
+
+
 
         // Initial fetch (memory handled by chart manager on initialize)
         if (typeof window.fetchSystemData === 'function') window.fetchSystemData();
@@ -2897,8 +3498,482 @@ class UnifiedMemoryDashboard:
 
         // Update monitoring status every 5 seconds
         setInterval(updateMonitoringStatus, 5000);
-    </script>
+
+        </script>
+        <script>
+          // Global debug + poll interval controls (top bar)
+          try {
+            const params = new URLSearchParams(location.search);
+            const enabled = (params.get('debug') === '1') || (localStorage.getItem('umc_debug') === '1');
+            window.__DEBUG_ENABLED = enabled;
+            // Top bar debug toggle
+            const topToggle = document.getElementById('global-debug-toggle');
+            if (topToggle) topToggle.checked = enabled;
+            function setDbg(on){ try { if (on) localStorage.setItem('umc_debug','1'); else localStorage.removeItem('umc_debug'); } catch {}; location.href = window.location.pathname + (on ? '?debug=1' : ''); }
+            topToggle?.addEventListener('change', (e)=> setDbg(e.target.checked));
+            // Global live poll interval (memory manager)
+            const sel = document.getElementById('global-live-interval');
+            if (sel) {
+              const saved = localStorage.getItem('umc_live_poll') || '2000';
+              sel.value = saved;
+              sel.addEventListener('change', (e)=>{
+                const v = e.target.value; localStorage.setItem('umc_live_poll', v);
+                if (window.chartManager?.setLivePollInterval) window.chartManager.setLivePollInterval(parseInt(v,10));
+              });
+              // apply saved on load
+              if (window.chartManager?.setLivePollInterval) window.chartManager.setLivePollInterval(parseInt(sel.value,10));
+            }
+          } catch { window.__DEBUG_ENABLED = false; }
+        </script>
+
+
+        <!-- Debug Panel (collapsible) -->
+        <div id="debug-panel" style="position: fixed; right: 12px; bottom: 12px; z-index: 9999; display: none;">
+          <div id="debug-toggle" style="background: #263238; color: #fff; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; display: inline-block;">Debug ▸</div>
+          <div id="debug-content" style="display: none; margin-top: 6px; background: rgba(38,50,56,0.95); color: #e0f7fa; padding: 10px; border-radius: 6px; width: 320px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; font-size: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.2);">
+            <div style="display:flex; justify-content: space-between; align-items:center; margin-bottom: 6px;">
+              <strong>Live Debug</strong>
+              <span id="debug-refresh" style="cursor:pointer; color:#80deea;">⟳</span>
+            </div>
+            <div>mode: <span id="dbg-mode">-</span></div>
+            <div>live points: <span id="dbg-live-len">-</span></div>
+            <div>dataset[0] len: <span id="dbg-ds0-len">-</span></div>
+            <div>canvas size: <span id="dbg-canvas">-</span></div>
+            <div style="margin-top: 6px; display:flex; gap:6px;">
+              <button id="dbg-force-render" style="padding:4px 6px; font-size:11px; border:1px solid #455a64; background:#37474f; color:#e0f7fa; border-radius:4px; cursor:pointer;">Force Render</button>
+              <button id="dbg-reset-live" style="padding:4px 6px; font-size:11px; border:1px solid #455a64; background:#37474f; color:#e0f7fa; border-radius:4px; cursor:pointer;">Reset Live</button>
+              <button id="dbg-copy" style="padding:4px 6px; font-size:11px; border:1px solid #455a64; background:#263238; color:#b2ebf2; border-radius:4px; cursor:pointer;">Copy</button>
+            <div style="margin-top:8px;">Log:</div>
+            <pre id="dbg-log" style="height:160px; overflow:auto; background:#0b1418; color:#b2ebf2; padding:6px; border-radius:4px; white-space:pre-wrap;"></pre>
+            <div style="margin-top:6px; display:flex; gap:6px;">
+              <button id="dbg-copy-log" style="padding:4px 6px; font-size:11px; border:1px solid #455a64; background:#263238; color:#b2ebf2; border-radius:4px; cursor:pointer;">Copy Log</button>
+              <button id="dbg-clear-log" style="padding:4px 6px; font-size:11px; border:1px solid #455a64; background:#37474f; color:#e0f7fa; border-radius:4px; cursor:pointer;">Clear Log</button>
+            </div>
+            </div>
+          </div>
+        </div>
+        <script>
+          (function debugPanel(){
+            const t = document.getElementById('debug-toggle');
+            const c = document.getElementById('debug-content');
+            const r = document.getElementById('debug-refresh');
+            const btnRender = document.getElementById('dbg-force-render');
+            const btnReset = document.getElementById('dbg-reset-live');
+            const btnCopyLog = document.getElementById('dbg-copy-log');
+            const btnClearLog = document.getElementById('dbg-clear-log');
+            const dbgLog = document.getElementById('dbg-log');
+            function log(msg){ try { if (dbgLog) { const ts = new Date().toISOString(); dbgLog.textContent += `[${ts}] ${msg}\n`; dbgLog.scrollTop = dbgLog.scrollHeight; } } catch {} }
+            const S = id => document.getElementById(id);
+            function read(){
+              try {
+                const cm = window.chartManager;
+                const mode = cm?.mode ?? '-';
+                const liveLen = cm?.liveData?.length ?? '-';
+                const histLen = cm?.historicalData?.length ?? '-';
+                const ds0Len = cm?.chart?.data?.datasets?.[0]?.data?.length ?? '-';
+                const canvas = document.getElementById('memoryChart');
+                const cw = canvas?.clientWidth ?? '-';
+                const ch = canvas?.clientHeight ?? '-';
+                S('dbg-mode').textContent = String(mode);
+                S('dbg-live-len').textContent = String(liveLen);
+                S('dbg-hist-len').textContent = String(histLen);
+                S('dbg-ds0-len').textContent = String(ds0Len);
+                S('dbg-canvas').textContent = `${cw} × ${ch}`;
+                S('dbg-title').textContent = document.getElementById('chart-title')?.textContent || '-';
+                S('dbg-badge').textContent = document.getElementById('mode-badge')?.textContent || '-';
+                S('dbg-mode-ind').textContent = document.getElementById('chart-mode-indicator')?.textContent || '-';
+                // Flush any buffered logs from early instrumentation
+                try {
+                  if (window.__dbgBuf?.length && window.__dbgLog) {
+                    for (const line of window.__dbgBuf) window.__dbgLog(line);
+                    window.__dbgBuf.length = 0;
+                  }
+                } catch {}
+              } catch (e) {}
+            }
+            function forceRender(){
+              try {
+                const cm = window.chartManager;
+                if (!cm) return;
+                cm.updateChart();
+                if (cm.chart?.resize) cm.chart.resize();
+                read();
+              } catch (e) {}
+            }
+            function resetLive(){
+              try {
+                const cm = window.chartManager;
+                if (!cm) return;
+                cm.liveData = [];
+                cm.updateChart();
+                read();
+              } catch (e) {}
+            }
+            t?.addEventListener('click', () => {
+              if (!c) return;
+              const open = c.style.display !== 'none';
+              c.style.display = open ? 'none' : 'block';
+              t.textContent = open ? 'Debug ▸' : 'Debug ▾';
+              if (!open) read();
+            });
+            r?.addEventListener('click', read);
+            btnRender?.addEventListener('click', forceRender);
+            btnReset?.addEventListener('click', resetLive);
+            const btnCopy = document.getElementById('dbg-copy');
+            btnCopy?.addEventListener('click', async () => {
+              try {
+                const mode = document.getElementById('dbg-mode')?.textContent || '-';
+                const liveLen = document.getElementById('dbg-live-len')?.textContent || '-';
+                const ds0Len = document.getElementById('dbg-ds0-len')?.textContent || '-';
+                const canvas = document.getElementById('dbg-canvas')?.textContent || '-';
+                const text = `mode: ${mode}\nlive points: ${liveLen}\ndataset[0] len: ${ds0Len}\ncanvas size: ${canvas}`;
+                await navigator.clipboard.writeText(text);
+              } catch (e) { console.warn('Copy failed', e); }
+            });
+            btnCopyLog?.addEventListener('click', async () => {
+              try {
+                const txt = dbgLog?.textContent || '';
+                if (!txt) { alert('Debug log is empty'); return; }
+                if (navigator.clipboard && window.isSecureContext) {
+                  await navigator.clipboard.writeText(txt);
+                  alert(`Copied ${txt.length} characters to clipboard`);
+                } else {
+                  // Fallback for non-secure contexts/browsers
+                  const ta = document.createElement('textarea');
+                  ta.value = txt; document.body.appendChild(ta); ta.select();
+                  const ok = document.execCommand('copy');
+                  document.body.removeChild(ta);
+                  if (!ok) throw new Error('execCommand copy failed');
+                  alert(`Copied ${txt.length} characters to clipboard`);
+                }
+              } catch (e) {
+                console.warn('Copy log failed', e);
+                try {
+                  alert('Copy failed. Showing the log in a dialog. Press Cmd/Ctrl+C to copy, then Enter.');
+                  prompt('Copy the debug log text below:', dbgLog?.textContent || '');
+                } catch {}
+              }
+            });
+            btnClearLog?.addEventListener('click', () => { try { if (dbgLog) dbgLog.textContent=''; } catch {} });
+            // show panel only if debug is enabled
+            try {
+              const panel = document.getElementById('debug-panel');
+              if (window.__DEBUG_ENABLED && panel) panel.style.display = 'block';
+            } catch {}
+            // auto-refresh every 2s
+            setInterval(read, 2000);
+            // expose read and logger
+            window.__dbgRead = read;
+            window.__dbgLog = log;
+          })();
+        </script>
+
+
+        <script>
+          // Fallback: define UnifiedMemoryChart if missing so live graph can render
+          (function ensureUMC(){
+            if (!window.UnifiedMemoryChart) {
+              window.UnifiedMemoryChart = class {
+                constructor() {
+                  this.mode = 'live';
+                  this.liveData = [];
+                  this.liveRanges = { '5m': { points: 300, label: '5 Minutes' } };
+                  this.currentLiveRange = '5m';
+                  this.chart = null;
+                  this.isInitialized = false;
+                }
+                async initialize() {
+                  this.isInitialized = true;
+                  // kick an initial fetch to populate header and first point
+                  setTimeout(() => { try { if (typeof window.fetchMemoryData === 'function') window.fetchMemoryData(); } catch {} }, 200);
+                  return this;
+                }
+                addRealtimePoint(p) {
+                  try {
+                    this.liveData.push({
+                      timestamp: p.timestamp,
+                      menubar_memory: p.menubar_memory || 0,
+                      service_memory: p.service_memory || 0
+                    });
+                    const max = this.liveRanges[this.currentLiveRange].points;
+                    if (this.liveData.length > max) this.liveData.shift();
+                    this.updateChart();
+                  } catch (e) {}
+                }
+                updateChart() {
+                  try {
+                    const canvas = document.getElementById('memoryChart');
+                    if (!canvas) return;
+                    const ctx = canvas.getContext('2d');
+                    if (!this.chart) {
+                      this.chart = new Chart(ctx, {
+                        type: 'line',
+                        data: { labels: [], datasets: [
+                          { label: 'Menu Bar App (MB)', data: [], borderColor: '#2196F3', backgroundColor: 'rgba(33,150,243,0.1)', tension: 0.4, fill: true },
+                          { label: 'Main Service (MB)', data: [], borderColor: '#4CAF50', backgroundColor: 'rgba(76,175,80,0.1)', tension: 0.4, fill: true }
+                        ] },
+                        options: {
+                          responsive: true,
+                          maintainAspectRatio: false,
+                          interaction: { intersect: false, mode: 'index' },
+                          scales: { y: { beginAtZero: true, title: { display: true, text: 'Memory Usage (MB)' } }, x: { title: { display: true, text: 'Time' } } }
+                        }
+                      });
+                    }
+                    const data = this.liveData;
+                    this.chart.data.labels = data.map(d => new Date(d.timestamp).toLocaleTimeString());
+                    this.chart.data.datasets[0].data = data.map(d => d.menubar_memory || 0);
+                    this.chart.data.datasets[1].data = data.map(d => d.service_memory || 0);
+                    this.chart.update();
+                    try { this.chart.resize(); } catch {}
+                  } catch (e) {}
+                }
+              };
+            }
+          })();
+
+	          // Patch prototype to ensure historical mode exists even with minimal fallback class
+	          (function patchUMC(){
+	            try {
+	              const UMC = window.UnifiedMemoryChart;
+	              if (!UMC) return;
+	              if (!UMC.prototype.clearChart) {
+	                UMC.prototype.clearChart = function(){
+	                  try {
+	                    this.liveData = this.liveData || [];
+	                    this.historicalData = [];
+	                    if (this.chart) {
+	                      this.chart.data.labels = [];
+	                      if (this.chart.data.datasets?.[0]) this.chart.data.datasets[0].data = [];
+	                      if (this.chart.data.datasets?.[1]) this.chart.data.datasets[1].data = [];
+	                      this.chart.update();
+	                    }
+	                    const pts = document.getElementById('chart-points-count'); if (pts) pts.textContent = '0 pts';
+	                    const last = document.getElementById('chart-last-update'); if (last) last.textContent = '—';
+	                  } catch {}
+	                };
+	              }
+	              if (!UMC.prototype.switchToLiveMode) {
+	                UMC.prototype.switchToLiveMode = function(){
+	                  try {
+	                    this.mode = 'live';
+	                    const ct = document.getElementById('chart-title'); if (ct) ct.textContent = 'Live Memory Usage';
+	                    const mb = document.getElementById('mode-badge'); if (mb){ mb.textContent='Live'; mb.style.background='#4CAF50'; }
+	                    const modeInd = document.getElementById('chart-mode-indicator');
+	                    if (modeInd) {
+	                      const rMap = (this.liveRanges||{})[this.currentLiveRange||'5m'];
+	                      modeInd.textContent = 'Live' + (rMap?.label ? `: ${rMap.label}` : '');
+	                    }
+	                    // Explicitly restyle mode toggle buttons and options
+	                    try {
+	                      const liveBtn = document.getElementById('realtime-btn');
+	                      const histBtn = document.getElementById('historical-btn');
+	                      if (liveBtn) { liveBtn.style.background = '#4CAF50'; liveBtn.style.color = 'white'; liveBtn.style.boxShadow = '0 2px 4px rgba(76,175,80,0.3)'; }
+	                      if (histBtn) { histBtn.style.background = 'white'; histBtn.style.color = '#666'; histBtn.style.boxShadow = 'none'; }
+	                      const liveOpts = document.getElementById('live-options'); if (liveOpts) liveOpts.style.display = 'flex';
+	                      const historicalOpts = document.getElementById('historical-options'); if (historicalOpts) historicalOpts.style.display = 'none';
+	                    } catch {}
+	                    if (typeof this.updateChart === 'function') this.updateChart();
+	                    if (typeof this.updateUI === 'function') this.updateUI();
+	                  } catch {}
+	                };
+	              }
+	              if (!UMC.prototype.switchToHistoricalMode) {
+	                UMC.prototype.switchToHistoricalMode = async function(timeRange){
+	                  try {
+	                    this.mode = 'historical';
+	                    this.currentTimeRange = String(timeRange || this.currentTimeRange || '1');
+	                    this.currentResolution = this.currentResolution || 'full';
+	                    const ct = document.getElementById('chart-title'); if (ct) ct.textContent = 'Loading historical data...';
+	                    const mb = document.getElementById('mode-badge'); if (mb){ mb.textContent='Historical'; mb.style.background='#2196F3'; }
+	                    const modeInd = document.getElementById('chart-mode-indicator'); if (modeInd) modeInd.textContent = 'Historical (loading...)';
+	                    const url = `/api/historical-chart?hours=${this.currentTimeRange}&resolution=${this.currentResolution}`;
+	                    const res = await fetch(url);
+	                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+	                    const payload = await res.json();
+	                    this.historicalData = Array.isArray(payload?.points) ? payload.points : [];
+	                    // Render directly without relying on updateChart implementation
+	                    const canvas = document.getElementById('memoryChart');
+	                    if (!this.chart && canvas) {
+	                      const ctx = canvas.getContext('2d');
+	                      this.chart = new Chart(ctx, {
+	                        type: 'line',
+	                        data: { labels: [], datasets: [
+	                          { label: 'Menu Bar App (MB)', data: [], borderColor: '#2196F3', backgroundColor: 'rgba(33,150,243,0.1)', tension: 0.4, fill: true },
+	                          { label: 'Main Service (MB)', data: [], borderColor: '#4CAF50', backgroundColor: 'rgba(76,175,80,0.1)', tension: 0.4, fill: true }
+	                        ]},
+	                        options: { responsive:true, maintainAspectRatio:false, interaction:{intersect:false, mode:'index'},
+	                          scales:{ y:{ beginAtZero:true, title:{ display:true, text:'Memory Usage (MB)' } }, x:{ title:{ display:true, text:'Time'} } } }
+	                      });
+	                    }
+	                    const data = this.historicalData;
+	                    if (this.chart) {
+	                      this.chart.data.labels = data.map(d => new Date(d.timestamp).toLocaleString());
+	                      this.chart.data.datasets[0].data = data.map(d => d.menubar_memory || 0);
+	                      this.chart.data.datasets[1].data = data.map(d => d.service_memory || 0);
+	                      this.chart.update();
+
+						// Ensure mode toggle buttons reflect Historical selection
+						(function(){
+						  try {
+						    const liveBtn = document.getElementById('realtime-btn');
+						    const histBtn = document.getElementById('historical-btn');
+						    if (liveBtn) { liveBtn.style.background = 'white'; liveBtn.style.color = '#666'; liveBtn.style.boxShadow = 'none'; }
+						    if (histBtn) { histBtn.style.background = '#2196F3'; histBtn.style.color = 'white'; histBtn.style.boxShadow = '0 2px 4px rgba(33, 150, 243, 0.3)'; }
+						  } catch {}
+						})();
+
+	                    }
+	                    const pts = document.getElementById('chart-points-count'); if (pts) pts.textContent = `${data.length} pts`;
+	                    const last = document.getElementById('chart-last-update'); if (last) last.textContent = 'Loaded';
+	                    if (ct) ct.textContent = 'Historical Memory Usage';
+	                    if (modeInd) modeInd.textContent = `Historical (${this.currentTimeRange === 'all' ? 'Since Start' : 'Last ' + this.currentTimeRange + ' Hours'})`;
+	                  } catch (e) {
+	                    console.warn('Polyfill historical failed', e);
+	                    try { alert('Failed to load historical data. Returning to Live.'); } catch {}
+	                    this.switchToLiveMode?.();
+	                  }
+	                };
+
+	              if (!UMC.prototype.refreshHistoricalData) {
+	                UMC.prototype.refreshHistoricalData = async function(){
+	                  try {
+	                    if (this.mode !== 'historical') return;
+	                    const url = `/api/historical-chart?hours=${this.currentTimeRange || '1'}&resolution=${this.currentResolution || 'full'}`;
+	                    const res = await fetch(url);
+	                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+	                    const payload = await res.json();
+	                    const data = Array.isArray(payload?.points) ? payload.points : [];
+	                    this.historicalData = data;
+	                    if (this.chart) {
+	                      this.chart.data.labels = data.map(d => new Date(d.timestamp).toLocaleString());
+	                      this.chart.data.datasets[0].data = data.map(d => d.menubar_memory || 0);
+	                      this.chart.data.datasets[1].data = data.map(d => d.service_memory || 0);
+	                      this.chart.update();
+	                    }
+	                    const pts = document.getElementById('chart-points-count'); if (pts) pts.textContent = `${data.length} pts`;
+	                    const last = document.getElementById('chart-last-update'); if (last) last.textContent = 'Loaded';
+	                    const modeInd = document.getElementById('chart-mode-indicator');
+	                    if (modeInd) modeInd.textContent = `Historical (${this.currentTimeRange === 'all' ? 'Since Start' : 'Last ' + this.currentTimeRange + ' Hours'})`;
+	                  } catch (e) { console.warn('Polyfill refreshHistoricalData failed', e); }
+	                };
+	              }
+
+	              }
+	            } catch {}
+	          })();
+
+
+          // Final safety boot: ensure chartManager exists and is initialized
+          (function finalBoot(){
+            function bootOnce(){
+              if (!window.chartManager && window.UnifiedMemoryChart) {
+                try {
+                  window.chartManager = new window.UnifiedMemoryChart();
+                  if (typeof window.chartManager.initialize === 'function') {
+                    window.chartManager.initialize().then(() => {
+                      if (typeof window.fetchMemoryData === 'function') window.fetchMemoryData();
+                      if (typeof window.__dbgRead === 'function') window.__dbgRead();
+                    }).catch(()=>{});
+                  }
+                } catch(e) { /* ignore */ }
+              }
+            }
+            // Try now and after a short delay to cover load timing
+            bootOnce();
+            setTimeout(bootOnce, 400);
+          })();
+        </script>
+
+  <script>
+    // Help overlays: toggle, outside-click, ESC, and persistence
+    (function(){
+      function getEls(kind){
+        const overlay = document.getElementById(kind+'-help-overlay');
+        const toggle = document.getElementById(kind+'-help-toggle');
+        const container = toggle ? toggle.closest('.chart-container') : null;
+        const backdropId = kind+'-help-backdrop';
+        let backdrop = container ? container.querySelector('#'+backdropId) : null;
+        if (!backdrop && container) {
+          backdrop = document.createElement('div');
+          backdrop.id = backdropId;
+          backdrop.style.cssText = 'position:absolute; left:0; right:0; top:0; bottom:0; background:rgba(0,0,0,0.12); z-index:18; display:none; backdrop-filter:saturate(1)';
+          container.appendChild(backdrop);
+        }
+        return { overlay, toggle, container, backdrop };
+      }
+      function setState(kind, open){
+        try { localStorage.setItem('umc_help_'+kind, open ? '1' : '0'); } catch {}
+      }
+      function getState(kind){
+        try { return localStorage.getItem('umc_help_'+kind) === '1'; } catch { return false; }
+      }
+      function show(kind){
+        const { overlay, toggle, backdrop } = getEls(kind);
+        if (!overlay || !toggle) return;
+        overlay.style.transform = 'translateY(0)';
+        overlay.setAttribute('data-open', '1');
+        toggle.textContent = 'Help ▾';
+        if (backdrop) { backdrop.style.display = 'block'; }
+        setState(kind, true);
+      }
+      function hide(kind){
+        const { overlay, toggle, backdrop } = getEls(kind);
+        if (!overlay || !toggle) return;
+        overlay.style.transform = 'translateY(-100%)';
+        overlay.setAttribute('data-open', '0');
+        toggle.textContent = 'Help ▸';
+        if (backdrop) { backdrop.style.display = 'none'; }
+        setState(kind, false);
+      }
+      window.toggleHelp = function(kind, ev){
+        if (ev && typeof ev.stopPropagation === 'function') ev.stopPropagation();
+        const { overlay } = getEls(kind);
+        if (!overlay) return;
+        const open = overlay.getAttribute('data-open') === '1';
+        open ? hide(kind) : show(kind);
+      };
+      // Outside click handling
+      function outsideClick(kind, ev){
+        const { overlay, container } = getEls(kind);
+        if (!overlay || !container) return;
+        if (overlay.getAttribute('data-open') !== '1') return;
+        if (!overlay.contains(ev.target) && container.contains(ev.target)) hide(kind);
+      }
+      document.addEventListener('click', (ev)=>{ outsideClick('mem', ev); outsideClick('cpu', ev); });
+      // ESC to close
+      document.addEventListener('keydown', (ev)=>{
+        if (ev.key === 'Escape') { hide('mem'); hide('cpu'); }
+      });
+      // Restore persisted state
+      function restore(){
+        if (getState('mem')) show('mem');
+        if (getState('cpu')) show('cpu');
+      }
+      // Defer restore until after DOM
+      setTimeout(restore, 0);
+    })();
+  </script>
+
+
+
     </div> <!-- Close container -->
+  <script>
+    // Failsafe boot: construct chartManager if still missing at very end
+    (function ensureCM(){
+      if (!window.chartManager && window.UnifiedMemoryChart) {
+        try {
+          window.chartManager = new window.UnifiedMemoryChart();
+          if (typeof window.chartManager.initialize === 'function') {
+            window.chartManager.initialize().then(()=>{
+              if (typeof window.fetchMemoryData === 'function') window.fetchMemoryData();
+              if (typeof window.__dbgRead === 'function') window.__dbgRead();
+            }).catch(()=>{});
+          }
+        } catch(e) {}
+      }
+    })();
+  </script>
 </body>
 </html>
         '''
@@ -3414,6 +4489,7 @@ class UnifiedMemoryDashboard:
                 analysis[process_name] = {
                     "status": "insufficient_data",
                     "severity": "low",
+
                     "growth_rate_mb": 0,
                     "total_growth_mb": 0,
                     "start_memory_mb": 0,
@@ -3479,14 +4555,11 @@ class UnifiedMemoryDashboard:
         self.monitoring_active = False
         duration = None
         data_points_collected = len(self.advanced_data_history)
-
         if self.monitoring_start_time:
             duration = (datetime.now() - self.monitoring_start_time).total_seconds()
-
         # The background thread will stop automatically when monitoring_active becomes False
         print(f"Stopped advanced monitoring - background collection will cease")
         print(f"Advanced monitoring session collected {data_points_collected} data points")
-
         return {
             "status": "stopped",
             "duration_seconds": duration,
@@ -3494,6 +4567,27 @@ class UnifiedMemoryDashboard:
             "message": "Advanced monitoring stopped",
             "background_collection": "disabled"
         }
+
+    def get_top_offenders(self, hours=24):
+        """Compute top offenders over the selected range by growth and rate"""
+        hist = self.get_historical_data(hours)
+        offenders = []
+        try:
+            def analyze(points, label):
+                if not points or len(points) < 2:
+                    return {'name': label, 'total_growth_mb': 0, 'growth_rate_mb_per_hour': 0, 'start_mb': 0, 'end_mb': 0, 'points': len(points)}
+                vals = [p.get('memory_rss_mb', 0) for p in points]
+                start = vals[0]; end = vals[-1]
+                total_growth = end - start
+                duration_hours = max(1/60, (datetime.fromisoformat(points[-1]['timestamp']) - datetime.fromisoformat(points[0]['timestamp'])).total_seconds()/3600)
+                rate = total_growth / duration_hours
+                return {'name': label, 'total_growth_mb': round(total_growth,2), 'growth_rate_mb_per_hour': round(rate,2), 'start_mb': round(start,2), 'end_mb': round(end,2), 'points': len(points)}
+            offenders.append(analyze(hist.get('menu_bar', []), 'Menu Bar App'))
+            offenders.append(analyze(hist.get('main_service', []), 'Main Service'))
+            offenders.sort(key=lambda x: (x['total_growth_mb'], x['growth_rate_mb_per_hour']), reverse=True)
+        except Exception:
+            pass
+        return offenders[:5]
 
     def _background_monitoring_loop(self):
         """Background thread for advanced monitoring data collection"""
@@ -3506,6 +4600,14 @@ class UnifiedMemoryDashboard:
 
                 # Add to advanced monitoring history (separate from basic data collection)
                 self.advanced_data_history.append(memory_data)
+
+                # Feed snapshots to the leak detector (use total memory for overall trend)
+                try:
+                    total_mb = memory_data.get('total_memory', 0)
+                    self.leak_detector.take_memory_snapshot({ 'memory_rss_mb': total_mb })
+                except Exception as _e:
+                    # Non-fatal; continue collection
+                    pass
 
                 # Limit advanced history size
                 if len(self.advanced_data_history) > self.max_history:
@@ -3571,8 +4673,28 @@ class UnifiedMemoryDashboard:
             return {"status": "error", "error": str(e)}
 
     def get_leak_analysis(self):
-        """Get comprehensive leak analysis"""
-        return self.leak_detector.analyze_for_leaks()
+        """Get comprehensive leak analysis with runtime meta for UI.
+        Always includes:
+          - snapshots_total: total snapshots in detector buffer
+          - advanced_points: number of advanced monitoring points collected
+          - monitoring_active: whether background monitoring is running
+          - interval: current monitoring interval (seconds)
+        """
+        try:
+            result = self.leak_detector.analyze_for_leaks()
+            if not isinstance(result, dict):
+                result = {"status": str(result)}
+        except Exception as e:
+            result = {"status": "error", "error": str(e)}
+
+        # Attach meta so the UI can show progress even before analysis stabilizes
+        result.update({
+            "snapshots_total": len(self.leak_detector.memory_snapshots),
+            "advanced_points": len(self.advanced_data_history),
+            "monitoring_active": self.monitoring_active,
+            "interval": self.monitor_interval,
+        })
+        return result
 
     def get_comprehensive_dashboard_data(self):
         """Provides a comprehensive payload for the dashboard, including historical and real-time data."""
@@ -3707,6 +4829,11 @@ class UnifiedMemoryDashboard:
                 "status_message": f"Error getting status: {str(e)}",
                 "error": str(e),
                 "timestamp": datetime.now().isoformat()
+,
+                "health": {
+                    "score": health_score,
+                    "budgets": self.budgets
+                }
             }
 
     def get_monitoring_dashboard_data(self):
@@ -3805,6 +4932,33 @@ class UnifiedMemoryDashboard:
                     # Limit history size
                     if len(self.data_history) > self.max_history:
                         self.data_history = self.data_history[-self.max_history:]
+
+                        # Compute simple anomalies (z-score over last N)
+                        try:
+                            N = 60
+                            recent = self.data_history[-N:]
+                            def ez(arr):
+                                import statistics
+                                if len(arr) < 5: return 0,0,0
+                                mean = statistics.mean(arr)
+                                st = statistics.pstdev(arr) or 1.0
+                                z = (arr[-1] - mean) / st
+                                return z, mean, st
+                            z_total, mean_total, st_total = ez([p.get('menubar_memory',0)+p.get('service_memory',0)+p.get('dashboard_memory',0) for p in recent])
+                            z_m, mean_m, st_m = ez([p.get('menubar_memory',0) for p in recent])
+                            z_s, mean_s, st_s = ez([p.get('service_memory',0) for p in recent])
+                            anomalies = []
+                            if abs(z_total) >= 3: anomalies.append({"type":"total_memory_z3","z":round(z_total,2)})
+                            if abs(z_m) >= 3: anomalies.append({"type":"menubar_memory_z3","z":round(z_m,2)})
+                            if abs(z_s) >= 3: anomalies.append({"type":"service_memory_z3","z":round(z_s,2)})
+                        except Exception:
+                            anomalies = []
+
+                        data['anomalies'] = anomalies
+                        data['health'] = {
+                            'score': (100 - min(100, (menubar_memory+service_memory+dashboard_memory) / self.budgets.get('total_memory_mb',600.0) * 100)),
+                            'budgets': self.budgets
+                        }
 
                     time.sleep(1)  # Collect data every second
                 except Exception as e:
