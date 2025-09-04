@@ -262,6 +262,14 @@ function updateAnalysisDisplay(data) {
     if (trendAnalysis) trendAnalysis.innerHTML = msg;
     return;
   }
+  if (Object.keys(data).length === 0) {
+    if (trendAnalysis) {
+      const loading = trendAnalysis.querySelector('.loading');
+      if (loading) loading.remove();
+      trendAnalysis.innerHTML = '<div style="padding:12px; color:#666;">No analysis data yet. Start Advanced Monitoring and let it collect for a minute, then stop to analyze.</div>';
+    }
+    return;
+  }
 
   let trendHtml = '<div class="grid-3-12" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 12px;">';
   for (const [process, analysis] of Object.entries(data)) {
@@ -409,7 +417,7 @@ function updateLeakAnalysisDisplay(leakData) {
   };
 
   if (!leakData || Object.keys(leakData).length === 0) {
-    showMsg('No leak analysis data available. Start Advanced Monitoring to collect data.');
+    showMsg('No leak analysis data available. Start Advanced Monitoring and let it run for a minute.');
     return;
   }
 
