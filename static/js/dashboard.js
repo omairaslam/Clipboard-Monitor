@@ -93,6 +93,24 @@ if (typeof window !== 'undefined') {
   window.loadAnalysisData = loadAnalysisData;
 }
 
+// Safely parse JSON; returns {} on empty/invalid bodies
+async function readJsonSafe(response) {
+  try {
+    const ct = response.headers.get('content-type') || '';
+    const text = await response.text();
+    if (!text || !text.trim()) return {};
+    if (ct.includes('application/json') || text.trim().startsWith('{') || text.trim().startsWith('[')) {
+      try { return JSON.parse(text); } catch (e) { if (window.CM_DEBUG) console.error('Invalid JSON body', e, text.slice(0, 200)); return {}; }
+    }
+    if (window.CM_DEBUG) console.warn('Non-JSON response body', text.slice(0, 200));
+    return {};
+  } catch (e) {
+    if (window.CM_DEBUG) console.error('Failed to read body', e);
+    return {};
+  }
+}
+
+
 async function loadAnalysisData() {
   try {
     if (typeof window.isTabActive === 'function' && !window.isTabActive('analysis')) return;
@@ -102,10 +120,10 @@ async function loadAnalysisData() {
     const timeRangeElement = document.getElementById('analysisTimeRange') || document.getElementById('timeRange');
     const hours = timeRangeElement ? timeRangeElement.value : 24;
     const response = await fetch(`/api/analysis?hours=${hours}`, { signal });
-    const data = await response.json();
+    const data = await readJsonSafe(response);
     if (typeof window.updateAnalysisDisplay === 'function') window.updateAnalysisDisplay(data);
     const leakResponse = await fetch('/api/leak_analysis', { signal });
-    const leakData = await leakResponse.json();
+    const leakData = await readJsonSafe(leakResponse);
     if (typeof window.updateLeakAnalysisDisplay === 'function') window.updateLeakAnalysisDisplay(leakData);
     if (typeof window.updateSessionFindings === 'function') window.updateSessionFindings(data, leakData);
 
@@ -203,43 +221,32 @@ function updateAnalysisDisplay(data) {
     if (trendAnalysis) trendAnalysis.innerHTML = msg;
     return;
   }
-  let trendHtml = '<div style="display: grid; gap: 12px;">';
+
+  let trendHtml = '<div class="grid-3-12" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 12px;">';
   for (const [process, analysis] of Object.entries(data)) {
     const statusColor = analysis.severity === 'high' ? '#e74c3c' : analysis.severity === 'medium' ? '#f39c12' : '#27ae60';
+    const sparklineId = `sparkline-${process}`;
     trendHtml += `
       <div style="padding: 15px; background: rgba(0,0,0,0.05); border-radius: 8px;">
-        <h4>${process.replace('_', ' ').toUpperCase()}</h4>
+        <h4>${process.replace(/_/g, ' ').toUpperCase()}</h4>
         <p><strong>Status:</strong> <span style="color: ${statusColor};">${analysis.status}</span></p>
         <p><strong>Start Memory:</strong> ${(analysis.start_memory_mb?.toFixed(2) || 0)} MB</p>
         <p><strong>End Memory:</strong> ${(analysis.end_memory_mb?.toFixed(2) || 0)} MB</p>
         <p><strong>Total Growth:</strong> ${(analysis.total_growth_mb?.toFixed(2) || 0)} MB</p>
         <p><strong>Growth Rate:</strong> ${(analysis.growth_rate_mb?.toFixed(2) || 0)} MB/hour</p>
         <p><strong>Data Points:</strong> ${analysis.data_points || 0}</p>
+        <div class="sparkline-container" style="height: 50px; margin-top: 10px;">
+          <canvas id="${sparklineId}"></canvas>
+        </div>
       </div>`;
   }
   trendHtml += '</div>';
+
   const trendContainer = document.getElementById('trend-analysis');
   if (trendContainer) {
-    // Remove any inline loading text within this container
     const loading = trendContainer.querySelector('.loading');
-
-    // Top offenders section (if present) — fire-and-forget async refresh
-    (async function refreshTopOffenders(){
-      try {
-        const el = document.getElementById('top-offenders');
-        if (el) {
-          const hoursEl = document.getElementById('analysisTimeRange') || document.getElementById('timeRange');
-          const hours = hoursEl ? hoursEl.value : 24;
-          const resp = await fetch(`/api/top_offenders?hours=${hours}`);
-          const offenders = await resp.json();
-          el.innerHTML = offenders.map(o => `<div style="display:flex; justify-content:space-between; padding:6px 8px; background:#f8f9fa; border-radius:4px; margin-bottom:4px;"><span>${o.name}</span><span style=\"font-variant-numeric:tabular-nums; color:#666;\">${o.total_growth_mb.toFixed(2)} MB • ${o.growth_rate_mb_per_hour.toFixed(2)} MB/h</span></div>`).join('');
-        }
-      } catch {}
-    })();
-
     if (loading) loading.remove();
 
-    // Ensure existing stub persists by updating only the cards region
     let cards = document.getElementById('trend-cards');
     if (!cards) {
       cards = document.createElement('div');
@@ -247,7 +254,50 @@ function updateAnalysisDisplay(data) {
       trendContainer.appendChild(cards);
     }
     cards.innerHTML = trendHtml;
+
+    // Draw sparklines after a short delay to ensure canvases are in the DOM
+    setTimeout(() => {
+      for (const [process, analysis] of Object.entries(data)) {
+        if (analysis.sparkline && analysis.sparkline.length > 0) {
+          const sparklineId = `sparkline-${process}`;
+          drawSparkline(sparklineId, analysis.sparkline, '#2196F3');
+        }
+      }
+    }, 100);
   }
+}
+
+function drawSparkline(canvasId, data, color) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: Array(data.length).fill(''),
+            datasets: [{
+                data: data,
+                borderColor: color,
+                borderWidth: 2,
+                pointRadius: 0,
+                fill: true,
+                backgroundColor: 'rgba(33, 150, 243, 0.1)',
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: { enabled: false }
+            },
+            scales: {
+                x: { display: false },
+                y: { display: false }
+            }
+        }
+    });
 }
 
 function updateLeakAnalysisDisplay(leakData) {
@@ -345,7 +395,7 @@ function updateLeakAnalysisDisplay(leakData) {
     const copyIcon = `<span id="copy-analysis-meta" title="Copy analysis meta" style="cursor:pointer; font-size:12px; color:#266eb6;">📋</span>`;
 
     const html = `
-      ${header(meta, `<span style=\"display:flex; align-items:center; gap:8px;\">${trendBadge}${copyIcon}</span>`)}
+      ${header(meta, `<span style="display:flex; align-items:center; gap:8px;">${trendBadge}${copyIcon}</span>`)}
       <div style="padding: 15px; border-left: 4px solid ${statusColor}; background: rgba(0,0,0,0.05); border-radius: 5px;">
         <h4 style="margin: 0 0 10px 0;">OVERALL</h4>
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
@@ -772,4 +822,3 @@ async function copyLatestAnalysisJson() {
 if (typeof window !== 'undefined') {
   window.copyLatestAnalysisJson = copyLatestAnalysisJson;
 }
-

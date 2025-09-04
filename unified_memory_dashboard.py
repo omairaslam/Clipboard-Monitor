@@ -1502,6 +1502,67 @@ class UnifiedMemoryDashboard:
                     <div class="loading">Loading trend analysis...</div>
                 </div>
 
+<script>
+    function drawSparkline(canvasId, data, color) {
+        const canvas = document.getElementById(canvasId);
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: Array(data.length).fill(''),
+                datasets: [{
+                    data: data,
+                    borderColor: color,
+                    borderWidth: 1,
+                    pointRadius: 0,
+                    fill: false
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                legend: { display: false },
+                scales: {
+                    xAxes: [{ display: false }],
+                    yAxes: [{ display: false }]
+                },
+                tooltips: { enabled: false }
+            }
+        });
+    }
+
+    function updateAnalysisDisplay(data) {
+        const trendAnalysis = document.getElementById('trend-analysis');
+        if (!trendAnalysis) return;
+
+        let html = '<div class="grid-3-12">_</div>';
+        for (const processName in data) {
+            const processData = data[processName];
+            const sparklineId = `sparkline-${processName}`;
+            html += `
+                <div class="card">
+                    <h4>${processName.replace('_', ' ')}</h4>
+                    <p>Status: ${processData.status}</p>
+                    <p>Growth Rate: ${processData.growth_rate_mb.toFixed(2)} MB/hr</p>
+                    <div class="sparkline-container" style="height: 50px;">
+                        <canvas id="${sparklineId}"></canvas>
+                    </div>
+                </div>
+            `;
+        }
+        trendAnalysis.innerHTML = html;
+
+        for (const processName in data) {
+            const processData = data[processName];
+            if (processData.sparkline) {
+                const sparklineId = `sparkline-${processName}`;
+                drawSparkline(sparklineId, processData.sparkline, '#2196F3');
+            }
+        }
+    }
+</script>
+
             </div>
             <div class="card">
                 <h3>🔥 Top Offenders (Memory Growth)</h3>
@@ -2114,6 +2175,15 @@ class UnifiedMemoryDashboard:
             }
         }
 
+
+	        // Safe JSON reader fallback (uses window.readJsonSafe if available)
+	        async function __jsonSafe(resp){
+	            try {
+	                if (typeof window.readJsonSafe === 'function') return await window.readJsonSafe(resp);
+	                try { return await resp.json(); } catch (e) { return {}; }
+	            } catch (e) { return {}; }
+	        }
+
         async function loadAnalysisData() {
             try {
                 if (typeof window !== 'undefined' && window.CM_DEBUG) console.log('[analysis] loadAnalysisData: running (guard disabled)');
@@ -2135,10 +2205,10 @@ class UnifiedMemoryDashboard:
                     throw e;
                 }
                 if (window.CM_DEBUG) console.log('[analysis] /api/analysis status', response.status);
-                const data = await response.json();
-                if (!data || typeof data !== 'object') {
+                const data = await __jsonSafe(response);
+                if (!data || typeof data !== 'object' || Array.isArray(data)) {
                     const analysisSummary = document.getElementById('analysis-summary');
-                    const msg = `<div style=\"color:#e74c3c; padding:10px;\">❌ Unexpected analysis payload</div>`;
+                    const msg = `<div style=\"color:#e74c3c; padding:10px;\">❌ Unexpected or empty analysis payload</div>`;
                     if (analysisSummary) analysisSummary.innerHTML = msg;
                 }
                 if (window.CM_DEBUG) console.log('[analysis] updateAnalysisDisplay ->', !!window.__module_updateAnalysisDisplay);
@@ -2153,7 +2223,7 @@ class UnifiedMemoryDashboard:
                     throw e;
                 }
                 if (window.CM_DEBUG) console.log('[analysis] /api/leak_analysis status', leakResponse.status);
-                const leakData = await leakResponse.json();
+                const leakData = await __jsonSafe(leakResponse);
                 if (window.CM_DEBUG) console.log('[analysis] updateLeakAnalysisDisplay ->', !!window.__module_updateLeakAnalysisDisplay);
                 updateLeakAnalysisDisplay(leakData);
 
@@ -4434,56 +4504,94 @@ class UnifiedMemoryDashboard:
         return filtered
 
     def get_analysis_data(self, hours=24):
-        """Get memory leak analysis data"""
+        """Get memory leak analysis data, including sparklines."""
         historical_data = self.get_historical_data(hours)
         analysis = {}
 
-        # Only process actual process data, skip metadata keys
-        process_keys = ['main_service', 'menu_bar', 'system']
+        # Process individual processes
+        process_keys = ['menu_bar_app', 'main_service']
         for process_name in process_keys:
-            points = historical_data.get(process_name, [])
+            # The key in historical_data might be slightly different
+            points = historical_data.get(process_name, historical_data.get(process_name.replace('_', ''), []))
+
             if not isinstance(points, list) or len(points) < 2:
                 analysis[process_name] = {
-                    "status": "insufficient_data",
-                    "severity": "low",
-
-                    "growth_rate_mb": 0,
-                    "total_growth_mb": 0,
-                    "start_memory_mb": 0,
-                    "end_memory_mb": 0,
-                    "data_points": len(points) if isinstance(points, list) else 0
+                    "status": "insufficient_data", "severity": "low",
+                    "growth_rate_mb": 0, "total_growth_mb": 0,
+                    "start_memory_mb": 0, "end_memory_mb": 0,
+                    "data_points": len(points) if isinstance(points, list) else 0,
+                    "sparkline": []
                 }
                 continue
 
-            memory_values = [p.get('memory_rss_mb', 0) for p in points]
-            if not memory_values:
-                continue
+            memory_values = [p.get('memory_mb', p.get('memory_rss_mb', 0)) for p in points]
 
-            # Calculate growth rate
-            start_memory = memory_values[0]
-            end_memory = memory_values[-1]
-            growth = end_memory - start_memory
-            growth_rate = growth / len(memory_values) if len(memory_values) > 0 else 0
+            start_memory = memory_values[0] if memory_values else 0
+            end_memory = memory_values[-1] if memory_values else 0
+            total_growth = end_memory - start_memory
 
-            # Determine status
-            if growth_rate > 5.0:
+            # Calculate growth rate in MB per hour
+            duration_hours = (points[-1]['timestamp'] - points[0]['timestamp']) / 3600 if len(points) > 1 else 1
+            growth_rate = total_growth / duration_hours if duration_hours > 0 else 0
+
+            severity = "low"
+            if growth_rate > 10:
                 status = "potential_leak"
                 severity = "high"
-            elif growth_rate > 2.0:
+            elif growth_rate > 2:
                 status = "monitoring_needed"
                 severity = "medium"
             else:
                 status = "normal"
-                severity = "low"
 
             analysis[process_name] = {
                 "status": status,
                 "severity": severity,
                 "growth_rate_mb": growth_rate,
-                "total_growth_mb": growth,
+                "total_growth_mb": total_growth,
                 "start_memory_mb": start_memory,
                 "end_memory_mb": end_memory,
-                "data_points": len(points)
+                "data_points": len(points),
+                "sparkline": memory_values
+            }
+
+        # Analyze total memory
+        total_points = historical_data.get('total_memory', [])
+        if len(total_points) > 1:
+            memory_values = [p.get('memory_mb', 0) for p in total_points]
+            start_memory = memory_values[0]
+            end_memory = memory_values[-1]
+            total_growth = end_memory - start_memory
+            duration_hours = (total_points[-1]['timestamp'] - total_points[0]['timestamp']) / 3600
+            growth_rate = total_growth / duration_hours if duration_hours > 0 else 0
+
+            severity = "low"
+            if growth_rate > 15:
+                status = "potential_leak"
+                severity = "high"
+            elif growth_rate > 5:
+                status = "monitoring_needed"
+                severity = "medium"
+            else:
+                status = "normal"
+
+            analysis['total_memory'] = {
+                "status": status,
+                "severity": severity,
+                "growth_rate_mb": growth_rate,
+                "total_growth_mb": total_growth,
+                "start_memory_mb": start_memory,
+                "end_memory_mb": end_memory,
+                "data_points": len(total_points),
+                "sparkline": memory_values
+            }
+        else:
+            analysis['total_memory'] = {
+                "status": "insufficient_data", "severity": "low",
+                "growth_rate_mb": 0, "total_growth_mb": 0,
+                "start_memory_mb": 0, "end_memory_mb": 0,
+                "data_points": len(total_points),
+                "sparkline": []
             }
 
         return analysis
