@@ -126,11 +126,52 @@ async function loadAnalysisData() {
     const leakData = await readJsonSafe(leakResponse);
     if (typeof window.updateLeakAnalysisDisplay === 'function') window.updateLeakAnalysisDisplay(leakData);
     if (typeof window.updateSessionFindings === 'function') window.updateSessionFindings(data, leakData);
+    // Update Top Offenders based on the same hours range
+    try { await updateTopOffenders(hours); } catch {}
 
   } catch (e) {
     if (e.name !== 'AbortError' && window.CM_DEBUG) console.error('Error loading analysis data:', e);
   }
 }
+
+async function updateTopOffenders(hours) {
+  try {
+    const container = document.getElementById('top-offenders');
+    if (!container) return;
+    const resp = await fetch(`/api/top_offenders?hours=${hours || '24'}`);
+    const data = await readJsonSafe(resp);
+    const list = Array.isArray(data) ? data : (Array.isArray(data?.offenders) ? data.offenders : []);
+    if (!list.length) {
+      container.innerHTML = '<div style="padding:10px; color:#666;">No offenders found for this range.</div>';
+      return;
+    }
+    const top = list.slice(0, 5);
+    let html = '<div style="display:grid; gap:8px;">';
+    for (const o of top) {
+      const name = o.name || o.label || 'Unknown';
+      const growth = Number(o.growth_mb ?? o.total_growth_mb ?? 0);
+      const rate = Number(o.growth_rate_mb ?? 0);
+      const points = Number(o.points ?? o.data_points ?? 0);
+      const sev = (o.severity || (growth > 50 ? 'high' : growth > 10 ? 'medium' : 'low'));
+      const sevColor = sev === 'high' ? '#e74c3c' : sev === 'medium' ? '#f39c12' : '#27ae60';
+      html += `
+        <div style="padding:10px; background:#fff; border-left:4px solid ${sevColor}; border-radius:5px;">
+          <div style="display:flex; justify-content:space-between;">
+            <strong>${name}</strong>
+            <span style="color:${sevColor}; text-transform:uppercase; font-size:12px;">${sev}</span>
+          </div>
+          <div style="font-size:12px; color:#666;">Total Growth: ${growth.toFixed(2)} MB • Rate: ${rate.toFixed(2)} MB/h • Points: ${points}</div>
+        </div>`;
+    }
+    html += '</div>';
+    container.innerHTML = html;
+  } catch (e) {
+    if (window.CM_DEBUG) console.error('Failed to update top offenders', e);
+    const container = document.getElementById('top-offenders');
+    if (container) container.innerHTML = '<div style="padding:10px; color:#B00020;">Failed to load top offenders</div>';
+  }
+}
+
 
 async function toggleAdvancedMonitoring() {
   const toggleBtn = document.getElementById('monitoringToggleBtn');
