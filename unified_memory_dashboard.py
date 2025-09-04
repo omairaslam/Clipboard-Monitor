@@ -257,7 +257,7 @@ class UnifiedMemoryDashboard:
         }
 
         # Monitoring configuration
-        self.monitor_interval = 30  # seconds
+        self.monitor_interval = 10  # seconds
         self.time_range_hours = 24  # hours
 
         # Auto-start configuration
@@ -428,14 +428,30 @@ class UnifiedMemoryDashboard:
                 except Exception:
                     hours = 24
 
-                self.send_response(200)
-                self.send_header('Content-type', 'application/json')
-                self.end_headers()
-                data = json.dumps(self.dashboard.get_analysis_data(hours))
                 try:
-                    self.wfile.write(data.encode())
-                except BrokenPipeError:
-                    pass
+                    payload = self.dashboard.get_analysis_data(hours)
+                    data = json.dumps(payload, default=str, allow_nan=True)
+                    self.send_response(200)
+                    self.send_header('Content-type', 'application/json')
+                    self.end_headers()
+                    try:
+                        self.wfile.write(data.encode())
+                    except BrokenPipeError:
+                        pass
+                except Exception as e:
+                    # Return a structured JSON error instead of a blank page
+                    self.send_response(500)
+                    self.send_header('Content-type', 'application/json')
+                    self.end_headers()
+                    err = json.dumps({
+                        'error': str(e),
+                        'message': 'Failed to compute analysis',
+                        'hours': hours
+                    })
+                    try:
+                        self.wfile.write(err.encode())
+                    except BrokenPipeError:
+                        pass
             elif path.startswith('/api/historical-chart'):
                 # Enhanced historical data for chart
                 try:
@@ -606,6 +622,33 @@ class UnifiedMemoryDashboard:
                 self.end_headers()
                 data = json.dumps(self.dashboard.get_dashboard_status())
                 self.wfile.write(data.encode())
+            elif path.startswith('/api/analysis_health'):
+                # Lightweight analysis readiness/summary endpoint
+                hours_param = query_params.get('hours', [24])[0]
+                try:
+                    hours = 'all' if hours_param == 'all' else int(hours_param)
+                except Exception:
+                    hours = 24
+                try:
+                    payload = self.dashboard.get_analysis_health(hours)
+                    data = json.dumps(payload, default=str, allow_nan=True)
+                    self.send_response(200)
+                    self.send_header('Content-type', 'application/json')
+                    self.end_headers()
+                    try:
+                        self.wfile.write(data.encode())
+                    except BrokenPipeError:
+                        pass
+                except Exception as e:
+                    self.send_response(500)
+                    self.send_header('Content-type', 'application/json')
+                    self.end_headers()
+                    err = json.dumps({'ok': False, 'error': str(e), 'hours': hours})
+                    try:
+                        self.wfile.write(err.encode())
+                    except BrokenPipeError:
+                        pass
+
             elif path.startswith('/static/'):
                 try:
                     file_path = os.path.join(os.getcwd(), path.lstrip('/'))
@@ -632,6 +675,8 @@ class UnifiedMemoryDashboard:
             else:
                 self.send_response(404)
                 self.end_headers()
+
+
 
         def log_message(self, format, *args):
             """Suppress default logging."""
@@ -713,6 +758,22 @@ class UnifiedMemoryDashboard:
                         <span id="analysis-ready-dot" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#bbb;"></span>
                         <span id="analysis-ready-text" style="font-weight:600;">Not ready</span>
                     </span>
+                        <span id="consistency-badge" title="Trend consistency (R²)" style="display:flex; align-items:center; gap:6px; background:#f1f3f5; color:#333; padding:2px 6px; border-radius:8px; border:1px solid #e0e0e0;">
+                            <span id="consistency-badge-dot" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#bbb;"></span>
+                            <span id="consistency-badge-text" style="font-weight:600;">R² --</span>
+                        </span>
+                        <span id="consistency-badges-group" style="display:flex; align-items:center; gap:6px;">
+                            <span id="consistency-badge-mb" title="Menu Bar R²" style="display:flex; align-items:center; gap:4px; background:#f1f3f5; color:#333; padding:2px 6px; border-radius:8px; border:1px solid #e0e0e0;">
+                                <span id="consistency-badge-mb-dot" style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#bbb;"></span>
+                                <span id="consistency-badge-mb-text" style="font-weight:600;">Menu R² --</span>
+                            </span>
+                            <span id="consistency-badge-svc" title="Main Service R²" style="display:flex; align-items:center; gap:4px; background:#f1f3f5; color:#333; padding:2px 6px; border-radius:8px; border:1px solid #e0e0e0;">
+                                <span id="consistency-badge-svc-dot" style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#bbb;"></span>
+                                <span id="consistency-badge-svc-text" style="font-weight:600;">Service R² --</span>
+                            </span>
+                        </span>
+
+
                     <span id="advanced-status" style="background: #999; color: white; padding: 2px 6px; border-radius: 8px; font-weight: bold; display: flex; align-items: center; gap: 3px;">
                         ⚫ Advanced
                     </span>
@@ -1265,7 +1326,7 @@ class UnifiedMemoryDashboard:
                         <strong>Live Collection:</strong>
                         <span id="live-status-text" style="color:#666;">INACTIVE</span>
                         <span style="color:#bbb;">|</span>
-                        <span>Rate: <strong id="live-interval">Every 30s</strong></span>
+                        <span>Rate: <strong id="live-interval">Every 10s</strong></span>
                         <span style="color:#bbb;">|</span>
                         <span>Next: <strong id="live-next">--</strong></span>
                         <span style="color:#bbb;">|</span>
@@ -1292,8 +1353,8 @@ class UnifiedMemoryDashboard:
                     <div>
                         <label for="monitorInterval" style="display: block; margin-bottom: 5px;">Monitoring Interval:</label>
                         <select id="monitorInterval" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 12px;">
-                            <option value="10">Every 10 seconds</option>
-                            <option value="30" selected>Every 30 seconds</option>
+                            <option value="10" selected>Every 10 seconds</option>
+                            <option value="30">Every 30 seconds</option>
                             <option value="60">Every 1 minute</option>
                             <option value="300">Every 5 minutes</option>
                         </select>
@@ -1374,9 +1435,13 @@ class UnifiedMemoryDashboard:
                 <div class="card">
                     <h3>🎯 Quick Actions</h3>
                     <div style="display: flex; flex-direction: column; gap: 10px;">
-                        <button onclick="exportAnalysisData()" style="background: #4CAF50; color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer;">📊 Export Data</button>
-                        <button onclick="copyLatestAnalysisJson()" style="background: #673ab7; color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer;" title="Copy latest analysis JSON to clipboard">📋 Copy Latest Analysis JSON</button>
-                        <button onclick="refreshAllData()" style="background: #2196F3; color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer;" title="Reload all dashboard data from server">🔄 Refresh All Data</button>
+                        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                          <button onclick="exportAnalysisData()" style="background: #4CAF50; color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer;">📊 Export JSON</button>
+                          <button onclick="exportAnalysisCsv()" style="background: #0d9488; color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer;">🧾 Export CSV</button>
+                          <button onclick="exportAggregatedCsv()" style="background: #0ea5e9; color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer;">📎 Export Aggregated CSV</button>
+                          <button onclick="copyLatestAnalysisJson()" style="background: #673ab7; color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer;" title="Copy latest analysis JSON to clipboard">📋 Copy Latest Analysis JSON</button>
+                          <button onclick="refreshAllData()" style="background: #2196F3; color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer;" title="Reload all dashboard data from server">🔄 Refresh All Data</button>
+                        </div>
                         <button onclick="openSparkSettings()" style="background: #607d8b; color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer; display:flex; align-items:center; gap:6px;" title="Trend Explorer Settings">
                             ⚙️ Settings
                         </button>
@@ -1565,7 +1630,7 @@ class UnifiedMemoryDashboard:
 
             </div>
             <div class="card">
-                <h3>🔥 Top Offenders (Memory Growth)</h3>
+                <h3>🔥 Top Offenders (Memory Growth) <span id="offenders-window" style="font-size:12px; color:#555; margin-left:8px;"></span></h3>
                 <div id="top-offenders"><div class="loading">Loading top offenders…</div></div>
             </div>
 
@@ -4458,8 +4523,9 @@ class UnifiedMemoryDashboard:
             filtered_data = self._apply_resolution_filter(filtered_data, resolution)
 
         return {
-            'main_service': [{'timestamp': p['timestamp'], 'memory_rss_mb': p['service_memory']} for p in filtered_data],
-            'menu_bar': [{'timestamp': p['timestamp'], 'memory_rss_mb': p['menubar_memory']} for p in filtered_data],
+            'main_service': [{'timestamp': p['timestamp'], 'memory_rss_mb': p.get('service_memory', 0)} for p in filtered_data],
+            'menu_bar': [{'timestamp': p['timestamp'], 'memory_rss_mb': p.get('menubar_memory', 0)} for p in filtered_data],
+            'total_memory': [{'timestamp': p['timestamp'], 'memory_mb': p.get('total_memory', (p.get('menubar_memory', 0) + p.get('service_memory', 0) + p.get('dashboard_memory', 0)))} for p in filtered_data],
             'system': [{'timestamp': p['timestamp'], 'memory_percent': 0} for p in filtered_data],  # Placeholder
             'points': filtered_data,  # Raw data for chart
             'total_points': len(filtered_data),
@@ -4511,14 +4577,19 @@ class UnifiedMemoryDashboard:
         historical_data = self.get_historical_data(hours)
         analysis = {}
 
-        # Process individual processes
-        process_keys = ['menu_bar_app', 'main_service']
-        for process_name in process_keys:
-            # The key in historical_data might be slightly different
-            points = historical_data.get(process_name, historical_data.get(process_name.replace('_', ''), []))
+        # To keep responses small and reliable, cap sparkline size
+        SPARK_MAX = 300
+
+        # Process-level analysis: map UI keys to history keys
+        process_map = [
+            ('menu_bar_app', 'menu_bar'),
+            ('main_service', 'main_service')
+        ]
+        for ui_key, hist_key in process_map:
+            points = historical_data.get(hist_key, [])
 
             if not isinstance(points, list) or len(points) < 2:
-                analysis[process_name] = {
+                analysis[ui_key] = {
                     "status": "insufficient_data", "severity": "low",
                     "growth_rate_mb": 0, "total_growth_mb": 0,
                     "start_memory_mb": 0, "end_memory_mb": 0,
@@ -4527,15 +4598,48 @@ class UnifiedMemoryDashboard:
                 }
                 continue
 
-            memory_values = [p.get('memory_mb', p.get('memory_rss_mb', 0)) for p in points]
+            # Extract memory series
+            memory_values = [float(p.get('memory_rss_mb', p.get('memory_mb', 0)) or 0.0) for p in points]
 
             start_memory = memory_values[0] if memory_values else 0
             end_memory = memory_values[-1] if memory_values else 0
             total_growth = end_memory - start_memory
 
-            # Calculate growth rate in MB per hour
-            duration_hours = (points[-1]['timestamp'] - points[0]['timestamp']) / 3600 if len(points) > 1 else 1
+            # Calculate growth rate in MB per hour using ISO timestamps
+            try:
+                t_end = datetime.fromisoformat(points[-1]['timestamp'])
+                t_start = datetime.fromisoformat(points[0]['timestamp'])
+                duration_hours = max(1/60, (t_end - t_start).total_seconds() / 3600)
+            except Exception:
+                duration_hours = 1
             growth_rate = total_growth / duration_hours if duration_hours > 0 else 0
+
+            # Compute simple R^2 consistency of linear fit memory vs time
+            r2 = None
+            try:
+                xs = []
+                ys = []
+                for p in points:
+                    ys.append(float(p.get('memory_rss_mb', p.get('memory_mb', 0)) or 0.0))
+                    ts = p.get('timestamp')
+                    if isinstance(ts, str):
+                        xs.append(datetime.fromisoformat(ts).timestamp())
+                    else:
+                        xs.append(float(ts or 0.0))
+                n = len(xs)
+                if n >= 2:
+                    mean_x = sum(xs)/n
+                    mean_y = sum(ys)/n
+                    ss_xx = sum((x-mean_x)**2 for x in xs)
+                    ss_yy = sum((y-mean_y)**2 for y in ys)
+                    if ss_xx > 0 and ss_yy > 0:
+                        cov_xy = sum((x-mean_x)*(y-mean_y) for x,y in zip(xs,ys))
+                        slope = cov_xy/ss_xx
+                        intercept = mean_y - slope*mean_x
+                        ss_res = sum((y - (slope*x + intercept))**2 for x,y in zip(xs,ys))
+                        r2 = max(0.0, min(1.0, 1 - (ss_res/ss_yy)))
+            except Exception:
+                r2 = None
 
             severity = "low"
             if growth_rate > 10:
@@ -4547,26 +4651,61 @@ class UnifiedMemoryDashboard:
             else:
                 status = "normal"
 
-            analysis[process_name] = {
+            spark = memory_values[-SPARK_MAX:] if len(memory_values) > SPARK_MAX else memory_values
+
+            analysis[ui_key] = {
                 "status": status,
                 "severity": severity,
-                "growth_rate_mb": growth_rate,
-                "total_growth_mb": total_growth,
-                "start_memory_mb": start_memory,
-                "end_memory_mb": end_memory,
+                "growth_rate_mb": round(growth_rate, 2),
+                "total_growth_mb": round(total_growth, 2),
+                "start_memory_mb": round(start_memory, 2),
+                "end_memory_mb": round(end_memory, 2),
                 "data_points": len(points),
-                "sparkline": memory_values
+                "sparkline": spark,
+                "r2_consistency": (round(r2, 3) if isinstance(r2, float) else None)
             }
 
         # Analyze total memory
         total_points = historical_data.get('total_memory', [])
         if len(total_points) > 1:
-            memory_values = [p.get('memory_mb', 0) for p in total_points]
+            memory_values = [float(p.get('memory_mb', 0) or 0.0) for p in total_points]
             start_memory = memory_values[0]
             end_memory = memory_values[-1]
             total_growth = end_memory - start_memory
-            duration_hours = (total_points[-1]['timestamp'] - total_points[0]['timestamp']) / 3600
+            try:
+                t_end = datetime.fromisoformat(total_points[-1]['timestamp'])
+                t_start = datetime.fromisoformat(total_points[0]['timestamp'])
+                duration_hours = max(1/60, (t_end - t_start).total_seconds() / 3600)
+            except Exception:
+                duration_hours = 1
             growth_rate = total_growth / duration_hours if duration_hours > 0 else 0
+
+            # Compute total R^2 consistency
+            r2_total = None
+            try:
+                xs = []
+                ys = []
+                for p in total_points:
+                    ys.append(float(p.get('memory_mb', 0) or 0.0))
+                    ts = p.get('timestamp')
+                    if isinstance(ts, str):
+                        xs.append(datetime.fromisoformat(ts).timestamp())
+                    else:
+                        xs.append(float(ts or 0.0))
+                n = len(xs)
+                if n >= 2:
+                    mean_x = sum(xs)/n
+                    mean_y = sum(ys)/n
+                    ss_xx = sum((x-mean_x)**2 for x in xs)
+                    ss_yy = sum((y-mean_y)**2 for y in ys)
+                    if ss_xx > 0 and ss_yy > 0:
+                        cov_xy = sum((x-mean_x)*(y-mean_y) for x,y in zip(xs,ys))
+                        slope = cov_xy/ss_xx
+                        intercept = mean_y - slope*mean_x
+                        ss_res = sum((y - (slope*x + intercept))**2 for x,y in zip(xs,ys))
+                        r2_total = max(0.0, min(1.0, 1 - (ss_res/ss_yy)))
+            except Exception:
+                r2_total = None
 
             severity = "low"
             if growth_rate > 15:
@@ -4578,15 +4717,18 @@ class UnifiedMemoryDashboard:
             else:
                 status = "normal"
 
+            spark_total = memory_values[-SPARK_MAX:] if len(memory_values) > SPARK_MAX else memory_values
+
             analysis['total_memory'] = {
                 "status": status,
                 "severity": severity,
-                "growth_rate_mb": growth_rate,
-                "total_growth_mb": total_growth,
-                "start_memory_mb": start_memory,
-                "end_memory_mb": end_memory,
+                "growth_rate_mb": round(growth_rate, 2),
+                "total_growth_mb": round(total_growth, 2),
+                "start_memory_mb": round(start_memory, 2),
+                "end_memory_mb": round(end_memory, 2),
                 "data_points": len(total_points),
-                "sparkline": memory_values
+                "sparkline": spark_total,
+                "r2_consistency": (round(r2_total, 3) if isinstance(r2_total, float) else None)
             }
         else:
             analysis['total_memory'] = {
@@ -4599,7 +4741,7 @@ class UnifiedMemoryDashboard:
 
         return analysis
 
-    def start_advanced_monitoring(self, interval=30):
+    def start_advanced_monitoring(self, interval=10):
         """Start advanced monitoring with specified interval"""
         self.monitor_interval = interval
         self.monitoring_active = True
@@ -4647,6 +4789,7 @@ class UnifiedMemoryDashboard:
                 vals = [p.get('memory_rss_mb', 0) for p in points]
                 start = vals[0]; end = vals[-1]
                 total_growth = end - start
+
                 duration_hours = max(1/60, (datetime.fromisoformat(points[-1]['timestamp']) - datetime.fromisoformat(points[0]['timestamp'])).total_seconds()/3600)
                 rate = total_growth / duration_hours
                 return {'name': label, 'total_growth_mb': round(total_growth,2), 'growth_rate_mb_per_hour': round(rate,2), 'start_mb': round(start,2), 'end_mb': round(end,2), 'points': len(points)}
@@ -4656,6 +4799,56 @@ class UnifiedMemoryDashboard:
         except Exception:
             pass
         return offenders[:5]
+
+    def get_analysis_health(self, hours=24):
+        """Lightweight analysis readiness/summary for header badge."""
+        hist = self.get_historical_data(hours)
+        points = hist.get('points', [])
+        total_points = len(points)
+        ok = total_points >= 2
+        last_ts = None
+        try:
+            if total_points:
+                last_ts = points[-1].get('timestamp')
+        except Exception:
+            last_ts = None
+
+        def extract_rate(seq, key_mb):
+            try:
+                if not seq or len(seq) < 2:
+                    return 0.0
+                vals = [float(p.get(key_mb, 0) or 0.0) for p in seq]
+                start, end = vals[0], vals[-1]
+                t_end = datetime.fromisoformat(seq[-1]['timestamp'])
+                t_start = datetime.fromisoformat(seq[0]['timestamp'])
+                dur_h = max(1/60, (t_end - t_start).total_seconds() / 3600)
+                return (end - start) / dur_h
+            except Exception:
+                return 0.0
+
+        mba = hist.get('menu_bar', [])
+        msv = hist.get('main_service', [])
+        tot = hist.get('total_memory', [])
+        return {
+            'ok': ok,
+            'hours': hours,
+            'points': total_points,
+            'menu_bar_app': {
+                'points': len(mba),
+                'rate_mb_per_hr': round(extract_rate(mba, 'memory_rss_mb'), 2),
+            },
+            'main_service': {
+                'points': len(msv),
+                'rate_mb_per_hr': round(extract_rate(msv, 'memory_rss_mb'), 2),
+            },
+            'total': {
+                'points': len(tot),
+                'rate_mb_per_hr': round(extract_rate(tot, 'memory_mb'), 2),
+            },
+            'last_sample_iso': last_ts,
+            'computed_at_iso': datetime.now().isoformat(),
+        }
+
 
     def _background_monitoring_loop(self):
         """Background thread for advanced monitoring data collection"""
@@ -4703,6 +4896,7 @@ class UnifiedMemoryDashboard:
 
                     except Exception as e:
                         print(f"Error in leak analysis: {e}")
+
 
                 # Wait for the specified interval
                 time.sleep(self.monitor_interval)

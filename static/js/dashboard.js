@@ -118,10 +118,67 @@ async function readJsonSafe(response) {
   }
 }
 
+// Update top-bar consistency badges (total + per-process) from analysis payload
+function updateConsistencyBadges(analysis){
+  try {
+    if (!analysis || typeof analysis !== 'object') return;
+    // Total badge
+    (function(){
+      const badge = document.getElementById('consistency-badge');
+      const dot = document.getElementById('consistency-badge-dot');
+      const text = document.getElementById('consistency-badge-text');
+      if (!(badge && dot && text)) return;
+      const totalR2 = (typeof analysis?.total_memory?.r2_consistency === 'number' && isFinite(analysis.total_memory.r2_consistency)) ? analysis.total_memory.r2_consistency : null;
+      const mbR2 = (typeof analysis?.menu_bar_app?.r2_consistency === 'number' && isFinite(analysis.menu_bar_app.r2_consistency)) ? analysis.menu_bar_app.r2_consistency : null;
+      const svcR2 = (typeof analysis?.main_service?.r2_consistency === 'number' && isFinite(analysis.main_service.r2_consistency)) ? analysis.main_service.r2_consistency : null;
+      const candidates = [mbR2, svcR2].filter(v => typeof v === 'number' && isFinite(v));
+      const r2 = (typeof totalR2 === 'number') ? totalR2 : (candidates.length ? Math.max(...candidates) : null);
+      if (typeof r2 === 'number' && isFinite(r2)) {
+        text.textContent = `R\u00b2 ${r2.toFixed(2)}`;
+        let bg = '#ffebee', color = '#c62828';
+        if (r2 >= 0.8) { bg = '#e8f5e9'; color = '#2e7d32'; }
+        else if (r2 >= 0.5) { bg = '#fff8e1'; color = '#8a6d3b'; }
+        badge.style.background = bg; badge.style.borderColor = '#ddd'; badge.style.color = color; dot.style.background = color;
+        const tip = `R\u00b2 (coefficient of determination) measures how well a straight line explains the memory trend over time. Value=${r2.toFixed(3)}. 1.00=perfectly linear; 0.00=no linear relationship. Thresholds: High \u2265 0.80, Medium \u2265 0.50. Requires \u2265 2 points; more points increase stability.`;
+        badge.title = tip; try { badge.setAttribute('aria-label', tip); } catch {}
+      } else {
+        text.textContent = 'R\u00b2 --';
+        badge.style.background = '#f1f3f5'; badge.style.borderColor = '#e0e0e0'; badge.style.color = '#333'; dot.style.background = '#bbb';
+        const tip = 'R\u00b2 (coefficient of determination): measures how well a line explains memory vs time. Not enough data yet (needs at least 2 points).';
+        badge.title = tip; try { badge.setAttribute('aria-label', tip); } catch {}
+      }
+    })();
+    // Per-process micro badges
+    const apply = (idBase, r2) => {
+      const badge = document.getElementById(`${idBase}`);
+      const dot = document.getElementById(`${idBase}-dot`);
+      const text = document.getElementById(`${idBase}-text`);
+      if (!(badge && dot && text)) return;
+      if (typeof r2 === 'number' && isFinite(r2)) {
+        const label = idBase.includes('mb') ? 'Menu' : 'Service';
+        text.textContent = `${label} R\u00b2 ${r2.toFixed(2)}`;
+        let bg = '#ffebee', color = '#c62828';
+        if (r2 >= 0.8) { bg = '#e8f5e9'; color = '#2e7d32'; }
+        else if (r2 >= 0.5) { bg = '#fff8e1'; color = '#8a6d3b'; }
+        badge.style.background = bg; badge.style.borderColor = '#ddd'; badge.style.color = color; dot.style.background = color;
+        const tip = `${label} R\u00b2=${r2.toFixed(3)}. 1.00=perfect linear trend; 0.00=no linear relationship. Shows how well a straight line explains memory vs time for this process. Thresholds: High \u2265 0.80, Medium \u2265 0.50.`;
+        badge.title = tip; try { badge.setAttribute('aria-label', tip); } catch {}
+      } else {
+        text.textContent = idBase.includes('mb') ? 'Menu R\u00b2 --' : 'Service R\u00b2 --';
+        badge.style.background = '#f1f3f5'; badge.style.borderColor = '#e0e0e0'; badge.style.color = '#333'; dot.style.background = '#bbb';
+        const tip = 'R\u00b2 is not available yet. It measures how well a straight line explains memory vs time; needs at least 2 points.';
+        badge.title = tip; try { badge.setAttribute('aria-label', tip); } catch {}
+      }
+    };
+    apply('consistency-badge-mb', (typeof analysis?.menu_bar_app?.r2_consistency === 'number' && isFinite(analysis.menu_bar_app.r2_consistency)) ? analysis.menu_bar_app.r2_consistency : null);
+    apply('consistency-badge-svc', (typeof analysis?.main_service?.r2_consistency === 'number' && isFinite(analysis.main_service.r2_consistency)) ? analysis.main_service.r2_consistency : null);
+  } catch {}
+}
+
 
 async function loadAnalysisData() {
   try {
-    if (typeof window.isTabActive === 'function' && !window.isTabActive('analysis')) return;
+    const isActive = (typeof window.isTabActive === 'function') ? window.isTabActive('analysis') : true;
     if (window.analysisAbortController) window.analysisAbortController.abort();
     window.analysisAbortController = new AbortController();
     const signal = window.analysisAbortController.signal;
@@ -129,7 +186,138 @@ async function loadAnalysisData() {
     const hours = timeRangeElement ? timeRangeElement.value : 24;
     const response = await fetch(`/api/analysis?hours=${hours}`, { signal });
     const data = await readJsonSafe(response);
-    if (typeof window.updateAnalysisDisplay === 'function') window.updateAnalysisDisplay(data);
+    if (isActive && typeof window.updateAnalysisDisplay === 'function') window.updateAnalysisDisplay(data);
+    // Update analysis health badge (lightweight)
+    try {
+      const healthResp = await fetch(`/api/analysis_health?hours=${hours}`);
+      const health = await readJsonSafe(healthResp);
+      const badge = document.getElementById('analysis-ready-badge');
+      const dot = document.getElementById('analysis-ready-dot');
+      const text = document.getElementById('analysis-ready-text');
+      if (badge && dot && text) {
+        const ok = !!health?.ok;
+        const pts = Number(health?.points || 0);
+        const last = health?.last_sample_iso ? new Date(health.last_sample_iso).toLocaleTimeString() : '--';
+        text.textContent = ok ? `READY • ${pts} pts • Last ${last}` : 'Not ready';
+        dot.style.background = ok ? '#2ecc71' : '#bbb';
+        dot.style.animation = (window.isMonitoringActive ? 'pulseDot 1.6s infinite' : 'none');
+    // One-time toast when analysis becomes ready via health badge
+    try {
+      const was = window.__analysisHealthOkOnce === true;
+      const ok = !!health?.ok;
+      // Update header consistency badge from analysis data when available
+      try {
+        const badge = document.getElementById('consistency-badge');
+        const dot = document.getElementById('consistency-badge-dot');
+        const text = document.getElementById('consistency-badge-text');
+        if (badge && dot && text) {
+          // Use total R² when available; fallback to max of processes
+          const totalR2 = (typeof data?.total_memory?.r2_consistency === 'number' && isFinite(data.total_memory.r2_consistency)) ? data.total_memory.r2_consistency : null;
+          const mbR2 = (typeof data?.menu_bar_app?.r2_consistency === 'number' && isFinite(data.menu_bar_app.r2_consistency)) ? data.menu_bar_app.r2_consistency : null;
+          const svcR2 = (typeof data?.main_service?.r2_consistency === 'number' && isFinite(data.main_service.r2_consistency)) ? data.main_service.r2_consistency : null;
+          const candidates = [mbR2, svcR2].filter(v => typeof v === 'number' && isFinite(v));
+          const r2 = (typeof totalR2 === 'number') ? totalR2 : (candidates.length ? Math.max(...candidates) : null);
+          if (typeof r2 === 'number' && isFinite(r2)) {
+            text.textContent = `R² ${r2.toFixed(2)}`;
+            let bg = '#ffebee', color = '#c62828';
+            if (r2 >= 0.8) { bg = '#e8f5e9'; color = '#2e7d32'; }
+            else if (r2 >= 0.5) { bg = '#fff8e1'; color = '#8a6d3b'; }
+            badge.style.background = bg;
+            badge.style.borderColor = '#ddd';
+            badge.style.color = color;
+            dot.style.background = color;
+            badge.title = `Trend consistency (R²). Thresholds: High ≥ 0.80, Medium ≥ 0.50`;
+          } else {
+            text.textContent = 'R² --';
+            badge.style.background = '#f1f3f5';
+            badge.style.borderColor = '#e0e0e0';
+            badge.style.color = '#333';
+            dot.style.background = '#bbb';
+            badge.title = 'Trend consistency (R²). Not enough data yet';
+          }
+        }
+      } catch {}
+
+      // Update per-process micro-badges
+      try {
+        const apply = (idBase, r2) => {
+          const badge = document.getElementById(`${idBase}`);
+          const dot = document.getElementById(`${idBase}-dot`);
+          const text = document.getElementById(`${idBase}-text`);
+          if (!(badge && dot && text)) return;
+          if (typeof r2 === 'number' && isFinite(r2)) {
+            text.textContent = `${text.textContent.startsWith('Menu')?'Menu':'Service'} R² ${r2.toFixed(2)}`;
+            let bg = '#ffebee', color = '#c62828';
+            if (r2 >= 0.8) { bg = '#e8f5e9'; color = '#2e7d32'; }
+            else if (r2 >= 0.5) { bg = '#fff8e1'; color = '#8a6d3b'; }
+            badge.style.background = bg; badge.style.borderColor = '#ddd'; badge.style.color = color; dot.style.background = color;
+          } else {
+            // reset look
+            if (idBase.includes('mb')) text.textContent = 'Menu R² --'; else text.textContent = 'Service R² --';
+            badge.style.background = '#f1f3f5'; badge.style.borderColor = '#e0e0e0'; badge.style.color = '#333'; dot.style.background = '#bbb';
+          }
+        };
+        apply('consistency-badge-mb', (typeof data?.menu_bar_app?.r2_consistency === 'number' && isFinite(data.menu_bar_app.r2_consistency)) ? data.menu_bar_app.r2_consistency : null);
+        apply('consistency-badge-svc', (typeof data?.main_service?.r2_consistency === 'number' && isFinite(data.main_service.r2_consistency)) ? data.main_service.r2_consistency : null);
+      } catch {}
+
+      if (!was && ok) {
+        window.__analysisHealthOkOnce = true;
+        showToast('✅ Analysis ready: sufficient points collected', 'success');
+      }
+    } catch {}
+
+        badge.title = ok ? `Analysis OK. Rate (MB/h): Menu ${health?.menu_bar_app?.rate_mb_per_hr}, Service ${health?.main_service?.rate_mb_per_hr}, Total ${health?.total?.rate_mb_per_hr}` : 'Collect a few points to enable analysis';
+      }
+    } catch {}
+    // Update consistency badges from analysis payload (independent of readiness badge)
+    try {
+      const analysis = data || {};
+      // Total consistency badge (uses total R² if available; else max of per-process)
+      (function(){
+        const badge = document.getElementById('consistency-badge');
+        const dot = document.getElementById('consistency-badge-dot');
+        const text = document.getElementById('consistency-badge-text');
+        if (!(badge && dot && text)) return;
+        const totalR2 = (typeof analysis?.total_memory?.r2_consistency === 'number' && isFinite(analysis.total_memory.r2_consistency)) ? analysis.total_memory.r2_consistency : null;
+        const mbR2 = (typeof analysis?.menu_bar_app?.r2_consistency === 'number' && isFinite(analysis.menu_bar_app.r2_consistency)) ? analysis.menu_bar_app.r2_consistency : null;
+        const svcR2 = (typeof analysis?.main_service?.r2_consistency === 'number' && isFinite(analysis.main_service.r2_consistency)) ? analysis.main_service.r2_consistency : null;
+        const candidates = [mbR2, svcR2].filter(v => typeof v === 'number' && isFinite(v));
+        const r2 = (typeof totalR2 === 'number') ? totalR2 : (candidates.length ? Math.max(...candidates) : null);
+        if (typeof r2 === 'number' && isFinite(r2)) {
+          text.textContent = `R² ${r2.toFixed(2)}`;
+          let bg = '#ffebee', color = '#c62828';
+          if (r2 >= 0.8) { bg = '#e8f5e9'; color = '#2e7d32'; }
+          else if (r2 >= 0.5) { bg = '#fff8e1'; color = '#8a6d3b'; }
+          badge.style.background = bg; badge.style.borderColor = '#ddd'; badge.style.color = color; dot.style.background = color;
+        } else {
+          text.textContent = 'R² --';
+          badge.style.background = '#f1f3f5'; badge.style.borderColor = '#e0e0e0'; badge.style.color = '#333'; dot.style.background = '#bbb';
+        }
+      })();
+
+      // Per-process micro-badges
+      const applyR2 = (idBase, r2) => {
+        const badge = document.getElementById(`${idBase}`);
+        const dot = document.getElementById(`${idBase}-dot`);
+        const text = document.getElementById(`${idBase}-text`);
+        if (!(badge && dot && text)) return;
+        if (typeof r2 === 'number' && isFinite(r2)) {
+          const label = idBase.includes('mb') ? 'Menu' : 'Service';
+          text.textContent = `${label} R² ${r2.toFixed(2)}`;
+          let bg = '#ffebee', color = '#c62828';
+          if (r2 >= 0.8) { bg = '#e8f5e9'; color = '#2e7d32'; }
+          else if (r2 >= 0.5) { bg = '#fff8e1'; color = '#8a6d3b'; }
+          badge.style.background = bg; badge.style.borderColor = '#ddd'; badge.style.color = color; dot.style.background = color;
+        } else {
+          text.textContent = idBase.includes('mb') ? 'Menu R² --' : 'Service R² --';
+          badge.style.background = '#f1f3f5'; badge.style.borderColor = '#e0e0e0'; badge.style.color = '#333'; dot.style.background = '#bbb';
+        }
+      };
+      applyR2('consistency-badge-mb', (typeof analysis?.menu_bar_app?.r2_consistency === 'number' && isFinite(analysis.menu_bar_app.r2_consistency)) ? analysis.menu_bar_app.r2_consistency : null);
+      applyR2('consistency-badge-svc', (typeof analysis?.main_service?.r2_consistency === 'number' && isFinite(analysis.main_service.r2_consistency)) ? analysis.main_service.r2_consistency : null);
+    } catch {}
+
     const leakResponse = await fetch('/api/leak_analysis', { signal });
     const leakData = await readJsonSafe(leakResponse);
     if (typeof window.updateLeakAnalysisDisplay === 'function') window.updateLeakAnalysisDisplay(leakData);
@@ -151,22 +339,28 @@ async function updateTopOffenders(hours) {
     const list = Array.isArray(data) ? data : (Array.isArray(data?.offenders) ? data.offenders : []);
     if (!list.length) {
       container.innerHTML = '<div style="padding:10px; color:#666;">No offenders found for this range.</div>';
+      const win = document.getElementById('offenders-window');
+      if (win) win.textContent = `Window: ${hours}h`;
+
       return;
     }
     const top = list.slice(0, 5);
     let html = '<div style="display:grid; gap:8px;">';
     for (const o of top) {
+      const win = document.getElementById('offenders-window');
+      if (win) win.textContent = `Window: ${hours}h`;
+
       const name = o.name || o.label || 'Unknown';
       const growth = Number(o.growth_mb ?? o.total_growth_mb ?? 0);
-      const rate = Number(o.growth_rate_mb ?? 0);
+      const rate = Number(o.growth_rate_mb_per_hour ?? o.growth_rate_mb ?? 0);
       const points = Number(o.points ?? o.data_points ?? 0);
       const sev = (o.severity || (growth > 50 ? 'high' : growth > 10 ? 'medium' : 'low'));
       const sevColor = sev === 'high' ? '#e74c3c' : sev === 'medium' ? '#f39c12' : '#27ae60';
       html += `
         <div style="padding:10px; background:#fff; border-left:4px solid ${sevColor}; border-radius:5px;">
-          <div style="display:flex; justify-content:space-between;">
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
             <strong>${name}</strong>
-            <span style="color:${sevColor}; text-transform:uppercase; font-size:12px;">${sev}</span>
+            <span style="color:${growth < 0 ? '#27ae60' : sevColor}; text-transform:uppercase; font-size:12px;">${growth < 0 ? 'DECREASING (HEALTHY)' : sev}</span>
           </div>
           <div style="font-size:12px; color:#666;">Total Growth: ${growth.toFixed(2)} MB • Rate: ${rate.toFixed(2)} MB/h • Points: ${points}</div>
         </div>`;
@@ -209,9 +403,9 @@ async function toggleAdvancedMonitoring() {
           else { badge.textContent = '🔴 Advanced'; badge.style.background = '#F44336'; }
         }
         // Start countdown immediately
-        window.__liveCountdown = window.__liveCountdown || { active: false, interval: 30, remaining: 0, timerId: null, lastPoints: 0 };
+        window.__liveCountdown = window.__liveCountdown || { active: false, interval: 10, remaining: 0, timerId: null, lastPoints: 0 };
         window.__liveCountdown.active = true;
-        window.__liveCountdown.interval = Number(interval) || 30;
+        window.__liveCountdown.interval = Number(interval) || 10;
         window.__liveCountdown.remaining = window.__liveCountdown.interval;
         showToast(`✅ ${result.message} — collecting every ${result.interval}s`, 'success');
         if (typeof window.updateMonitoringStatus === 'function') window.updateMonitoringStatus();
@@ -279,6 +473,8 @@ function updateAnalysisDisplay(data) {
     return;
   }
 
+  // Keep top-bar R\u00b2 badges in sync with the same analysis payload used for the cards
+  try { updateConsistencyBadges(data); } catch {}
   let trendHtml = '<div class="grid-3-12" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 12px;">';
   for (const [process, analysis] of Object.entries(data)) {
     const statusColor = analysis.severity === 'high' ? '#e74c3c' : analysis.severity === 'medium' ? '#f39c12' : '#27ae60';
@@ -286,12 +482,13 @@ function updateAnalysisDisplay(data) {
     trendHtml += `
       <div style="padding: 15px; background: rgba(0,0,0,0.05); border-radius: 8px;">
         <h4>${process.replace(/_/g, ' ').toUpperCase()}</h4>
-        <p><strong>Status:</strong> <span style="color: ${statusColor};">${analysis.status}</span></p>
-        <p><strong>Start Memory:</strong> ${(analysis.start_memory_mb?.toFixed(2) || 0)} MB</p>
-        <p><strong>End Memory:</strong> ${(analysis.end_memory_mb?.toFixed(2) || 0)} MB</p>
-        <p><strong>Total Growth:</strong> ${(analysis.total_growth_mb?.toFixed(2) || 0)} MB</p>
-        <p><strong>Growth Rate:</strong> ${(analysis.growth_rate_mb?.toFixed(2) || 0)} MB/hour</p>
-        <p><strong>Data Points:</strong> ${analysis.data_points || 0}</p>
+        <p><strong>Status:</strong> <span style="color: ${statusColor};">${(analysis.total_growth_mb ?? 0) < 0 ? 'Decreasing (healthy)' : analysis.status}</span></p>
+        <p><strong>Start → End:</strong> ${(analysis.start_memory_mb?.toFixed(2) || 0)} → ${(analysis.end_memory_mb?.toFixed(2) || 0)} MB</p>
+        <p><strong>Δ Total:</strong> ${(analysis.total_growth_mb?.toFixed(2) || 0)} MB</p>
+        <p title="Linear trend rate over selected window. Higher positive values may indicate leak."><strong>Rate:</strong> ${(analysis.growth_rate_mb?.toFixed(2) || 0)} MB/h ${(analysis.growth_rate_mb ?? 0) < 0 ? '↓' : ((analysis.growth_rate_mb ?? 0) > 0 ? '↑' : '')}</p>
+        <p><strong>Points:</strong> ${analysis.data_points || 0} ${typeof analysis.r2_consistency === 'number' ? `• <span title="Consistency score (R²) of linear fit">R² ${analysis.r2_consistency.toFixed(2)}</span>` : ''}
+          ${typeof analysis.r2_consistency === 'number' ? `• <span title="Consistency category based on R²" style="padding:2px 6px;border-radius:6px;border:1px solid #ddd; background:${analysis.r2_consistency>=0.8?'#e8f5e9':(analysis.r2_consistency>=0.5?'#fff8e1':'#ffebee')}; color:${analysis.r2_consistency>=0.8?'#2e7d32':(analysis.r2_consistency>=0.5?'#8a6d3b':'#c62828')};">${analysis.r2_consistency>=0.8?'HIGH':(analysis.r2_consistency>=0.5?'MEDIUM':'LOW')}</span>` : ''}
+        </p>
         <div class="sparkline-container" style="height: 50px; margin-top: 10px;">
           <canvas id="${sparklineId}"></canvas>
         </div>
@@ -735,11 +932,11 @@ async function updateMonitoringStatus() {
     }
 
     // Initialize/reset countdown for next sample (approximate)
-    window.__liveCountdown = window.__liveCountdown || { active: false, interval: 30, remaining: 0, timerId: null, lastPoints: 0 };
+    window.__liveCountdown = window.__liveCountdown || { active: false, interval: 10, remaining: 0, timerId: null, lastPoints: 0 };
     const lc = window.__liveCountdown;
     if (isActive) {
       lc.active = true;
-      lc.interval = interval || lc.interval || 30;
+      lc.interval = interval || lc.interval || 10;
       // Reset remaining periodically to avoid drift
       if (!lc.remaining || lc.remaining <= 0 || (typeof advPoints === 'number' && advPoints !== lc.lastPoints)) {
         lc.remaining = lc.interval;
@@ -861,6 +1058,80 @@ if (typeof window !== 'undefined') {
 if (typeof window !== 'undefined') {
   // Expose module implementations under non-colliding names; inline stubs will forward here
   window.__module_updateAnalysisDisplay = updateAnalysisDisplay;
+async function exportAnalysisCsv() {
+  try {
+    const timeRangeElement = document.getElementById('analysisTimeRange') || document.getElementById('timeRange');
+    const hours = timeRangeElement ? timeRangeElement.value : 24;
+    const resp = await fetch(`/api/historical?hours=${hours}`);
+    const data = await resp.json();
+    const rows = [];
+    rows.push(['timestamp','menu_bar_mb','main_service_mb','total_mb'].join(','));
+    const points = Array.isArray(data?.points) ? data.points : [];
+    for (const p of points) {
+      const ts = p.timestamp || '';
+      const menu = (p.menu_bar && (p.menu_bar.memory_rss_mb ?? p.menu_bar.memory_mb)) ?? '';
+      const svc = (p.main_service && (p.main_service.memory_rss_mb ?? p.main_service.memory_mb)) ?? '';
+      const tot = p.total_memory?.memory_mb ?? '';
+      rows.push([ts, menu, svc, tot].join(','));
+    }
+    const blob = new Blob([rows.join('\n')], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `memory_timeseries_${hours}h_${new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('✅ Exported CSV', 'success');
+  } catch (e) {
+    showToast('❌ Failed to export CSV: ' + e, 'error');
+  }
+}
+
+if (typeof window !== 'undefined') {
+  window.exportAnalysisCsv = exportAnalysisCsv;
+async function exportAggregatedCsv() {
+  try {
+    const timeRangeElement = document.getElementById('analysisTimeRange') || document.getElementById('timeRange');
+    const hours = timeRangeElement ? timeRangeElement.value : 24;
+    const resp = await fetch(`/api/analysis?hours=${hours}`);
+    const data = await readJsonSafe(resp);
+    const items = [];
+    for (const [key, a] of Object.entries(data || {})) {
+      if (!a || typeof a !== 'object') continue;
+      items.push({
+        series: key,
+        status: a.status ?? '',
+        severity: a.severity ?? '',
+        start_mb: a.start_memory_mb ?? '',
+        end_mb: a.end_memory_mb ?? '',
+        delta_mb: a.total_growth_mb ?? '',
+        rate_mb_per_h: a.growth_rate_mb ?? '',
+        points: a.data_points ?? '',
+        r2: (typeof a.r2_consistency === 'number' ? a.r2_consistency.toFixed(3) : ''),
+      });
+    }
+    const header = ['series','status','severity','start_mb','end_mb','delta_mb','rate_mb_per_h','points','r2'];
+    const rows = [header.join(',')];
+    for (const r of items) rows.push(header.map(h => r[h]).join(','));
+    const blob = new Blob([rows.join('\n')], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `memory_analysis_aggregated_${hours}h_${new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('✅ Exported Aggregated CSV', 'success');
+  } catch (e) {
+    showToast('❌ Failed to export Aggregated CSV: ' + e, 'error');
+  }
+}
+
+if (typeof window !== 'undefined') {
+  window.exportAggregatedCsv = exportAggregatedCsv;
+}
+
+}
+
   window.__module_updateLeakAnalysisDisplay = updateLeakAnalysisDisplay;
   window.__module_updateAnalysisSummary = updateAnalysisSummary;
   window.__module_updateMonitoringHistory = updateMonitoringHistory;
