@@ -60,6 +60,14 @@ window.addEventListener('DOMContentLoaded', () => {
   };
   boot();
   // CPU manager is initialized inline to ensure Chart canvas exists; we avoid double-init here
+  // Kick Top Offenders once on load to clear the loading placeholder even if analysis is empty
+  setTimeout(() => {
+    try {
+      const sel = document.getElementById('analysisTimeRange') || document.getElementById('timeRange');
+      const hours = sel ? sel.value : 24;
+      if (typeof updateTopOffenders === 'function') updateTopOffenders(hours);
+    } catch {}
+  }, 800);
 });
 
 
