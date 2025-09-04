@@ -60,3 +60,7 @@ venv.bak/
 # Playwright artifacts
 playwright-report/
 playwright/.cache/
+
+
+# Playwright test output
+test-results/
