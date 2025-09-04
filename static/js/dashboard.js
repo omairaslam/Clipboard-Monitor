@@ -800,6 +800,11 @@ if (typeof window !== 'undefined') {
   }
 }
 
+// Expose Top Offenders updater for inline callers
+if (typeof window !== 'undefined') {
+  window.__module_updateTopOffenders = updateTopOffenders;
+}
+
 // Format seconds into mm:ss
 function formatCountdown(sec) {
   const s = Math.max(0, Math.floor(sec));

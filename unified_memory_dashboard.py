@@ -2227,6 +2227,9 @@ class UnifiedMemoryDashboard:
                 if (window.CM_DEBUG) console.log('[analysis] updateLeakAnalysisDisplay ->', !!window.__module_updateLeakAnalysisDisplay);
                 updateLeakAnalysisDisplay(leakData);
 
+                // Update Top Offenders based on same hours range
+                try { (window.__module_updateTopOffenders || window.updateTopOffenders)?.(hours); } catch {}
+
                 // Update Last Session Findings board
                 if (window.CM_DEBUG) console.log('[analysis] updateSessionFindings ->', !!window.__module_updateSessionFindings);
                 updateSessionFindings(data, leakData);
