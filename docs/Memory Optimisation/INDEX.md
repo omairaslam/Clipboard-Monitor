@@ -5,6 +5,8 @@
 - Troubleshooting.md — Common issues: no data, ports, monitoring, logs
 - Changelog.md — Work history by phase
 
+- Sparklines-Removal-2025-09-04.md — Removal rationale and changes for Trend Explorer sparklines (2025-09-04)
+
 Quick actions
 - Run tests and open report: use VS Code tasks/buttons or CLI
 - Adjust perf sentinel: set PERF_SOFT_MS environment variable (default 1500)
