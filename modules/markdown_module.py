@@ -69,17 +69,28 @@ def process(clipboard_content, config=None) -> bool:
                         logger.info("[bold blue]ATTEMPTING TO USE PBCOPY METHOD FOR RTF CLIPBOARD HANDLING[/bold blue]")
                         try:
                             subprocess.run(
-                                ['pbcopy'],
+                                ['pbcopy', '-Prefer', 'rtf'],
                                 input=rtf_text.encode('utf-8'),
                                 check=True,
                                 timeout=5
                             )
-                            logger.info("[green]SUCCESS: Used pbcopy for RTF clipboard handling[/green]")
+                            logger.info("[green]SUCCESS: Used pbcopy with -Prefer rtf for RTF clipboard handling[/green]")
                             logger.info("[green]Converted to RTF and copied to clipboard![/green]")
                             show_notification("Markdown Converted", "Rich text copied to clipboard!", "")
-                            
-                            # Indicate that clipboard was modified. Main app will handle history.
-                            return True 
+
+                            # Also record both forms in history: RTF and original Markdown (to show MD followed by RTF)
+                            try:
+                                try:
+                                    from modules.history_module import add_to_history as _add_hist
+                                except Exception:
+                                    from .history_module import add_to_history as _add_hist  # fallback
+                                _add_hist(rtf_text)               # add RTF first
+                                _add_hist(clipboard_content)      # then re-add Markdown so it appears above RTF
+                            except Exception as hist_e:
+                                logger.warning(f"Failed to add RTF/MD to history: {hist_e}")
+
+                            # Return the new clipboard content so monitor tracks it properly
+                            return rtf_text
 
                         except subprocess.SubprocessError as e:
                             logger.error(f"[bold red]Error using pbcopy for RTF:[/bold red] {e}")
@@ -88,8 +99,19 @@ def process(clipboard_content, config=None) -> bool:
                             pyperclip.copy(rtf_text)
                             logger.info("[yellow]Used pyperclip fallback for RTF copy[/yellow]")
 
-                            # Indicate that clipboard was modified. Main app will handle history.
-                            return True
+                            # Also record both forms in history: RTF and original Markdown (to show MD followed by RTF)
+                            try:
+                                try:
+                                    from modules.history_module import add_to_history as _add_hist
+                                except Exception:
+                                    from .history_module import add_to_history as _add_hist  # fallback
+                                _add_hist(rtf_text)               # add RTF first
+                                _add_hist(clipboard_content)      # then re-add Markdown so it appears above RTF
+                            except Exception as hist_e:
+                                logger.warning(f"Failed to add RTF/MD to history: {hist_e}")
+
+                            # Return the new clipboard content so monitor tracks it properly
+                            return rtf_text
 
                     except pyperclip.PyperclipException as e:
                         logger.error(f"[bold red]Error copying RTF to clipboard:[/bold red] {e}")
@@ -191,9 +213,13 @@ def convert_markdown_to_rtf(markdown_text: str) -> str:
 
     try:
         # First convert markdown to HTML as an intermediate format
+        # Prefer absolute Homebrew locations to avoid PATH issues under launchd
+        pandoc_bin = '/opt/homebrew/bin/pandoc' if os.path.exists('/opt/homebrew/bin/pandoc') else (
+            '/usr/local/bin/pandoc' if os.path.exists('/usr/local/bin/pandoc') else 'pandoc'
+        )
         html_process = subprocess.Popen(
             [
-                'pandoc',
+                pandoc_bin,
                 '-f', 'markdown+smart+auto_identifiers',
                 '-t', 'html',
                 '--wrap=none',
@@ -260,8 +286,8 @@ def convert_markdown_to_rtf(markdown_text: str) -> str:
         if "textutil" in str(e):
             logger.error("[bold red]textutil not found. This tool is only available on macOS.[/bold red]")
         else:
-            logger.error("[bold red]Pandoc is not installed. Please install pandoc to convert markdown to RTF.[/bold red]")
-            logger.info("Install using: brew install pandoc")
+            logger.error("[bold red]Pandoc executable not found. Ensure pandoc is installed and that /opt/homebrew/bin (Apple Silicon) or /usr/local/bin (Intel) is in PATH.[/bold red]")
+            logger.info("If needed, install using: brew install pandoc")
         return None
     except UnicodeDecodeError as e:
         logger.error(f"[bold red]Unicode error during conversion:[/bold red] {e}")

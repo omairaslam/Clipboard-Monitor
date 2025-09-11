@@ -16,7 +16,7 @@ import sys
 import gc
 import tracemalloc
 from collections import defaultdict, deque
-from utils import safe_expanduser, log_event, log_error
+from utils import safe_expanduser, log_event, log_error, load_clipboard_history
 
 # Fix psutil import issue when running from bundled app
 # The bundled psutil may be incomplete, so we need to handle this carefully
@@ -238,6 +238,10 @@ class UnifiedMemoryDashboard:
         self.max_history = 2000  # Increased for longer history
         self.server = None
 
+        # Cache-busting version for static assets (changes each server start)
+        self.asset_version = str(int(time.time()))
+
+
         # Logging verbosity (Phase 3)
         self.debug_logging = os.environ.get('CM_DEBUG', '0') in ('1', 'true', 'True')
 
@@ -247,6 +251,21 @@ class UnifiedMemoryDashboard:
         self.monitoring_start_time = None
         self.alert_count = 0
         self.data_file = safe_expanduser("~/Library/Application Support/ClipboardMonitor/unified_memory_data.json")
+
+
+        # UI preferences (server-side persisted)
+        self.ui_prefs_file = safe_expanduser("~/Library/Application Support/ClipboardMonitor/ui_prefs.json")
+        self.ui_prefs = { 'header_collapsed': False }
+        try:
+            # Load saved UI prefs if present
+            if os.path.exists(self.ui_prefs_file):
+                with open(self.ui_prefs_file, 'r') as f:
+                    data = json.load(f)
+                    if isinstance(data, dict):
+                        self.ui_prefs.update({k: data.get(k) for k in ['header_collapsed'] if k in data})
+        except Exception:
+            # On any load error, keep defaults
+            pass
 
         # Lightweight events and budgets (for overlays and health score)
         self.events = []  # [{timestamp, type, message}]
@@ -281,6 +300,8 @@ class UnifiedMemoryDashboard:
         self.peak_menubar_memory = 0.0
         self.peak_service_memory = 0.0
         self.peak_dashboard_memory = 0.0
+
+
         self.peak_total_memory = 0.0
         self.peak_menubar_cpu = 0.0
         self.peak_service_cpu = 0.0
@@ -315,6 +336,8 @@ class UnifiedMemoryDashboard:
             # Only update activity time if this is not a monitoring request
             is_monitoring = query_params.get('monitor', ['false'])[0].lower() == 'true'
             if not is_monitoring:
+
+
                 self._update_activity()
 
             # Use parsed path for routing
@@ -389,6 +412,179 @@ class UnifiedMemoryDashboard:
                     self.wfile.write(data.encode())
                 except BrokenPipeError:
                     pass
+            elif path == '/api/clipboard/history':
+                # Clipboard history API with pagination and filtering
+                page = 1
+                page_size = 30
+                order = 'asc'  # default: chronological order (oldest first)
+                type_filter = 'all'
+                q = ''
+                has_url = None
+                has_code = None
+                is_long = None
+                try:
+                    page = int(query_params.get('page', [1])[0])
+                except Exception:
+                    page = 1
+                try:
+                    page_size = int(query_params.get('page_size', [30])[0])
+                except Exception:
+                    page_size = 30
+                order = (query_params.get('order', ['asc'])[0] or 'asc').lower()
+                type_filter = (query_params.get('type', ['all'])[0] or 'all').lower()
+                q = (query_params.get('q', [''])[0] or '')
+                q_lower = q.lower()
+                # Optional time range
+                def parse_int(val, default=None):
+                    try:
+                        return int(val)
+                    except Exception:
+                        return default
+                start_ts = parse_int((query_params.get('start_ts', [None])[0]))
+                end_ts = parse_int((query_params.get('end_ts', [None])[0]))
+                # Boolean filter parsing
+                def parse_bool(val, default=None):
+                    if val is None:
+                        return default
+                    s = str(val).strip().lower()
+                    if s in ('1','true','yes','on'):
+                        return True
+                    if s in ('0','false','no','off'):
+                        return False
+                    return default
+                has_url = parse_bool((query_params.get('has_url', [None])[0]))
+                has_code = parse_bool((query_params.get('has_code', [None])[0]))
+                is_long = parse_bool((query_params.get('is_long', [None])[0]))
+
+                items = []
+                try:
+                    history = load_clipboard_history() or []
+                    # Build items with type classification and apply filters
+                    for it in history:
+                        content = (it.get('content', '') or '')
+                        c_strip = content.strip()
+                        ctype = 'rtf' if c_strip.startswith('{\\rtf') else (
+                            'md' if any(tok in content for tok in ('\n#', '\n- ', '\n* ', '```', '[', '](')) else 'text')
+                        # Server-side type filter
+                        if type_filter in ('md','rtf','text') and ctype != type_filter:
+                            continue
+                        # Server-side time range
+                        ts = it.get('timestamp')
+                        if isinstance(ts, (int, float)):
+                            if start_ts is not None and ts < start_ts:
+                                continue
+                            if end_ts is not None and ts > end_ts:
+                                continue
+                        # Server-side text query (case-insensitive)
+                        if q and (q_lower not in content.lower()):
+                            continue
+                        # Server-side attribute filters
+                        if has_url is not None:
+                            if has_url and ('http://' not in content and 'https://' not in content):
+                                continue
+                            if (has_url is False) and ('http://' in content or 'https://' in content):
+                                continue
+                        if has_code is not None:
+                            has_backticks = ('```' in content)
+                            if has_code and not has_backticks:
+                                continue
+                            if (has_code is False) and has_backticks:
+                                continue
+                        if is_long is not None:
+                            long = len(content) > 200
+                            if is_long and not long:
+                                continue
+                            if (is_long is False) and long:
+                                continue
+                        items.append({
+                            'timestamp': it.get('timestamp'),
+                            'hash': it.get('hash'),
+                            'type': ctype,
+                            'snippet': content[:200]
+                        })
+                    # Order
+                    items.sort(key=lambda x: x.get('timestamp') or 0, reverse=(order == 'desc'))
+                    total = len(items)
+                    start = max(0, (page - 1) * page_size)
+                    end = start + page_size
+                    page_items = items[start:end]
+                    payload = {
+                        'items': page_items,
+                        'total': total,
+                        'page': page,
+                        'page_size': page_size,
+                        'page_count': (total + page_size - 1) // page_size,
+                        'order': order,
+                        'type': type_filter,
+                        'q': q,
+                        'has_url': has_url,
+                        'has_code': has_code,
+                        'is_long': is_long
+                    }
+                except Exception as e:
+                    payload = {'items': [], 'total': 0, 'page': 1, 'page_size': page_size, 'error': str(e)}
+
+                self.send_response(200)
+                self.send_header('Content-type', 'application/json')
+                self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
+                self.send_header('Pragma', 'no-cache')
+                self.send_header('Expires', '0')
+                self.end_headers()
+                try:
+                    self.wfile.write(json.dumps(payload).encode())
+                except BrokenPipeError:
+                    pass
+
+            elif path == '/api/clipboard/clear':
+                # Clear clipboard history
+                cleared = False
+                try:
+                    try:
+                        from modules.history_module import clear_history as _clr
+                    except Exception:
+                        from .modules.history_module import clear_history as _clr  # type: ignore
+                    _clr()
+                    cleared = True
+                except Exception as e:
+                    cleared = False
+                self.send_response(200)
+                self.send_header('Content-type', 'application/json')
+                self.end_headers()
+                try:
+                    self.wfile.write(json.dumps({'cleared': cleared}).encode())
+                except BrokenPipeError:
+                    pass
+
+            elif path == '/api/clipboard/item':
+                # Return full item by hash
+                hash_q = (query_params.get('hash', [''])[0] or '')
+                result = {'found': False}
+                try:
+                    history = load_clipboard_history() or []
+                    for it in history:
+                        if it.get('hash') == hash_q:
+                            content = (it.get('content', '') or '')
+                            c_strip = content.strip()
+                            ctype = 'rtf' if c_strip.startswith('{\\rtf') else (
+                                'md' if any(tok in content for tok in ('\n#', '\n- ', '\n* ', '```', '[', '](')) else 'text')
+                            result = {
+                                'found': True,
+                                'timestamp': it.get('timestamp'),
+                                'hash': it.get('hash'),
+                                'type': ctype,
+                                'content': content
+                            }
+                            break
+                except Exception as e:
+                    result = {'found': False, 'error': str(e)}
+                self.send_response(200)
+                self.send_header('Content-type', 'application/json')
+                self.end_headers()
+                try:
+                    self.wfile.write(json.dumps(result).encode())
+                except BrokenPipeError:
+                    pass
+
             elif path == '/api/history':
                 self.send_response(200)
                 self.send_header('Content-type', 'application/json')
@@ -601,11 +797,30 @@ class UnifiedMemoryDashboard:
                 except BrokenPipeError:
                     pass
             elif path == '/api/force_gc':
+                # Force a garbage collection cycle (manual trigger)
                 self.send_response(200)
                 self.send_header('Content-type', 'application/json')
                 self.end_headers()
                 result = self.dashboard.force_garbage_collection()
-                self.wfile.write(json.dumps(result).encode())
+                try:
+                    self.wfile.write(json.dumps(result).encode())
+                except BrokenPipeError:
+                    pass
+            elif path == '/api/ui_prefs':
+                # Read UI preferences (server-side persistence)
+                self.send_response(200)
+                self.send_header('Content-type', 'application/json')
+                self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
+                self.send_header('Pragma', 'no-cache')
+                self.send_header('Expires', '0')
+                self.end_headers()
+                payload = {
+                    'header_collapsed': bool(self.dashboard.ui_prefs.get('header_collapsed', False))
+                }
+                try:
+                    self.wfile.write(json.dumps(payload).encode())
+                except BrokenPipeError:
+                    pass
             elif path == '/api/leak_analysis':
                 self.send_response(200)
                 self.send_header('Content-type', 'application/json')
@@ -651,8 +866,18 @@ class UnifiedMemoryDashboard:
 
             elif path.startswith('/static/'):
                 try:
-                    file_path = os.path.join(os.getcwd(), path.lstrip('/'))
-                    if os.path.isfile(file_path):
+                    rel = path.lstrip('/')
+                    here = os.path.dirname(os.path.abspath(__file__))
+                    candidates = [
+                        os.path.join(here, rel),
+                        os.path.join(os.getcwd(), rel),
+                    ]
+                    file_path = None
+                    for fp in candidates:
+                        if os.path.isfile(fp):
+                            file_path = fp
+                            break
+                    if file_path:
                         # Basic content type detection
                         if file_path.endswith('.css'):
                             content_type = 'text/css'
@@ -662,7 +887,10 @@ class UnifiedMemoryDashboard:
                             content_type = 'application/octet-stream'
                         self.send_response(200)
                         self.send_header('Content-type', content_type)
-                        self.send_header('Cache-Control', 'no-cache')
+                        # Stronger no-cache to avoid stale assets across instances
+                        self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
+                        self.send_header('Pragma', 'no-cache')
+                        self.send_header('Expires', '0')
                         self.end_headers()
                         with open(file_path, 'rb') as f:
                             self.wfile.write(f.read())
@@ -678,20 +906,83 @@ class UnifiedMemoryDashboard:
 
 
 
+
+        def do_POST(self):
+            """Handle POST requests (write operations)."""
+            # Update activity for POST requests
+            self._update_activity()
+
+            from urllib.parse import urlparse
+            parsed_path = urlparse(self.path)
+            path = parsed_path.path
+
+            if path == '/api/ui_prefs':
+                # Update UI preferences (expects JSON body)
+                try:
+                    length = int(self.headers.get('Content-Length') or 0)
+                except Exception:
+                    length = 0
+                body = b''
+                if length > 0:
+                    try:
+                        body = self.rfile.read(length)
+                    except Exception:
+                        body = b''
+                new_prefs = {}
+                try:
+                    if body:
+                        new_prefs = json.loads(body.decode('utf-8'))
+                except Exception:
+                    new_prefs = {}
+
+                # Only allow header_collapsed for now
+                if isinstance(new_prefs, dict) and 'header_collapsed' in new_prefs:
+                    self.dashboard.ui_prefs['header_collapsed'] = bool(new_prefs.get('header_collapsed', False))
+                    try:
+                        os.makedirs(os.path.dirname(self.dashboard.ui_prefs_file), exist_ok=True)
+                        with open(self.dashboard.ui_prefs_file, 'w') as f:
+                            json.dump(self.dashboard.ui_prefs, f)
+                    except Exception:
+                        pass
+
+                self.send_response(200)
+                self.send_header('Content-type', 'application/json')
+                self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
+                self.send_header('Pragma', 'no-cache')
+                self.send_header('Expires', '0')
+                self.end_headers()
+                payload = { 'header_collapsed': bool(self.dashboard.ui_prefs.get('header_collapsed', False)) }
+                try:
+                    self.wfile.write(json.dumps(payload).encode())
+                except BrokenPipeError:
+                    pass
+                return
+
+            # Unknown POST endpoint
+            self.send_response(404)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            try:
+                self.wfile.write(json.dumps({'error': 'Not found'}).encode())
+            except BrokenPipeError:
+                pass
+
         def log_message(self, format, *args):
             """Suppress default logging."""
             pass
 
     def render_dashboard_html(self):
         """Render the unified dashboard HTML."""
-        return '''
+        html = '''
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+
+
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Clipboard Monitor - Unified Memory Dashboard</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js?v=__ASSET_VERSION__"></script>
     <style>
       @keyframes pulseDot {
         0%   { box-shadow: 0 0 0 0 rgba(46, 204, 113, 0.7); }
@@ -702,11 +993,85 @@ class UnifiedMemoryDashboard:
       .spark-badge { font-size:11px; color:#777; background:#f2f6ff; border:1px solid #e3ecff; padding:0 4px; border-radius:4px; }
       .spark-btn { font-size:11px; padding:2px 6px; border:1px solid #cfe8ff; border-radius:6px; background:#eef7ff; color:#266eb6; cursor:pointer; }
       .spark-hint { font-size:11px; color:#555; margin-bottom:4px; }
-    </style>
-        <link rel="stylesheet" href="/static/style.css">
-        <script src="/static/js/app-core.js"></script>
+      /* Fullscreen tweaks: remove top shadows and add top margin */
+      body.fs-dashboard #top-header,
+      body.fs-analysis #top-header,
+      body.fs-clipboard #top-header { box-shadow: none !important; }
 
-        <script src="/static/js/charts/cpu-chart.js"></script>
+      /* Remove extra gap under tabs in fullscreen */
+      body.fs-dashboard #dashboard-tab,
+      body.fs-analysis #analysis-tab,
+      body.fs-clipboard #clipboard-tab { margin-top: 0 !important; }
+
+      /* Clipboard fullscreen: let the page handle scrolling (no inner scroller) */
+      body.fs-clipboard { overflow: auto !important; height: auto; }
+      html.fs-clipboard { overflow: auto !important; height: auto; }
+      body.fs-clipboard .tab-content { overflow: visible !important; }
+      body.fs-clipboard #content-width-wrap { overflow: visible !important; }
+
+      /* In fullscreen, flatten control bars to avoid a visible top shadow band */
+      body.fs-dashboard .unified-control-bar,
+      body.fs-analysis .unified-control-bar { box-shadow: none !important; }
+      /* Remove gradients/shading on charts in fullscreen dashboard */
+      body.fs-dashboard .unified-control-bar { background: #ffffff !important; border-color: #e6e8eb !important; }
+      body.fs-dashboard .chart-container { box-shadow: none !important; background: transparent !important; }
+
+      /* Remove shadows from dashboard charts in normal view as well */
+      .unified-control-bar { box-shadow: none !important; background: #ffffff !important; border-color: #e6e8eb !important; }
+      .chart-container { box-shadow: none !important; }
+      .chart-container .mode-toggle { box-shadow: none !important; }
+      .chart-container .mode-btn { box-shadow: none !important; }
+
+      body.fs-dashboard .chart-container .mode-toggle { box-shadow: none !important; }
+
+      /* Keep the three-tab bar visible at top in fullscreen across all sections */
+      :root { --panel-gap: 8px; }
+      body.fs-dashboard #nav-shell,
+      body.fs-analysis #nav-shell,
+      body.fs-clipboard #nav-shell {
+        position: fixed; top: 0; left: calc(10vw + 8px); width: calc(80vw - 16px); z-index: 950; background: #ffffff;
+      }
+      body.fs-dashboard #dashboard-tab > *:first-child,
+      body.fs-analysis #analysis-tab > *:first-child,
+      body.fs-clipboard #clipboard-tab > *:first-child { margin-top: 0 !important; }
+      /* In fullscreen, always show the full tabs row and hide the compact strip */
+      body.fs-dashboard #collapse-strip,
+      body.fs-analysis #collapse-strip,
+      body.fs-clipboard #collapse-strip { display: none !important; }
+      body.fs-dashboard #nav-shell .tabs,
+      body.fs-analysis #nav-shell .tabs,
+      body.fs-clipboard #nav-shell .tabs { display: flex !important; }
+      /* Offset content by nav height + 8px gap in fullscreen */
+      body.fs-dashboard #content-width-wrap,
+      body.fs-analysis #content-width-wrap,
+      body.fs-clipboard #content-width-wrap { padding-top: 60px; }
+      /* Remove accidental top margins on first controls under tabs */
+      #clipboard-tab .clip-toolbar { margin-top: 0 !important; }
+
+      body.fs-dashboard .chart-container .mode-btn { box-shadow: none !important; }
+
+      /* Clipboard spacing between toolbar and table */
+      #clipboard-tab .clip-table-wrap { margin-top: 12px !important; }
+
+      /* Fullscreen Clipboard: sticky pager at bottom, aligned to content width */
+      body.fs-clipboard #clip-pager {
+        position: fixed; bottom: 10px; left: calc(10vw + 8px); width: calc(80vw - 16px);
+        background: #ffffff; border: 1px solid #eee; border-radius: 6px; padding: 6px 8px;
+        box-shadow: 0 -2px 6px rgba(0,0,0,0.06); z-index: 1000;
+      }
+      /* Segmented control in pinned nav */
+      #nav-shell .nav-controls { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); display: flex; align-items: center; gap: 6px; z-index: 951; }
+      #nav-shell .segmented { display: inline-flex; border: 1px solid #cfe8ff; border-radius: 10px; overflow: hidden; background: #eef7ff; }
+      #nav-shell .segmented .seg-btn { font-size: 11px; padding: 2px 8px; background: transparent; border: 0; color: #266eb6; cursor: pointer; }
+      #nav-shell .segmented .seg-btn + .seg-btn { border-left: 1px solid #cfe8ff; }
+      #nav-shell .segmented .seg-btn:hover { background: rgba(38,110,182,0.07); }
+      #nav-shell .esc-hint { font-size: 10px; color: #666; background: #f1f3f5; border: 1px solid #dee2e6; padding: 1px 6px; border-radius: 10px; display: none; }
+
+    </style>
+        <link rel="stylesheet" href="/static/style.css?v=__ASSET_VERSION__">
+        <script src="/static/js/app-core.js?v=__ASSET_VERSION__"></script>
+
+        <script src="/static/js/charts/cpu-chart.js?v=__ASSET_VERSION__"></script>
         <script>
           // Early debug logger stub to buffer messages before panel initializes
           (function(){
@@ -721,71 +1086,53 @@ class UnifiedMemoryDashboard:
           })();
         </script>
 
-        <script src="/static/js/dashboard.js"></script>
+        <script src="/static/js/dashboard.js?v=__ASSET_VERSION__"></script>
 
 </head>
 <body>
-    <div class="container">
+    <div class="container" style="width:80%; margin: 0 10%;">
         <div id="toast-container" aria-live="polite" aria-atomic="true"></div>
         <!-- New 4-Box Dashboard Header -->
-        <div class="header" style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: 8px; padding: 8px; margin-bottom: 8px; border: 1px solid #dee2e6; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
+
+        <div id="top-header" class="header header-shell" style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: 8px; padding: 8px; margin-bottom: 8px; border: 1px solid #dee2e6; box-shadow: 0 2px 6px rgba(0,0,0,0.1); position: relative;">
             <!-- Compact Title and Status -->
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px solid #e0e0e0;">
                 <div style="display:flex; align-items:center; gap:10px;">
                     <h1 style="margin: 0; font-size: 16px; color: #333; font-weight: bold;">📊 Clipboard Monitor Dashboard</h1>
-                    <span id="ui-signature" style="font-size:11px; color:#555; background:#f1f3f5; border:1px solid #dfe3e6; padding:2px 6px; border-radius:6px;">
-                        UI v2025-08-14 02:00Z • workspace
-                    </span>
                 </div>
-                <div style="display:flex; align-items:center; gap:12px; font-size:12px; color:#333;">
-                  <label style="display:inline-flex; align-items:center; gap:6px; cursor:pointer;">
-                    <input id="global-debug-toggle" type="checkbox" style="margin:0;" /> Enable Debug
-                  </label>
-                  <label style="display:inline-flex; align-items:center; gap:6px; cursor:pointer;">
-                    Poll:
-                    <select id="global-live-interval" style="padding:2px 6px; font-size:12px;">
-                      <option value="1000">1s</option>
-                      <option value="2000" selected>2s</option>
-                      <option value="5000">5s</option>
-                    </select>
-                  </label>
-                </div>
-                <div style="display: flex; gap: 8px; align-items: center; font-size: 11px;">
-                    <span style="background: #4CAF50; color: white; padding: 2px 6px; border-radius: 8px; font-weight: bold; display: flex; align-items: center; gap: 3px;">
-                        <span>●</span> Connected
-                    </span>
-                    <span id="analysis-ready-badge" title="Analysis readiness" style="display:flex; align-items:center; gap:6px; background:#eef7ff; color:#2b5a3a; padding:2px 6px; border-radius:8px; border:1px solid #cfe8ff;">
-                        <span id="analysis-ready-dot" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#bbb;"></span>
-                        <span id="analysis-ready-text" style="font-weight:600;">Not ready</span>
-                    </span>
-                        <span id="consistency-badge" title="Trend consistency (R²)" style="display:flex; align-items:center; gap:6px; background:#f1f3f5; color:#333; padding:2px 6px; border-radius:8px; border:1px solid #e0e0e0;">
-                            <span id="consistency-badge-dot" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#bbb;"></span>
-                            <span id="consistency-badge-text" style="font-weight:600;">R² --</span>
+                <div style="display: flex; align-items: center; font-size: 11px; gap: 12px;">
+                    <div id="status-cluster" style="display:flex; align-items:center; gap:8px;">
+                        <span style="background: #4CAF50; color: white; padding: 2px 6px; border-radius: 8px; font-weight: bold; display: flex; align-items: center; gap: 3px;">
+                            <span>●</span> Connected
                         </span>
-                        <span id="consistency-badges-group" style="display:flex; align-items:center; gap:6px;">
-                            <span id="consistency-badge-mb" title="Menu Bar R²" style="display:flex; align-items:center; gap:4px; background:#f1f3f5; color:#333; padding:2px 6px; border-radius:8px; border:1px solid #e0e0e0;">
-                                <span id="consistency-badge-mb-dot" style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#bbb;"></span>
-                                <span id="consistency-badge-mb-text" style="font-weight:600;">Menu R² --</span>
-                            </span>
-                            <span id="consistency-badge-svc" title="Main Service R²" style="display:flex; align-items:center; gap:4px; background:#f1f3f5; color:#333; padding:2px 6px; border-radius:8px; border:1px solid #e0e0e0;">
-                                <span id="consistency-badge-svc-dot" style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#bbb;"></span>
-                                <span id="consistency-badge-svc-text" style="font-weight:600;">Service R² --</span>
-                            </span>
+                        <span id="analysis-ready-badge" title="Analysis readiness" style="display:none; align-items:center; gap:6px; background:#eef7ff; color:#2b5a3a; padding:2px 6px; border-radius:8px; border:1px solid #cfe8ff;">
+                            <span id="analysis-ready-dot" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#2ecc71;"></span>
+                            <span id="analysis-ready-text" style="font-weight:600;">Ready</span>
                         </span>
-
-
-                    <span id="advanced-status" style="background: #999; color: white; padding: 2px 6px; border-radius: 8px; font-weight: bold; display: flex; align-items: center; gap: 3px;">
-                        ⚫ Advanced
-                    </span>
+                        <span id="advanced-status" style="background: #999; color: white; padding: 2px 6px; border-radius: 8px; font-weight: bold; display: flex; align-items: center; gap: 3px;">
+                            ⚫ Advanced
+                        </span>
                         <span id="monitoring-status-indicator" class="monitoring-indicator" style="display:none; width:10px; height:10px; border-radius:50%; background:#4CAF50; animation: pulse-dot 1.5s infinite;"></span>
+                    </div>
+                    <div id="metrics-cluster" style="display:flex; align-items:center; gap:8px; margin-left:24px;">
+                        <span id="top-mb-badge" title="Menu Bar status" style="display:flex; align-items:center; gap:6px; background:#f1f8ff; color:#0b5ed7; padding:2px 6px; border-radius:8px; border:1px solid #cfe2ff;">
+                            📱 <span id="top-mb-mem">--</span> • <span id="top-mb-cpu">--</span> • <span id="top-mb-status">--</span>
+                        </span>
+                        <span id="top-svc-badge" title="Service status" style="display:flex; align-items:center; gap:6px; background:#f3fff1; color:#2e7d32; padding:2px 6px; border-radius:8px; border:1px solid #dcedc8;">
+                            ⚙️ <span id="top-svc-mem">--</span> • <span id="top-svc-cpu">--</span> • <span id="top-svc-status">--</span>
+                        </span>
+                    </div>
+                        <button id="header-collapse-toggle" class="spark-btn" style="padding:2px 6px; font-size:11px;" onclick="toggleHeaderBar()" title="Collapse/Expand header">▴</button>
+
+
                 </div>
             </div>
 
             <!-- Clean 4-Box Horizontal Layout -->
-            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 8px; width: 100%;">
+            <div class="header-grid">
 
                 <!-- Box 1: Menu Bar + Service -->
-                <div style="background: white; border-radius: 6px; padding: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-left: 3px solid #2196F3;">
+                <div class="header-card" style="background: white; border-radius: 6px; padding: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-left: 3px solid #2196F3; height: 100%;">
                     <div style="font-weight: bold; color: #2196F3; margin-bottom: 6px; font-size: 11px; text-align: center;">📱 Menu Bar</div>
                     <div style="font-size: 10px;">
                         <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
@@ -868,7 +1215,7 @@ class UnifiedMemoryDashboard:
                 </div>
 
                 <!-- Box 2: Analytics -->
-                <div style="background: white; border-radius: 6px; padding: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-left: 3px solid #FF9800;">
+                <div class="header-card" style="background: white; border-radius: 6px; padding: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-left: 3px solid #FF9800; height: 100%;">
                     <div style="font-weight: bold; color: #FF9800; margin-bottom: 4px; font-size: 11px; text-align: center;">📊 Analytics</div>
                     <div style="font-size: 10px;">
                         <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
@@ -911,7 +1258,7 @@ class UnifiedMemoryDashboard:
                 </div>
 
                 <!-- Box 3: System -->
-                <div style="background: white; border-radius: 6px; padding: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-left: 3px solid #9C27B0;">
+                <div class="header-card" style="background: white; border-radius: 6px; padding: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-left: 3px solid #9C27B0; height: 100%;">
                     <div style="font-weight: bold; color: #9C27B0; margin-bottom: 4px; font-size: 11px; text-align: center;">💻 System</div>
                     <div style="font-size: 10px;">
                         <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
@@ -938,7 +1285,7 @@ class UnifiedMemoryDashboard:
                 </div>
 
                 <!-- Box 4: Session -->
-                <div style="background: white; border-radius: 6px; padding: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-left: 3px solid #795548;">
+                <div class="header-card" style="background: white; border-radius: 6px; padding: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-left: 3px solid #795548; height: 100%;">
                     <div style="font-weight: bold; color: #795548; margin-bottom: 4px; font-size: 11px; text-align: center;">📊 Session</div>
                     <div style="font-size: 10px;">
                         <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
@@ -965,6 +1312,8 @@ class UnifiedMemoryDashboard:
                             <span>🔄 Updated:</span>
                             <span style="color: #666; font-weight: bold;" id="header-last-updated">--</span>
                         </div>
+            </div>
+
                     </div>
                 </div>
             </div>
@@ -972,16 +1321,38 @@ class UnifiedMemoryDashboard:
 
 
 
-        <div class="tabs">
-            <div class="tab active" onclick="switchTab('dashboard', this)">📊 Dashboard</div>
-            <div class="tab" onclick="switchTab('analysis', this)">🔍 Analysis & Controls</div>
+
+        <!-- Content width wrapper to match header/container width -->
+        <div id="content-width-wrap" style="width:80%; margin: 0 10%; box-sizing: border-box;">
+
+        <div id="nav-shell" class="nav-shell" style="margin: 0 0 10px 0; width: 100%; padding: 0; box-sizing: border-box;">
+          <div class="tabs" style="position: relative; display:flex; gap:12px; width: 100%; box-sizing: border-box;">
+            <div class="tab active" onclick="switchTab('dashboard', this)" style="flex:1; position:relative;">📊 Dashboard</div>
+            <div class="tab" onclick="switchTab('analysis', this)" style="flex:1; position:relative;">🔍 Analysis & Controls</div>
+            <div class="tab" onclick="switchTab('clipboard', this)" style="flex:1; position:relative;">📋 Clipboard History</div>
+            </div>
+
+            <div id="collapse-strip" class="collapse-strip" style="display:none;">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <button id="nav-expand-toggle" class="spark-btn" title="Expand" onclick="expandFromStrip()">▾</button>
+                <strong id="nav-current-title" style="font-size:12px; color:#333;">Dashboard</strong>
+              </div>
+              <div class="strip-tabs" style="display:flex; gap:6px;">
+                <button class="spark-btn" style="padding:2px 6px; font-size:11px;" onclick="switchTab('dashboard', this)" title="Dashboard">📊</button>
+                <button class="spark-btn" style="padding:2px 6px; font-size:11px;" onclick="switchTab('analysis', this)" title="Analysis">🔍</button>
+                <button class="spark-btn" style="padding:2px 6px; font-size:11px;" onclick="switchTab('clipboard', this)" title="Clipboard">📋</button>
+              </div>
+            </div>
+            <div id="nav-controls" class="nav-controls"></div>
+          </div>
         </div>
 
+
         <!-- Consolidated Dashboard Tab -->
-        <div id="dashboard-tab" class="tab-content active">
+        <div id="dashboard-tab" class="tab-content active" style="margin: 0 calc(10vw + 8px); width: auto; box-sizing: border-box; padding: 0;">
 
             <!-- Memory Usage Chart - Only visible in Dashboard tab -->
-            <div class="chart-container" style="margin-bottom: 10px; width: 100%; max-width: 100%; box-sizing: border-box; overflow: hidden; height: 350px; position: relative;">
+            <div class="chart-container" style="margin-bottom: 12px; width: 100%; max-width: 100%; box-sizing: border-box; overflow: hidden; height: 350px; position: relative;">
                 <!-- Unified Control Bar -->
                 <div class="unified-control-bar" style="
                     background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
@@ -1192,7 +1563,7 @@ class UnifiedMemoryDashboard:
             </div>
 
             <!-- CPU Usage Chart -->
-            <div class="chart-container" style="margin-bottom: 8px; width: 100%; max-width: 100%; box-sizing: border-box; overflow: hidden; height: 350px; position: relative;">
+            <div class="chart-container" style="margin-bottom: 12px; width: 100%; max-width: 100%; box-sizing: border-box; overflow: hidden; height: 350px; position: relative;">
                 <!-- Unified Control Bar (CPU) -->
                 <div class="unified-control-bar" style="
                     background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
@@ -1292,7 +1663,7 @@ class UnifiedMemoryDashboard:
         </div>
 
         <!-- Analysis Tab (Combined with Controls) -->
-        <div id="analysis-tab" class="tab-content">
+        <div id="analysis-tab" class="tab-content" style="margin: 0 calc(10vw + 8px); width: auto; box-sizing: border-box; padding: 0;">
             <div style="background: #e8f5e9; padding: 15px; border-radius: 8px; margin-bottom: 12px; border-left: 4px solid #4CAF50;">
                 <h4 style="margin: 0 0 10px 0; color: #2e7d32;">🔍 Memory Analysis & Monitoring Dashboard</h4>
                 <p style="margin: 0 0 10px 0;">This tab provides comprehensive memory leak detection, monitoring controls, and growth pattern analysis.</p>
@@ -1732,6 +2103,8 @@ class UnifiedMemoryDashboard:
                 el.classList.add('active');
             } else {
                 const sel = `.tabs .tab[onclick*="${tabName}"]`;
+
+
                 const fallback = document.querySelector(sel);
                 if (fallback) fallback.classList.add('active');
             }
@@ -1746,6 +2119,283 @@ class UnifiedMemoryDashboard:
                 }, 100);
             }
         }
+
+
+        // Nav collapse + fullscreen preferences per tab (global, runs on DOM ready)
+        (function(){ if (window.__navInitDone) return; window.__navInitDone = true;
+          const NAV_KEY = 'cm_nav_prefs_v1';
+          function readNav(){ try { return JSON.parse(localStorage.getItem(NAV_KEY) || '{}'); } catch(e) { return {}; } }
+          function writeNav(p){ try { localStorage.setItem(NAV_KEY, JSON.stringify(p)); } catch(e) {} }
+          function titleFor(tab){ return tab==='dashboard' ? 'Dashboard' : (tab==='analysis' ? 'Analysis & Controls' : 'Clipboard History'); }
+          function activeTab(){
+            const t = document.querySelector('.tabs .tab.active');
+            if (t && t.textContent.includes('Clipboard')) return 'clipboard';
+            if (t && (t.textContent.includes('Analysis') || t.textContent.includes('Controls'))) return 'analysis';
+            return 'dashboard';
+          }
+
+          function updateClipboardFsLayout(){
+            try {
+              const isFs = document.body.classList.contains('fs-clipboard');
+              const wrap = document.querySelector('#clipboard-tab .clip-table-wrap');
+              const toolbar = document.querySelector('#clipboard-tab .clip-toolbar');
+              const pager = document.getElementById('clip-pager');
+              const nav = document.getElementById('nav-shell');
+              if (!wrap) return;
+              if (isFs) {
+                // Let the page handle scrolling in fullscreen: do not constrain inner wrapper
+                wrap.style.height = '';
+                wrap.style.maxHeight = '';
+                // Keep pager aligned to content width for visual consistency
+                if (pager) {
+                  const rr = wrap.getBoundingClientRect();
+                  pager.style.left = rr.left + 'px';
+                  pager.style.width = rr.width + 'px';
+                }
+                document.body.style.overflow = '';
+                document.documentElement.style.overflow = '';
+              } else {
+                wrap.style.height = '';
+                wrap.style.maxHeight = '';
+                if (pager) { pager.style.left = ''; pager.style.width = ''; }
+                document.body.style.overflow = '';
+                document.documentElement.style.overflow = '';
+              }
+            } catch(e) {}
+          }
+          window.__updateClipFsLayout = updateClipboardFsLayout;
+          window.addEventListener('resize', function(){ if (document.body.classList.contains('fs-clipboard')) updateClipboardFsLayout(); });
+
+          function updateFsChromeLayout(){
+            try {
+              const fs = document.body.classList.contains('fs-dashboard') || document.body.classList.contains('fs-analysis') || document.body.classList.contains('fs-clipboard');
+              const nav = document.getElementById('nav-shell');
+              const cw = document.getElementById('content-width-wrap');
+              if (!nav || !cw) return;
+              if (fs) {
+                const r = cw.getBoundingClientRect();
+                nav.style.setProperty('position', 'fixed', 'important');
+                nav.style.setProperty('left', r.left + 'px', 'important');
+                nav.style.setProperty('right', (window.innerWidth - r.right) + 'px', 'important');
+                nav.style.setProperty('width', 'auto', 'important');
+                nav.style.setProperty('top', '0px', 'important');
+                nav.style.setProperty('z-index', '950', 'important');
+                nav.style.setProperty('box-sizing', 'border-box', 'important');
+                nav.style.setProperty('margin', '0', 'important');
+                // Fixed 60px offset (48px nav height + 12px gap)
+                cw.style.paddingTop = '60px';
+              } else {
+                nav.style.position = '';
+                nav.style.left = '';
+                nav.style.right = '';
+                nav.style.width = '';
+                nav.style.top = '';
+                nav.style.margin = '';
+                nav.style.boxSizing = '';
+                cw.style.paddingTop = '';
+              }
+            } catch(e){}
+          }
+          window.__updateFsChromeLayout = updateFsChromeLayout;
+          window.addEventListener('resize', function(){ if (document.body.classList.contains('fs-dashboard') || document.body.classList.contains('fs-analysis') || document.body.classList.contains('fs-clipboard')) updateFsChromeLayout(); });
+
+
+          function normalizeNavGrid(){
+            try {
+              const shell = document.getElementById('nav-shell');
+              const ctrls = document.getElementById('nav-controls');
+              if (!shell || !ctrls) return;
+              const hasControls = !!ctrls.querySelector('.segmented') || (ctrls.children && ctrls.children.length > 0);
+              if (hasControls) {
+                ctrls.style.display = 'flex';
+                shell.style.display = 'grid';
+                shell.style.gridTemplateColumns = '1fr auto';
+                shell.style.columnGap = '8px';
+              } else {
+                ctrls.style.display = 'none';
+                shell.style.display = 'block';
+                shell.style.gridTemplateColumns = '1fr';
+                shell.style.columnGap = '0px';
+              }
+            } catch(e) {}
+          }
+
+          document.addEventListener('DOMContentLoaded', normalizeNavGrid);
+
+          function applyNavFor(tab){
+            const allPrefs = readNav();
+            const prefs = allPrefs[tab] || {};
+            const fsGlobal = !!allPrefs._fsGlobal;
+            const shell = document.getElementById('nav-shell');
+            const strip = document.getElementById('collapse-strip');
+            const header = document.getElementById('top-header');
+            const headerBtn = document.getElementById('header-collapse-toggle');
+            if (shell) {
+              const collapsed = false;
+              shell.classList.toggle('collapsed', collapsed);
+              if (strip) strip.style.display = collapsed ? 'flex' : 'none';
+              const collBtn = document.getElementById('nav-collapse-toggle'); if (collBtn) collBtn.textContent = collapsed ? '\u25be' : '\u25b4';
+            }
+            const titleEl = document.getElementById('nav-current-title'); if (titleEl) titleEl.textContent = titleFor(tab);
+            const fs = fsGlobal; // fullscreen persists across tabs until explicitly exited
+            // Build/update segmented controls on the right
+            try {
+              const tabsRow = (shell ? shell.querySelector('.tabs') : null);
+              if (tabsRow) {
+                let controls = shell.querySelector('.nav-controls');
+                if (!controls) {
+                  controls = document.createElement('div');
+                  controls.className = 'nav-controls'; controls.id = 'nav-controls';
+                  const seg = document.createElement('div');
+                  seg.className = 'segmented';
+                  const btnHeader = document.createElement('button');
+                  btnHeader.id = 'seg-header-toggle';
+                  btnHeader.className = 'seg-btn';
+                  btnHeader.title = 'Show/Hide Header';
+                  btnHeader.addEventListener('click', function(e){ e.stopPropagation(); window.toggleHeaderBar(); });
+                  const btnFs = document.createElement('button');
+                  btnFs.id = 'seg-fs-toggle';
+                  btnFs.className = 'seg-btn';
+                  btnFs.title = 'Enter/Exit Fullscreen';
+                  btnFs.addEventListener('click', function(e){ e.stopPropagation(); window.toggleFullscreen(); });
+                  seg.appendChild(btnHeader);
+                  seg.appendChild(btnFs);
+                  const esc = document.createElement('span'); esc.id = 'seg-esc-hint'; esc.className = 'esc-hint'; esc.textContent = 'Esc';
+                  controls.appendChild(seg);
+                  controls.appendChild(esc);
+                  tabsRow.appendChild(controls);
+                  controls.style.display = 'flex';
+                } else {
+                  // Ensure controls live inside the tabs row for correct absolute positioning
+                  tabsRow.appendChild(controls);
+                  controls.style.display = 'flex';
+                  // If the placeholder exists but is empty, (re)build its content
+                  if (!controls.querySelector('.segmented')) {
+                    const seg = document.createElement('div');
+                    seg.className = 'segmented';
+                    const btnHeader = document.createElement('button');
+                    btnHeader.id = 'seg-header-toggle';
+                    btnHeader.className = 'seg-btn';
+                    btnHeader.title = 'Show/Hide Header';
+                    btnHeader.addEventListener('click', function(e){ e.stopPropagation(); window.toggleHeaderBar(); });
+                    const btnFs = document.createElement('button');
+                    btnFs.id = 'seg-fs-toggle';
+                    btnFs.className = 'seg-btn';
+                    btnFs.title = 'Enter/Exit Fullscreen';
+                    btnFs.addEventListener('click', function(e){ e.stopPropagation(); window.toggleFullscreen(); });
+                    seg.appendChild(btnHeader);
+                    seg.appendChild(btnFs);
+                    const esc = document.createElement('span'); esc.id = 'seg-esc-hint'; esc.className = 'esc-hint'; esc.textContent = 'Esc';
+                    controls.appendChild(seg);
+                    controls.appendChild(esc);
+                  }
+                }
+                const hdrCollapsed = (typeof window.__hdrCollapsed === 'boolean') ? window.__hdrCollapsed : false;
+                const hdrBtn = document.getElementById('seg-header-toggle');
+                if (hdrBtn) {
+                  hdrBtn.textContent = hdrCollapsed ? '\u25be Header' : '\u25b4 Header';
+                  // Hide header toggle while in fullscreen mode (header cannot expand there)
+                  hdrBtn.style.display = fs ? 'none' : 'inline-block';
+                }
+                const fsBtn2 = document.getElementById('seg-fs-toggle'); if (fsBtn2) fsBtn2.textContent = fs ? '\u2716 Full' : '\u26f6 Full';
+                const escHint = document.getElementById('seg-esc-hint'); if (escHint) escHint.style.display = fs ? 'inline-block' : 'none';
+              }
+              // Hide legacy header button in the header box to avoid duplication
+              if (headerBtn) headerBtn.style.display = 'none';
+            } catch(e){}
+            document.body.classList.remove('fs-dashboard','fs-analysis','fs-clipboard');
+            document.documentElement.classList.remove('fs-dashboard','fs-analysis','fs-clipboard');
+            if (fs) {
+              document.body.classList.add('fs-' + tab);
+              document.documentElement.classList.add('fs-' + tab);
+            }
+            // Ensure the three-tab bar stays visible in fullscreen (use full tabs, not compact strip)
+            if (shell) { shell.style.display = 'block'; shell.style.visibility = 'visible'; }
+            if (fs && strip) { strip.style.display = 'none'; }
+            // Update fullscreen chrome (fixed nav alignment + content offset)
+            try { window.__updateFsChromeLayout && window.__updateFsChromeLayout(); } catch(e){}
+            // In clipboard fullscreen, use an inner scroller and hide page scrollbars
+            if (tab === 'clipboard') { try { window.__updateClipFsLayout && window.__updateClipFsLayout(); } catch(e){} }
+            // Removed Esc toast/tooltip on entering fullscreen per user request
+            try {
+              const isFs = document.body.classList.contains('fs-dashboard') ||
+                           document.body.classList.contains('fs-analysis') ||
+                           document.body.classList.contains('fs-clipboard');
+              // No toast or tooltip
+              window.__fsWasOn = isFs;
+            } catch (e) {}
+
+          const UIPREFS_URL = '/api/ui_prefs';
+          async function fetchHeaderCollapsed(){ try { const r = await fetch(UIPREFS_URL); const j = await r.json(); return !!(j && j.header_collapsed); } catch(e) { return false; } }
+          async function saveHeaderCollapsed(val){
+            try {
+              await fetch(UIPREFS_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ header_collapsed: !!val }) });
+            } catch(e) {}
+          }
+
+          async function setHeaderCollapsed(tab, val){
+            await saveHeaderCollapsed(!!val);
+            window.__hdrCollapsed = !!val;
+            applyNavFor(tab);
+          }
+          window.toggleHeaderBar = function(){
+            const tab = (window.currentTabName || activeTab());
+            const cur = (typeof window.__hdrCollapsed === 'boolean') ? window.__hdrCollapsed : false;
+            const next = !cur;
+            window.__hdrCollapsed = next;
+            const headerGrid = document.querySelector('#top-header .header-grid');
+            if (headerGrid) headerGrid.style.display = next ? 'none' : '';
+            const headerBtn = document.getElementById('header-collapse-toggle');
+            if (headerBtn) headerBtn.textContent = next ? '\u25be' : '\u25b4';
+            setHeaderCollapsed(tab, next);
+          };
+          window.expandHeaderBar = function(){
+            const tab = (window.currentTabName || activeTab());
+            window.__hdrCollapsed = false;
+            const headerGrid = document.querySelector('#top-header .header-grid');
+            if (headerGrid) headerGrid.style.display = '';
+
+            const headerBtn = document.getElementById('header-collapse-toggle');
+            if (headerBtn) headerBtn.textContent = '\u25b4';
+            setHeaderCollapsed(tab, false);
+          };
+
+            // Header collapse handling
+            if (typeof window.__hdrCollapsed !== 'boolean') {
+              fetchHeaderCollapsed().then(v => { window.__hdrCollapsed = !!v; applyNavFor(tab); });
+
+            }
+            const hdrCollapsed = (typeof window.__hdrCollapsed === 'boolean') ? window.__hdrCollapsed : false;
+            if (headerBtn) headerBtn.textContent = hdrCollapsed ? '\u25be' : '\u25b4';
+            // Keep the top bar visible; hide only the 4-column grid
+            if (header) header.style.display = '';
+            const headerGrid = header ? header.querySelector('.header-grid') : null;
+            if (headerGrid) headerGrid.style.display = hdrCollapsed ? 'none' : '';
+          }
+
+            // Normalize nav grid based on presence of controls to remove trailing gap
+            try { normalizeNavGrid(); } catch(e) {}
+
+          function setCollapsed(tab, val){ const all = readNav(); all[tab] = Object.assign({collapsed:false, fullscreen:false, headerCollapsed:false}, all[tab], {collapsed: !!val}); writeNav(all); applyNavFor(tab); }
+          function setFullscreenGlobal(tab, val){ const all = readNav(); all._fsGlobal = !!val; all[tab] = Object.assign({collapsed:false, fullscreen:false, headerCollapsed:false}, all[tab], {fullscreen: !!val}); writeNav(all); applyNavFor(tab); }
+          window.toggleCollapsed = function(){ const tab = (window.currentTabName || activeTab()); const all = readNav(); setCollapsed(tab, !(all[tab] && all[tab].collapsed)); };
+          window.toggleFullscreen = function(){ const tab = (window.currentTabName || activeTab()); const all = readNav(); const cur = !!all._fsGlobal; setFullscreenGlobal(tab, !cur); };
+          window.expandFromStrip = function(){ const tab = (window.currentTabName || activeTab()); setCollapsed(tab, false); };
+          window.exitFullscreenCurrent = function(){ const tab = (window.currentTabName || activeTab()); setFullscreenGlobal(tab, false); };
+          document.addEventListener('keydown', function(e){
+            const k = e.key || e.keyCode;
+            if (k === 'Escape' || k === 'Esc' || k === 27) {
+              if (document.body.classList.contains('fs-dashboard') || document.body.classList.contains('fs-analysis') || document.body.classList.contains('fs-clipboard')) {
+                window.exitFullscreenCurrent();
+              }
+            }
+          });
+
+          const _origSwitch = window.switchTab;
+          window.switchTab = function(tabName, el){ _origSwitch(tabName, el); window.currentTabName = tabName; applyNavFor(tabName); };
+          document.addEventListener('DOMContentLoaded', function(){ window.currentTabName = window.currentTabName || activeTab(); applyNavFor(window.currentTabName); });
+          window.applyNavFor = applyNavFor; // expose for debugging
+        })();
 
         // Legacy memory chart initialization removed - now handled by UnifiedMemoryChart class
 
@@ -1816,6 +2466,8 @@ class UnifiedMemoryDashboard:
                         service_cpu: serviceCpu,
                         total_cpu: menubarCpu + serviceCpu,
                         peak_menubar_memory: data.peak_menubar_memory,
+
+
                         peak_service_memory: data.peak_service_memory,
                         peak_total_memory: data.peak_total_memory,
                         peak_menubar_cpu: data.peak_menubar_cpu,
@@ -1871,6 +2523,7 @@ class UnifiedMemoryDashboard:
                 // Use server-provided peak values
                 const peakMenubarMemory = data.peak_menubar_memory || 0;
                 const peakServiceMemory = data.peak_service_memory || 0;
+
                 const peakTotalMemory = data.peak_total_memory || 0;
                 const peakMenubarCpu = data.peak_menubar_cpu || 0;
                 const peakServiceCpu = data.peak_service_cpu || 0;
@@ -1898,10 +2551,16 @@ class UnifiedMemoryDashboard:
                 safeUpdateElement('header-menubar-memory', menubarMemory.toFixed(1) + 'MB');
                 safeUpdateElement('header-service-memory', serviceMemory.toFixed(1) + 'MB');
                 safeUpdateElement('header-total-memory', totalMemory.toFixed(1) + 'MB');
+                // Top bar compact memory
+                safeUpdateElement('top-mb-mem', menubarMemory.toFixed(1) + 'MB');
+                safeUpdateElement('top-svc-mem', serviceMemory.toFixed(1) + 'MB');
 
                 // Update CPU metrics
                 safeUpdateElement('header-menubar-cpu', menubarCpu.toFixed(1) + '%');
                 safeUpdateElement('header-service-cpu', serviceCpu.toFixed(1) + '%');
+                // Top bar compact CPU
+                safeUpdateElement('top-mb-cpu', menubarCpu.toFixed(1) + '%');
+                safeUpdateElement('top-svc-cpu', serviceCpu.toFixed(1) + '%');
 
                 // Update peak values (use server data or calculate fallback)
                 const calcPeakMenubarMemory = peakMenubarMemory || menubarMemory * 1.2;
@@ -1927,6 +2586,7 @@ class UnifiedMemoryDashboard:
                     safeUpdateElement('header-menubar-restarts', detailedMenubarProcess.restarts || '0');
                     const status = (detailedMenubarProcess.cpu_percent > 50 || detailedMenubarProcess.memory_mb > 200) ? '⚠️ High' : '✅ Normal';
                     safeUpdateElement('header-menubar-status', status);
+                    safeUpdateElement('top-mb-status', status);
                     const statusEl = document.getElementById('header-menubar-status');
                     if (statusEl) statusEl.style.color = status.includes('High') ? '#e74c3c' : '#27ae60';
                 }
@@ -1940,6 +2600,7 @@ class UnifiedMemoryDashboard:
                     safeUpdateElement('header-service-restarts', detailedServiceProcess.restarts || '0');
                     const status = (detailedServiceProcess.cpu_percent > 50 || detailedServiceProcess.memory_mb > 200) ? '⚠️ High' : '✅ Normal';
                     safeUpdateElement('header-service-status', status);
+                    safeUpdateElement('top-svc-status', status);
                     const statusEl = document.getElementById('header-service-status');
                     if (statusEl) statusEl.style.color = status.includes('High') ? '#e74c3c' : '#27ae60';
                 }
@@ -3586,182 +4247,46 @@ class UnifiedMemoryDashboard:
 
 
 
+        // Show analysis-ready badge only when ready
+        function updateAnalysisReadyBadge() {
+            try {
+                fetch('/api/analysis_health')
+                    .then(r => r.ok ? r.json() : null)
+                    .then(payload => {
+                        const badge = document.getElementById('analysis-ready-badge');
+                        if (!badge) return;
+                        if (payload && payload.ready) {
+                            badge.style.display = 'flex';
+                            const dot = document.getElementById('analysis-ready-dot');
+                            const text = document.getElementById('analysis-ready-text');
+                            if (dot) dot.style.background = '#2ecc71';
+                            if (text) text.textContent = 'Ready';
+                        } else {
+                            badge.style.display = 'none';
+                        }
+                    })
+                    .catch(() => {});
+            } catch {}
+        }
+
+
         // Initial fetch (memory handled by chart manager on initialize)
         if (typeof window.fetchSystemData === 'function') window.fetchSystemData();
         if (typeof window.loadAnalysisData === 'function') window.loadAnalysisData();
         if (typeof window.updateMonitoringStatus === 'function') window.updateMonitoringStatus();
+        // Initialize analysis-ready badge state and periodic refresh
+        try { updateAnalysisReadyBadge(); } catch {}
+
 
         // Update monitoring status every 5 seconds
         setInterval(updateMonitoringStatus, 5000);
+        // Refresh analysis-ready badge every 10 seconds
+        setInterval(updateAnalysisReadyBadge, 10000);
 
-        </script>
-        <script>
-          // Global debug + poll interval controls (top bar)
-          try {
-            const params = new URLSearchParams(location.search);
-            const enabled = (params.get('debug') === '1') || (localStorage.getItem('umc_debug') === '1');
-            window.__DEBUG_ENABLED = enabled;
-            // Top bar debug toggle
-            const topToggle = document.getElementById('global-debug-toggle');
-            if (topToggle) topToggle.checked = enabled;
-            function setDbg(on){ try { if (on) localStorage.setItem('umc_debug','1'); else localStorage.removeItem('umc_debug'); } catch {}; location.href = window.location.pathname + (on ? '?debug=1' : ''); }
-            topToggle?.addEventListener('change', (e)=> setDbg(e.target.checked));
-            // Global live poll interval (memory manager)
-            const sel = document.getElementById('global-live-interval');
-            if (sel) {
-              const saved = localStorage.getItem('umc_live_poll') || '2000';
-              sel.value = saved;
-              sel.addEventListener('change', (e)=>{
-                const v = e.target.value; localStorage.setItem('umc_live_poll', v);
-                if (window.chartManager?.setLivePollInterval) window.chartManager.setLivePollInterval(parseInt(v,10));
-              });
-              // apply saved on load
-              if (window.chartManager?.setLivePollInterval) window.chartManager.setLivePollInterval(parseInt(sel.value,10));
-            }
-          } catch { window.__DEBUG_ENABLED = false; }
+
         </script>
 
 
-        <!-- Debug Panel (collapsible) -->
-        <div id="debug-panel" style="position: fixed; right: 12px; bottom: 12px; z-index: 9999; display: none;">
-          <div id="debug-toggle" style="background: #263238; color: #fff; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; display: inline-block;">Debug ▸</div>
-          <div id="debug-content" style="display: none; margin-top: 6px; background: rgba(38,50,56,0.95); color: #e0f7fa; padding: 10px; border-radius: 6px; width: 320px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; font-size: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.2);">
-            <div style="display:flex; justify-content: space-between; align-items:center; margin-bottom: 6px;">
-              <strong>Live Debug</strong>
-              <span id="debug-refresh" style="cursor:pointer; color:#80deea;">⟳</span>
-            </div>
-            <div>mode: <span id="dbg-mode">-</span></div>
-            <div>live points: <span id="dbg-live-len">-</span></div>
-            <div>dataset[0] len: <span id="dbg-ds0-len">-</span></div>
-            <div>canvas size: <span id="dbg-canvas">-</span></div>
-            <div style="margin-top: 6px; display:flex; gap:6px;">
-              <button id="dbg-force-render" style="padding:4px 6px; font-size:11px; border:1px solid #455a64; background:#37474f; color:#e0f7fa; border-radius:4px; cursor:pointer;">Force Render</button>
-              <button id="dbg-reset-live" style="padding:4px 6px; font-size:11px; border:1px solid #455a64; background:#37474f; color:#e0f7fa; border-radius:4px; cursor:pointer;">Reset Live</button>
-              <button id="dbg-copy" style="padding:4px 6px; font-size:11px; border:1px solid #455a64; background:#263238; color:#b2ebf2; border-radius:4px; cursor:pointer;">Copy</button>
-            <div style="margin-top:8px;">Log:</div>
-            <pre id="dbg-log" style="height:160px; overflow:auto; background:#0b1418; color:#b2ebf2; padding:6px; border-radius:4px; white-space:pre-wrap;"></pre>
-            <div style="margin-top:6px; display:flex; gap:6px;">
-              <button id="dbg-copy-log" style="padding:4px 6px; font-size:11px; border:1px solid #455a64; background:#263238; color:#b2ebf2; border-radius:4px; cursor:pointer;">Copy Log</button>
-              <button id="dbg-clear-log" style="padding:4px 6px; font-size:11px; border:1px solid #455a64; background:#37474f; color:#e0f7fa; border-radius:4px; cursor:pointer;">Clear Log</button>
-            </div>
-            </div>
-          </div>
-        </div>
-        <script>
-          (function debugPanel(){
-            const t = document.getElementById('debug-toggle');
-            const c = document.getElementById('debug-content');
-            const r = document.getElementById('debug-refresh');
-            const btnRender = document.getElementById('dbg-force-render');
-            const btnReset = document.getElementById('dbg-reset-live');
-            const btnCopyLog = document.getElementById('dbg-copy-log');
-            const btnClearLog = document.getElementById('dbg-clear-log');
-            const dbgLog = document.getElementById('dbg-log');
-            function log(msg){ try { if (dbgLog) { const ts = new Date().toISOString(); dbgLog.textContent += `[${ts}] ${msg}\n`; dbgLog.scrollTop = dbgLog.scrollHeight; } } catch {} }
-            const S = id => document.getElementById(id);
-            function read(){
-              try {
-                const cm = window.chartManager;
-                const mode = cm?.mode ?? '-';
-                const liveLen = cm?.liveData?.length ?? '-';
-                const histLen = cm?.historicalData?.length ?? '-';
-                const ds0Len = cm?.chart?.data?.datasets?.[0]?.data?.length ?? '-';
-                const canvas = document.getElementById('memoryChart');
-                const cw = canvas?.clientWidth ?? '-';
-                const ch = canvas?.clientHeight ?? '-';
-                S('dbg-mode').textContent = String(mode);
-                S('dbg-live-len').textContent = String(liveLen);
-                S('dbg-hist-len').textContent = String(histLen);
-                S('dbg-ds0-len').textContent = String(ds0Len);
-                S('dbg-canvas').textContent = `${cw} × ${ch}`;
-                S('dbg-title').textContent = document.getElementById('chart-title')?.textContent || '-';
-                S('dbg-badge').textContent = document.getElementById('mode-badge')?.textContent || '-';
-                S('dbg-mode-ind').textContent = document.getElementById('chart-mode-indicator')?.textContent || '-';
-                // Flush any buffered logs from early instrumentation
-                try {
-                  if (window.__dbgBuf?.length && window.__dbgLog) {
-                    for (const line of window.__dbgBuf) window.__dbgLog(line);
-                    window.__dbgBuf.length = 0;
-                  }
-                } catch {}
-              } catch (e) {}
-            }
-            function forceRender(){
-              try {
-                const cm = window.chartManager;
-                if (!cm) return;
-                cm.updateChart();
-                if (cm.chart?.resize) cm.chart.resize();
-                read();
-              } catch (e) {}
-            }
-            function resetLive(){
-              try {
-                const cm = window.chartManager;
-                if (!cm) return;
-                cm.liveData = [];
-                cm.updateChart();
-                read();
-              } catch (e) {}
-            }
-            t?.addEventListener('click', () => {
-              if (!c) return;
-              const open = c.style.display !== 'none';
-              c.style.display = open ? 'none' : 'block';
-              t.textContent = open ? 'Debug ▸' : 'Debug ▾';
-              if (!open) read();
-            });
-            r?.addEventListener('click', read);
-            btnRender?.addEventListener('click', forceRender);
-            btnReset?.addEventListener('click', resetLive);
-            const btnCopy = document.getElementById('dbg-copy');
-            btnCopy?.addEventListener('click', async () => {
-              try {
-                const mode = document.getElementById('dbg-mode')?.textContent || '-';
-                const liveLen = document.getElementById('dbg-live-len')?.textContent || '-';
-                const ds0Len = document.getElementById('dbg-ds0-len')?.textContent || '-';
-                const canvas = document.getElementById('dbg-canvas')?.textContent || '-';
-                const text = `mode: ${mode}\nlive points: ${liveLen}\ndataset[0] len: ${ds0Len}\ncanvas size: ${canvas}`;
-                await navigator.clipboard.writeText(text);
-              } catch (e) { console.warn('Copy failed', e); }
-            });
-            btnCopyLog?.addEventListener('click', async () => {
-              try {
-                const txt = dbgLog?.textContent || '';
-                if (!txt) { alert('Debug log is empty'); return; }
-                if (navigator.clipboard && window.isSecureContext) {
-                  await navigator.clipboard.writeText(txt);
-                  alert(`Copied ${txt.length} characters to clipboard`);
-                } else {
-                  // Fallback for non-secure contexts/browsers
-                  const ta = document.createElement('textarea');
-                  ta.value = txt; document.body.appendChild(ta); ta.select();
-                  const ok = document.execCommand('copy');
-                  document.body.removeChild(ta);
-                  if (!ok) throw new Error('execCommand copy failed');
-                  alert(`Copied ${txt.length} characters to clipboard`);
-                }
-              } catch (e) {
-                console.warn('Copy log failed', e);
-                try {
-                  alert('Copy failed. Showing the log in a dialog. Press Cmd/Ctrl+C to copy, then Enter.');
-                  prompt('Copy the debug log text below:', dbgLog?.textContent || '');
-                } catch {}
-              }
-            });
-            btnClearLog?.addEventListener('click', () => { try { if (dbgLog) dbgLog.textContent=''; } catch {} });
-            // show panel only if debug is enabled
-            try {
-              const panel = document.getElementById('debug-panel');
-              if (window.__DEBUG_ENABLED && panel) panel.style.display = 'block';
-            } catch {}
-            // auto-refresh every 2s
-            setInterval(read, 2000);
-            // expose read and logger
-            window.__dbgRead = read;
-            window.__dbgLog = log;
-          })();
-        </script>
 
 
         <script>
@@ -3980,6 +4505,201 @@ class UnifiedMemoryDashboard:
           })();
         </script>
 
+
+        </div> <!-- End of Analysis Tab -->
+
+        <!-- Clipboard History Tab -->
+        <div id="clipboard-tab" class="tab-content" style="margin: 0 calc(10vw + 8px); width: auto; box-sizing: border-box; padding: 0;">
+          <div class="clip-toolbar" style="display:flex; align-items:center; gap:8px; margin-bottom:12px; flex-wrap:wrap;">
+            <button id="clip-refresh" class="spark-btn">Refresh</button>
+            <label class="spark-hint" style="display:inline-flex; align-items:center; gap:6px;">
+              Auto:
+              <input id="clip-auto" type="checkbox" />
+              <select id="clip-auto-interval" class="spark-btn" style="padding:2px 6px;">
+                <option value="5000">5s</option>
+                <option value="10000" selected>10s</option>
+                <option value="30000">30s</option>
+              </select>
+            </label>
+            <button id="clip-clear" class="spark-btn" title="Clear clipboard history">🗑️ Clear</button>
+            <label class="spark-hint" style="display:inline-flex; align-items:center; gap:6px;">
+              Type:
+              <select id="clip-type" class="spark-btn" style="padding:2px 6px;">
+                <option value="all">All</option>
+                <option value="md">Markdown</option>
+                <option value="rtf">RTF</option>
+                <option value="text">Text</option>
+              </select>
+            </label>
+            <label class="spark-hint" style="display:inline-flex; align-items:center; gap:6px;">
+              Order:
+              <select id="clip-order" class="spark-btn" style="padding:2px 6px;">
+                <option value="asc" selected>Oldest first</option>
+                <option value="desc">Newest first</option>
+              </select>
+            </label>
+            <label class="spark-hint" style="display:inline-flex; align-items:center; gap:6px;">
+              Range:
+              <select id="clip-range" class="spark-btn" style="padding:2px 6px;">
+                <option value="all" selected>All</option>
+                <option value="1h">Last 1h</option>
+                <option value="12h">Last 12h</option>
+                <option value="24h">Last 24h</option>
+                <option value="7d">Last 7d</option>
+              </select>
+            </label>
+            <label class="spark-hint" style="display:inline-flex; align-items:center; gap:6px;">
+              Row:
+              <select id="clip-density" class="spark-btn" style="padding:2px 6px;">
+                <option value="cozy" selected>Cozy</option>
+                <option value="comfy">Comfortable</option>
+              </select>
+            </label>
+
+            <label class="spark-hint" style="display:inline-flex; align-items:center; gap:6px;">
+              Filter text:
+              <input id="clip-search" type="text" placeholder="Type to filter…" style="padding:2px 6px; border:1px solid #cfe8ff; border-radius:6px;" />
+            </label>
+            <label class="spark-hint" style="display:inline-flex; align-items:center; gap:6px;">
+              <input id="clip-has-url" type="checkbox" /> Has URL
+            </label>
+            <label class="spark-hint" style="display:inline-flex; align-items:center; gap:6px;">
+              <input id="clip-has-code" type="checkbox" /> Has Code (```)
+            </label>
+            <label class="spark-hint" style="display:inline-flex; align-items:center; gap:6px;">
+              <input id="clip-long" type="checkbox" /> Length > 200
+            </label>
+            <span id="clip-meta" class="spark-badge" style="margin-left:auto;">Loading…</span>
+            <span style="font-size:11px; color:#666;">Page size: 30</span>
+          </div>
+          <div class="clip-table-wrap" style="overflow-x:auto; overflow-y:auto; width:100%; max-width:100%; box-sizing:border-box; border:1px solid #eee; border-radius:6px; margin-top:8px;">
+            <table style="width:100%; border-collapse:collapse; font-size:12px; table-layout: fixed; word-break: break-word;">
+              <thead style="background:#f8f9fa;">
+                <tr>
+                  <th style="text-align:left; padding:8px; border-bottom:1px solid #eee; width:160px;">Time</th>
+                  <th style="text-align:left; padding:8px; border-bottom:1px solid #eee; width:64px;">Type</th>
+                  <th style="text-align:left; padding:8px; border-bottom:1px solid #eee;">Snippet</th>
+                  <th style="text-align:center; padding:8px; border-bottom:1px solid #eee; width:120px;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="clip-tbody"></tbody>
+            </table>
+          </div>
+          <div id="clip-pager" class="clip-pager" style="display:flex; align-items:center; gap:8px; margin-top:8px;">
+            <button id="clip-prev" class="spark-btn">Prev</button>
+            <span id="clip-page" class="spark-badge">Page 1 / 1</span>
+            <button id="clip-next" class="spark-btn">Next</button>
+          </div>
+          <div id="clip-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:9999;">
+            <div style="background:#fff; max-width:820px; margin:5% auto; padding:12px; border-radius:8px;">
+              <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+                <strong id="clip-modal-title">Item</strong>
+                <div>
+                  <button id="clip-modal-copy" class="spark-btn">Copy</button>
+                  <button id="clip-modal-close" class="spark-btn">Close</button>
+                </div>
+              </div>
+              <div style="display:flex; gap:6px; margin-bottom:6px;">
+                <button id="clip-tab-render" class="spark-btn">Rendered</button>
+                <button id="clip-tab-raw" class="spark-btn">Raw</button>
+              </div>
+              <div id="clip-modal-render" style="display:none; background:#fff; padding:8px; border:1px solid #eee; border-radius:6px; max-height:60vh; overflow:auto;"></div>
+              <pre id="clip-modal-pre" style="display:block; white-space:pre-wrap; word-break:break-word; background:#fafafa; padding:8px; border:1px solid #eee; border-radius:6px; max-height:60vh; overflow:auto;"></pre>
+            </div>
+          </div>
+        </div>
+
+        <script>
+        (function(){
+          let page = 1; const pageSize = 30; let pageCount = 1; let serverItems = []; let autoTimer = null;
+          const tbody = ()=>document.getElementById('clip-tbody');
+          const qs = sel=>document.querySelector(sel);
+          function fmt(ts){ try { return ts ? new Date(ts*1000).toLocaleString() : '--'; } catch{ return '--'; } }
+          function typelabel(t){ return t==='rtf' ? 'RTF' : (t==='md' ? 'Markdown' : 'Text'); }
+          function debounce(fn, ms){ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a), ms); }; }
+          function markdownToHtml(md){ try{
+            let html = md || '';
+            html = html.replace(/```([\s\S]*?)```/g, (m, g1)=>`<pre><code>${g1.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</code></pre>`);
+            html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+            html = html.replace(/^######\s+(.*)$/gm, '<h6>$1</h6>')
+                       .replace(/^#####\s+(.*)$/gm, '<h5>$1</h5>')
+                       .replace(/^####\s+(.*)$/gm, '<h4>$1</h4>')
+                       .replace(/^###\s+(.*)$/gm, '<h3>$1</h3>')
+                       .replace(/^##\s+(.*)$/gm, '<h2>$1</h2>')
+                       .replace(/^#\s+(.*)$/gm, '<h1>$1</h1>');
+            html = html.replace(/\[([^\]]+)\]\(([^\)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+            html = html.replace(/^\s*[-*]\s+/gm, '\u2022 ');
+            html = html.replace(/\\n\\n+/g, '<br/><br/>' ).replace(/\\n/g, '<br/>' );
+            return html;
+          }catch{ return (md||''); } }
+
+          function savePrefs(){ try { localStorage.setItem('cm_clip_prefs', JSON.stringify({
+            type: qs('#clip-type').value, order: qs('#clip-order').value, range: qs('#clip-range').value, q: qs('#clip-search').value,
+            has_url: qs('#clip-has-url').checked, has_code: qs('#clip-has-code').checked, is_long: qs('#clip-long').checked,
+            auto: qs('#clip-auto').checked, auto_interval: qs('#clip-auto-interval').value,
+            density: (qs('#clip-density')?qs('#clip-density').value:'cozy')
+          })); } catch{} }
+          function loadPrefs(){ try { const p = JSON.parse(localStorage.getItem('cm_clip_prefs')||'{}');
+            if (p.type) qs('#clip-type').value = p.type; if (p.order) qs('#clip-order').value = p.order; if (p.range) qs('#clip-range').value = p.range; if (p.q) qs('#clip-search').value = p.q;
+            if (typeof p.has_url==='boolean') qs('#clip-has-url').checked = p.has_url;
+            if (typeof p.has_code==='boolean') qs('#clip-has-code').checked = p.has_code;
+            if (typeof p.is_long==='boolean') qs('#clip-long').checked = p.is_long;
+            if (typeof p.auto==='boolean') qs('#clip-auto').checked = p.auto;
+            if (p.auto_interval) qs('#clip-auto-interval').value = p.auto_interval;
+            if (p.density && qs('#clip-density')) qs('#clip-density').value = p.density;
+          } catch{} }
+          function applyClientFilters(items){
+            const hasUrl = qs('#clip-has-url').checked;
+            const hasCode = qs('#clip-has-code').checked;
+            const isLong = qs('#clip-long').checked;
+            const q = (qs('#clip-search').value||'').toLowerCase();
+            return (items||[]).filter(it=>{
+              const sn = (it.snippet||'');
+              if (hasUrl && !sn.match(/https?:\/\//i)) return false;
+              if (hasCode && sn.indexOf('```') === -1) return false;
+              if (isLong && sn.length <= 200) return false;
+              if (q && sn.toLowerCase().indexOf(q) === -1) return false;
+              return true;
+            });
+          }
+          function applyDensity(){ try{ const tab = document.getElementById('clipboard-tab'); if (!tab) return; tab.classList.remove('density-cozy','density-comfy'); const v = (qs('#clip-density')?qs('#clip-density').value:'cozy'); tab.classList.add(v==='comfy'?'density-comfy':'density-cozy'); }catch{} }
+          function computePairs(list){ let gid=0; for(let i=0;i<list.length;i++){ const a=list[i], b=list[i+1]; a._group=gid; if(b && Math.abs((b.timestamp||0)-(a.timestamp||0))<=3 && a.type!==b.type && ((a.type==='md'&&b.type==='rtf')||(a.type==='rtf'&&b.type==='md'))){ b._group=gid; a._pair=true; b._pair=true; i++; } gid++; } return list; }
+          function actionsCell(it){ return `<button class="spark-btn icon-btn" data-act="view" data-h="${it.hash}" title="View" aria-label="View">👁</button> <button class="spark-btn icon-btn" data-act="copy" data-h="${it.hash}" title="Copy" aria-label="Copy">📋</button>`; }
+          function render(data){
+            pageCount = Math.max(1, data.page_count||1);
+            serverItems = data.items||[];
+            let list = applyClientFilters(serverItems);
+            list = computePairs(list);
+            let prevGroup = -1;
+            const rows = list.map(it=>{
+              const safeSnippet = (it.snippet||'').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+              const styleTop = (it._group!==prevGroup && prevGroup!==-1) ? 'border-top:2px solid #eaeaea;' : '';
+              const leftStyle = it._pair ? 'border-left:3px solid #ffd54f;' : '';
+              prevGroup = it._group;
+              return `<tr data-group="${it._group}" style="${styleTop}${leftStyle}">
+                <td style="padding:6px; border-bottom:1px solid #f0f0f0; white-space:nowrap;">${fmt(it.timestamp)}</td>
+                <td style="padding:6px; border-bottom:1px solid #f0f0f0;">${typelabel(it.type)}</td>
+                <td style="padding:6px; border-bottom:1px solid #f0f0f0; color:#333;">${safeSnippet}</td>
+                <td style="padding:6px; border-bottom:1px solid #f0f0f0;">${actionsCell(it)}</td>
+              </tr>`;
+            }).join('');
+            const body = tbody(); if (body) body.innerHTML = rows || '<tr><td colspan="4" style="padding:8px; color:#777;">No items</td></tr>';
+            const meta = document.getElementById('clip-meta'); if (meta) { const ord = (qs('#clip-order').value==='asc')? 'oldest first' : 'newest first'; meta.textContent = `${data.total||0} items • order: ${ord}`; }
+            const pg = document.getElementById('clip-page'); if (pg) pg.textContent = `Page ${data.page||1} / ${pageCount}`;
+            if (body){ body.onclick = async (ev)=>{ const btn = ev.target.closest('button[data-act]'); if (!btn) return; const act = btn.getAttribute('data-act'); const h = btn.getAttribute('data-h'); if (act==='view'){ try{ const res = await fetch(`/api/clipboard/item?hash=${encodeURIComponent(h)}`); const item = await res.json(); if (item && item.found){ qs('#clip-modal-title').textContent = `${typelabel(item.type)} • ${fmt(item.timestamp)} • ${item.hash.slice(0,8)}`; qs('#clip-modal-pre').textContent = item.content||''; qs('#clip-modal').style.display='block'; qs('#clip-modal-copy').onclick = async ()=>{ try{ await navigator.clipboard.writeText(item.content||''); }catch{} }; } }catch{} } else if (act==='copy'){ try{ const res = await fetch(`/api/clipboard/item?hash=${encodeURIComponent(h)}`); const item = await res.json(); if (item && item.found){ await navigator.clipboard.writeText(item.content||''); } }catch{} } }; }
+          }
+          function computeRange(){ const v = qs('#clip-range').value; if (v==='all') return {start_ts:'', end_ts:''}; const now = Math.floor(Date.now()/1000); const map={ '1h':3600, '12h':43200, '24h':86400, '7d':604800 }; const dur = map[v]||0; return { start_ts: now-dur, end_ts: now }; }
+          async function load(){ try{ const order = qs('#clip-order').value; const type = qs('#clip-type').value; const q = encodeURIComponent(qs('#clip-search').value||''); const has_url = qs('#clip-has-url').checked ? '1' : ''; const has_code = qs('#clip-has-code').checked ? '1' : ''; const is_long = qs('#clip-long').checked ? '1' : ''; const r = computeRange(); const qsuf = `&start_ts=${r.start_ts}&end_ts=${r.end_ts}`; const res = await fetch(`/api/clipboard/history?page=${page}&page_size=${pageSize}&order=${order}&type=${type}&q=${q}&has_url=${has_url}&has_code=${has_code}&is_long=${is_long}${qsuf}`); const data = await res.json(); render(data); }catch(e){ const meta = document.getElementById('clip-meta'); if (meta) meta.textContent = 'Error loading'; } }
+          function setupAuto(){ if (autoTimer){ clearInterval(autoTimer); autoTimer=null; } if (qs('#clip-auto').checked){ const iv = parseInt(qs('#clip-auto-interval').value||'10000',10); autoTimer = setInterval(load, iv); } }
+          function bind(){ const r = document.getElementById('clip-refresh'); if (r) r.onclick = ()=>{ savePrefs(); load(); }; const c = document.getElementById('clip-clear'); if (c) c.onclick = async ()=>{ try{ await fetch('/api/clipboard/clear'); page=1; load(); }catch{} }; const p = document.getElementById('clip-prev'); if (p) p.onclick = ()=>{ if (page>1){ page--; savePrefs(); load(); } }; const n = document.getElementById('clip-next'); if (n) n.onclick = ()=>{ if (page<pageCount){ page++; savePrefs(); load(); } }; const t = qs('#clip-type'); if (t) t.onchange = ()=>{ page=1; savePrefs(); load(); }; const o = qs('#clip-order'); if (o) o.onchange = ()=>{ page=1; savePrefs(); load(); }; const rg = qs('#clip-range'); if (rg) rg.onchange = ()=>{ page=1; savePrefs(); load(); }; const s = qs('#clip-search'); if (s) s.oninput = debounce(()=>{ savePrefs(); load(); }, 250); ['#clip-has-url','#clip-has-code','#clip-long'].forEach(sel=>{ const el=qs(sel); if (el) el.onchange = ()=>{ savePrefs(); load(); }; }); const a = qs('#clip-auto'); if (a) a.onchange = ()=>{ savePrefs(); setupAuto(); }; const ai = qs('#clip-auto-interval'); if (ai) ai.onchange = ()=>{ savePrefs(); setupAuto(); }; const de = qs('#clip-density'); if (de) de.onchange = ()=>{ savePrefs(); applyDensity(); }; const mc = qs('#clip-modal-close'); if (mc) mc.onclick = ()=>{ qs('#clip-modal').style.display='none'; }; qs('#clip-modal').addEventListener('click', (ev)=>{ if (ev.target.id==='clip-modal') qs('#clip-modal').style.display='none'; }); }
+          window.loadClipboardHistory = load;
+          if (location.hash === '#clipboard') { setTimeout(()=>{ if (typeof switchTab==='function'){ try{ switchTab('clipboard', document.querySelector('.tabs .tab:nth-child(3)')); }catch{} }}, 60); }
+          loadPrefs(); applyDensity(); bind(); setTimeout(()=>{ load(); setupAuto(); }, 200);
+        })();
+        </script>
+
+
+
   <script>
     // Help overlays: toggle, outside-click, ESC, and persistence
     (function(){
@@ -4065,13 +4785,19 @@ class UnifiedMemoryDashboard:
               if (typeof window.__dbgRead === 'function') window.__dbgRead();
             }).catch(()=>{});
           }
+
+
+
         } catch(e) {}
       }
     })();
   </script>
+</div> <!-- /#content-width-wrap -->
+
 </body>
 </html>
         '''
+        return html.replace('__ASSET_VERSION__', self.asset_version)
 
     def get_memory_data(self):
         """Get detailed memory usage data."""
@@ -5022,6 +5748,8 @@ class UnifiedMemoryDashboard:
                 status = "active_in_use"
                 status_message = "Active and in use (Advanced Monitoring)"
             elif seconds_inactive < 10:  # Recent activity (within 10 seconds)
+
+
                 status = "active_in_use"
                 status_message = "Active and in use"
             elif self.auto_start_mode and countdown_seconds > 0:

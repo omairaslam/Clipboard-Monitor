@@ -96,6 +96,14 @@ class ClipboardMonitorMenuBar(rumps.App):
             self.timer.start()
             print("✅ Status and history updates enabled")
 
+        # In Emergency Safe Mode, start the lightweight history refresh timer as well
+        # History updates are safe and do not cause the prior memory leak (which was from memory displays)
+        if self.emergency_safe_mode and self._is_module_enabled("history_module"):
+            try:
+                self.initial_history_update(None)  # does an immediate update and starts a 30s timer
+            except Exception as e:
+                print(f"Initial recent history setup failed in Safe Mode: {e}")
+
         # Memory monitoring DISABLED to prevent memory leaks
         # The memory displays in menu cause memory leaks, so we disable them entirely
         self.memory_timer = None
@@ -230,7 +238,7 @@ class ClipboardMonitorMenuBar(rumps.App):
         # Add configuration entry for Draw.io if not present
         if "drawio_module" not in self.module_status:
             self.module_status["drawio_module"] = True
-        
+
     def toggle_drawio_setting(self, sender):
         """Toggle Draw.io specific settings."""
         sender.state = not sender.state
@@ -414,7 +422,7 @@ class ClipboardMonitorMenuBar(rumps.App):
 
     def _create_general_settings_menu(self):
         """Create the 'General Settings' submenu."""
-        general_menu = rumps.MenuItem("General Settings")
+        general_menu = rumps.MenuItem("🛠️ General")
         self.debug_mode = rumps.MenuItem("Debug Mode", callback=self.toggle_debug)
         self.debug_mode.state = self.config_manager.get_config_value('general', 'debug_mode', False)
         general_menu.add(self.debug_mode)
@@ -425,7 +433,7 @@ class ClipboardMonitorMenuBar(rumps.App):
 
     def _create_history_settings_menu(self):
         """Create the 'History Settings' submenu."""
-        history_menu = rumps.MenuItem("History Settings")
+        history_menu = rumps.MenuItem("📚 History")
         history_menu.add(rumps.MenuItem("Set Max History Items...", callback=self.set_max_history_items))
         history_menu.add(rumps.MenuItem("Set Max Content Length...", callback=self.set_max_content_length))
         history_menu.add(rumps.MenuItem("Set History Location...", callback=self.set_history_location))
@@ -695,7 +703,7 @@ class ClipboardMonitorMenuBar(rumps.App):
 
     def _create_security_settings_menu(self):
         """Create the 'Security Settings' submenu."""
-        security_menu = rumps.MenuItem("Security Settings")
+        security_menu = rumps.MenuItem("🔒 Privacy & Safety")
         self.sanitize_clipboard = rumps.MenuItem("Sanitize Clipboard", callback=self.toggle_security_setting)
         self.sanitize_clipboard.state = self.config_manager.get_config_value('security', 'sanitize_clipboard', True)
         security_menu.add(self.sanitize_clipboard)
@@ -718,7 +726,7 @@ class ClipboardMonitorMenuBar(rumps.App):
 
     def _create_advanced_settings_menu(self):
         """Create the 'Advanced Settings' submenu with developer-specific options."""
-        advanced_menu = rumps.MenuItem("Advanced Settings")
+        advanced_menu = rumps.MenuItem("🧪 Advanced Settings")
 
         # Emergency Safe Mode Toggle
         self.emergency_safe_mode_item = rumps.MenuItem("🚨 Emergency Safe Mode", callback=self.toggle_emergency_safe_mode)
@@ -732,8 +740,11 @@ class ClipboardMonitorMenuBar(rumps.App):
         self.developer_mode_item.state = self.developer_mode
         advanced_menu.add(self.developer_mode_item)
 
-        # Add separator and any other truly advanced-only settings here
-        # (Removed duplicated settings that are already in main settings menu)
+        # Advanced-only tools and management
+        advanced_menu.add(rumps.separator)
+        advanced_menu.add(self._create_performance_settings_menu())
+        advanced_menu.add(self._create_memory_settings_menu())
+        advanced_menu.add(self._create_configuration_management_menu())  # Reset/Export/Import/View
 
         return advanced_menu
 
@@ -1077,15 +1088,17 @@ class ClipboardMonitorMenuBar(rumps.App):
         """Create the clean settings menu."""
         settings_menu = rumps.MenuItem("⚙️ Settings")
 
-        # Add module-specific settings for enabled modules only
-        self._add_enabled_module_settings(settings_menu)
-
-        # Add system settings
+        # Essentials only for typical users
         settings_menu.add(self._create_general_settings_menu())
-        settings_menu.add(self._create_performance_settings_menu())
-        settings_menu.add(self._create_security_settings_menu())
-        settings_menu.add(self._create_configuration_management_menu())
-        settings_menu.add(self._create_advanced_settings_menu())
+        if self._is_module_enabled("history_module"):
+            try:
+                hist = load_clipboard_history() or []
+            except Exception:
+                hist = []
+            if hist:
+                settings_menu.add(self._create_history_settings_menu())
+        settings_menu.add(self._create_security_settings_menu())  # Privacy & Safety
+        settings_menu.add(self._create_advanced_settings_menu())  # Everything else lives under Advanced
 
         return settings_menu
 
@@ -1148,7 +1161,7 @@ class ClipboardMonitorMenuBar(rumps.App):
             print(f"Error loading module config: {e}")
             # Default to empty dict, modules will be enabled by default
             self.module_status = {}
-    
+
     def update_status_periodically(self):
         """Update the service status every 30 seconds (REDUCED FREQUENCY TO FIX MEMORY LEAK)"""
         dashboard_update_counter = 0
@@ -1207,7 +1220,7 @@ class ClipboardMonitorMenuBar(rumps.App):
                 except:
                     pass
                 self._status_cycle_count = 0
-    
+
     def update_status(self):
         """Check if the service is running and update the status menu item - OPTIMIZED VERSION"""
         try:
@@ -1312,7 +1325,7 @@ class ClipboardMonitorMenuBar(rumps.App):
             print(f"Status check error: {e}")
             # MEMORY LEAK FIX: Simplified error logging without file operations
             # Removed file logging to prevent memory leaks from repeated file operations
-    
+
     def start_service(self, _):
         try:
             subprocess.run(["launchctl", "load", self.plist_path])
@@ -1322,7 +1335,7 @@ class ClipboardMonitorMenuBar(rumps.App):
         except Exception as e:
             self.log_error(f"Failed to start service: {str(e)}")
             show_notification("Error", "Failed to start service", str(e), self.log_path, self.error_log_path)
-    
+
     def stop_service(self, _):
         try:
             subprocess.run(["launchctl", "unload", self.plist_path])
@@ -1332,7 +1345,7 @@ class ClipboardMonitorMenuBar(rumps.App):
         except Exception as e:
             self.log_error(f"Failed to stop service: {str(e)}")
             show_notification("Error", "Failed to stop service", str(e), self.log_path, self.error_log_path)
-    
+
     def restart_service(self, _):
         try:
             subprocess.run(["launchctl", "unload", self.plist_path])
@@ -1350,19 +1363,19 @@ class ClipboardMonitorMenuBar(rumps.App):
         except Exception as e:
             self.log_error(f"Failed to restart service: {str(e)}")
             show_notification("Error", "Failed to restart service", str(e), self.log_path, self.error_log_path)
-    
+
     def view_output_log(self, _):
         import subprocess
         from utils import get_app_paths
         log_path = get_app_paths()["out_log"]
         subprocess.Popen(["open", log_path])
-    
+
     def view_error_log(self, _):
         import subprocess
         from utils import get_app_paths
         error_log_path = get_app_paths()["err_log"]
         subprocess.Popen(["open", error_log_path])
-    
+
     def clear_logs(self, _):
         from utils import get_app_paths
         paths = get_app_paths()
@@ -1373,10 +1386,10 @@ class ClipboardMonitorMenuBar(rumps.App):
             show_notification("Logs Cleared", "All logs have been cleared.")
         except Exception as e:
             show_notification("Error", f"Failed to clear logs: {e}")
-    
+
     def quit_app(self, _):
         rumps.quit_application()
-    
+
     def toggle_module(self, sender):
         """Toggle a module on or off"""
         sender.state = not sender.state
@@ -1478,7 +1491,7 @@ class ClipboardMonitorMenuBar(rumps.App):
                 self.history_timer.stop()
             # Start new timer
             self.initial_history_update(None)
-    
+
     def toggle_debug(self, sender):
         """Toggle debug mode"""
         sender.state = not sender.state
@@ -1639,7 +1652,7 @@ class ClipboardMonitorMenuBar(rumps.App):
                     rumps.notification("Error", "Invalid Value", "Execution time must be positive")
             except ValueError:
                 rumps.notification("Error", "Invalid Value", "Please enter a valid number")
-    
+
     def set_polling_interval(self, sender):
         """Set the polling interval"""
         print(f"DEBUG: Setting polling interval to {sender.title}")
@@ -1972,35 +1985,20 @@ class ClipboardMonitorMenuBar(rumps.App):
         except Exception as e:
             print(f"Error saving module config: {e}")
             rumps.notification("Error", "Failed to save module config", str(e))
-    
+
     def open_web_history_viewer(self, _):
         """Open the web-based clipboard history viewer"""
         try:
-            web_viewer = os.path.join(os.path.dirname(__file__), 'web_history_viewer.py')
-            if os.path.exists(web_viewer):
-                # Launch the web-based history viewer
-                process = subprocess.Popen(
-                    ["/usr/bin/python3", web_viewer],
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE
-                )
-
-                # Check if process started successfully
-                try:
-                    # Wait a short time to see if it fails immediately
-                    process.wait(timeout=2.0)
-                    if process.returncode == 0:
-                        rumps.notification("Success", "History Viewer", "Clipboard history opened in browser")
-                    else:
-                        stderr_output = process.stderr.read().decode('utf-8')
-                        rumps.notification("Error", "History Viewer Failed",
-                                          f"Exit code: {process.returncode}\n{stderr_output}")
-                except subprocess.TimeoutExpired:
-                    # Process is still running, which might be normal
-                    rumps.notification("Success", "History Viewer", "Clipboard history opened in browser")
-            else:
-                rumps.notification("Error", "History Viewer Not Found",
-                                  "Could not find web_history_viewer.py")
+            # Ensure the unified dashboard is running without opening a browser
+            try:
+                self._auto_start_dashboard()
+            except Exception:
+                pass
+            # Open the Clipboard History tab in the unified dashboard
+            import time, webbrowser
+            time.sleep(1)
+            webbrowser.open('http://localhost:8001/#clipboard')
+            rumps.notification("Clipboard History", "Opening in browser...", "Dashboard @ localhost:8001")
         except Exception as e:
             rumps.notification("Error", "Failed to open history viewer", str(e))
 
@@ -2048,7 +2046,8 @@ read -n 1
         if self._is_module_enabled("history_module"):
             self.update_recent_history_menu()
             # Set up periodic updates using rumps Timer (runs on main thread)
-            self.history_timer = rumps.Timer(self.periodic_history_update, 30)
+            # Faster refresh for better responsiveness
+            self.history_timer = rumps.Timer(self.periodic_history_update, 10)
             self.history_timer.start()
         else:
             self.history_timer = None
@@ -2089,8 +2088,15 @@ read -n 1
         except (ValueError, TypeError):
             max_items = 20
         try:
+            # Enforce a hard cap of 20 items in the Recent Clipboard Items menu
+            menu_limit = min(20, max_items)
+
             # Clear the existing menu items instead of recreating the menu
             self.recent_history_menu.clear()
+
+            # Add a manual refresh action at the top for immediate updates
+            self.recent_history_menu.add(rumps.MenuItem("🔄 Refresh Now", callback=self.refresh_history_menu))
+            self.recent_history_menu.add(rumps.separator)
 
             history = load_clipboard_history() or []
             num_loaded = len(history)
@@ -2100,7 +2106,7 @@ read -n 1
                 placeholder.set_callback(None)
                 self.recent_history_menu.add(placeholder)
             else:
-                for i, item in enumerate(history[:max_items]):
+                for i, item in enumerate(history[:menu_limit]):
                     # Extract clipboard text from history dicts
                     if isinstance(item, dict):
                         display_text = item.get("content", "")
@@ -2113,6 +2119,11 @@ read -n 1
                     menu_item._history_identifier = item.get("hash", "") # Store a small identifier, not full content
                     self.recent_history_menu.add(menu_item)
                     num_displayed += 1
+
+            # If there are more items than we display, add a 'More…' link to the full history
+            if num_loaded > menu_limit:
+                more_item = rumps.MenuItem("more ...", callback=self.open_web_history_viewer)
+                self.recent_history_menu.add(more_item)
 
             # Add a separator and clear history option
             self.recent_history_menu.add(rumps.separator)
@@ -2205,7 +2216,7 @@ read -n 1
                     if item.get("hash") == history_identifier:
                         content_to_copy = item.get("content", "")
                         break
-                
+
                 if content_to_copy:
                     if PYPERCLIP_AVAILABLE:
                         pyperclip.copy(content_to_copy)
@@ -2260,7 +2271,7 @@ read -n 1
 
             # Create pause flag file to communicate with the main process
             pause_flag_path = safe_expanduser("~/Library/Application Support/ClipboardMonitor/pause_flag")
-            
+
             if sender.title == "Pause Monitoring":
                 # Create pause flag file
                 with open(pause_flag_path, 'w') as f:
@@ -2306,14 +2317,14 @@ read -n 1
 
                 # Update status after a short delay to get accurate status
                 threading.Timer(1.0, self.update_status).start()
-        
+
         except Exception as e:
             # Try to show error notification
             try:
                 self.show_mac_notification("Error", "Failed to toggle monitoring", str(e))
             except:
                 pass
-            
+
             # Log the full error for debugging
             import traceback
             with open(self.error_log_path, 'a') as f:

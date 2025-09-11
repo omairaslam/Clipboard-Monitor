@@ -6,7 +6,7 @@ export default defineConfig({
   retries: 1,
   use: {
     headless: true,
-    baseURL: 'http://localhost:8001',
+    baseURL: 'http://localhost:8821',
     ignoreHTTPSErrors: true,
     viewport: { width: 1280, height: 800 },
     trace: 'on-first-retry',
@@ -14,10 +14,10 @@ export default defineConfig({
   timeout: 60000,
   workers: 1,
   webServer: {
-    command: 'python3 unified_memory_dashboard.py --port 8001',
-    port: 8001,
+    command: 'python3 unified_memory_dashboard.py --port 8821',
+    port: 8821,
     timeout: 60_000,
-    reuseExistingServer: true,
+    reuseExistingServer: false,
   },
 });
 

@@ -6,7 +6,12 @@ body {
     color: #333;
     min-height: 100vh;
 }
-.container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+
+.container { position: relative; }
+
+:root { --section-gap: 10px; }
+
+.container { width: 80%; margin: 0 10%; padding: 20px 0 0 0; }
 .header {
     text-align: center;
     margin-bottom: 30px;
@@ -254,18 +259,26 @@ body {
 
 .tabs {
     display: flex;
+    align-items: center; /* vertically center tab pills */
     background: rgba(255,255,255,0.95);
     border-radius: 12px;
-    padding: 5px;
+    padding: 5px; /* default; overridden inside nav-shell to avoid vertical offset */
     margin-bottom: 12px;
     box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+    height: 44px; /* fixed row height for precise alignment */
 }
+/* Remove extra padding when inside sticky nav shell so center lines match controls */
+.nav-shell .tabs { padding: 0; margin-bottom: 0; }
 /* Ensure consistent vertical spacing between major panels on Analysis tab */
 #analysis-tab > .card { margin-bottom: 12px; }
 #analysis-tab > .analysis-grid { margin-bottom: 12px; }
 .tab {
     flex: 1;
-    padding: 12px 20px;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 20px; /* vertical padding handled by row height */
     text-align: center;
     border-radius: 8px;
     cursor: pointer;
@@ -398,6 +411,50 @@ body {
 .spark-cell { width: 140px; display: inline-block; }
 .sparkline { width: 140px; height: 28px; display: block; border: 1px solid #eee; background: #fafafa; }
 .cell-inner { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+
+/* Clipboard History styles */
+#clipboard-tab { padding: 6px 0; }
+#clipboard-tab > div:first-child,
+#clipboard-tab > div:nth-child(2),
+#clipboard-tab > div:nth-child(3) {
+  width: 100%;
+  margin: 0;
+}
+#clipboard-tab > div:first-child { /* toolbar */
+  position: sticky; top: 10px; z-index: 10; /* keep toolbar visible while scrolling */
+  background: rgba(255,255,255,0.96);
+  border-radius: 10px;
+  padding: 8px 10px !important;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+  margin-bottom: 8px;
+}
+#clipboard-tab > div:nth-child(2) { /* table wrapper */
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+}
+#clipboard-tab > div:nth-child(3) { /* pager */
+  background: rgba(255,255,255,0.96);
+  border-radius: 10px;
+  padding: 8px 10px !important;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+}
+#clipboard-tab table { width: 100%; background: #fff; table-layout: fixed; font-size: 11px; }
+#clipboard-tab thead th { position: sticky; top: 0; z-index: 1; background: #f8f9fa !important; }
+#clipboard-tab td, #clipboard-tab th { padding: 8px !important; border-bottom: 1px solid #f0f0f0; }
+#clipboard-tab td:last-child, #clipboard-tab th:last-child { text-align: center; width: 120px; }
+#clipboard-tab tbody tr:hover { background: #fafafa; }
+#clipboard-tab td:nth-child(3) { /* Snippet column */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 0; /* enables ellipsis with table-layout: fixed */
+}
+#clipboard-tab .spark-btn { padding: 4px 10px; font-size: 12px; }
+#clipboard-tab .icon-btn { padding: 3px 6px; min-width: 28px; display: inline-flex; align-items: center; justify-content: center; }
+#clipboard-tab .spark-badge { font-size: 12px; }
+#clipboard-tab.density-cozy td { padding: 6px 8px !important; line-height: 1.25; }
+#clipboard-tab.density-comfy td { padding: 9px 10px !important; line-height: 1.4; }
 .process-table td.process-memory, .process-table td.process-cpu { text-align: right; }
 .cell-inner .value { min-width: 70px; text-align: right; font-variant-numeric: tabular-nums; }
 
@@ -410,3 +467,134 @@ body {
 
 /* Hide legacy inline sparklines in Growth Trend Analysis; use Trend Explorer block instead */
 #menubar-sparkline, #service-sparkline { display: none !important; }
+
+
+/* Collapsible top navigation: shell + controls */
+.nav-shell { position: sticky; top: 8px; z-index: 12; width: 100%; margin: 0 0; display: flex; align-items: center; gap: 8px; }
+.nav-shell .tabs { position: relative; padding-right: 0; align-self: center; flex: 1 1 auto; }
+.nav-controls { position: static; display: inline-flex; gap: 6px; margin-left: auto; align-self: center; height: 44px; align-items: center; }
+.nav-shell .spark-btn { border: 1px solid #e0e0e0; background: #fff; border-radius: 8px; padding: 4px 8px; cursor: pointer; }
+.nav-shell .spark-btn:hover { background: #f7f7f7; }
+.collapse-strip { background: rgba(255,255,255,0.96); border-radius: 10px; padding: 0 8px; margin-bottom: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.12); display: none; align-items: center; justify-content: space-between; height: 44px; }
+.nav-shell.collapsed { /* flex layout: tabs hidden; strip shown */ }
+.nav-shell.collapsed .tabs { display: none; }
+.nav-shell.collapsed .collapse-strip { display: flex; align-self: center; position: relative; top: 2px; }
+
+/* Remove trailing column/gap when no controls are present */
+.nav-controls:empty { display: none; }
+.nav-shell:has(.nav-controls:empty) { grid-template-columns: 1fr; gap: 0; }
+
+
+/* Fullscreen per tab */
+body.fs-dashboard .header, body.fs-analysis .header, body.fs-clipboard .header { display: none !important; }
+body.fs-dashboard .nav-shell, body.fs-analysis .nav-shell, body.fs-clipboard .nav-shell { display: none !important; }
+body.fs-dashboard .tab-content.active,
+body.fs-analysis .tab-content.active,
+body.fs-clipboard .tab-content.active { position: fixed; inset: 0; overflow: auto; padding: 10px; z-index: 20; background: transparent; }
+
+/* In Analysis & Controls fullscreen, let the page handle scrolling (no inner scroller) */
+body.fs-analysis .tab-content.active {
+  position: static !important;
+  inset: auto !important;
+  overflow: visible !important;
+  padding: 0 !important;
+}
+
+
+
+/* Keep the tabs bar fixed at the top in fullscreen on all tabs */
+body.fs-dashboard .nav-shell,
+body.fs-analysis .nav-shell,
+body.fs-clipboard .nav-shell {
+  display: flex !important;
+  position: fixed !important;
+  top: 0; left: calc(10vw + 8px);
+  width: calc(80vw - 16px);
+  z-index: 950;
+  background: #ffffff;
+  box-sizing: border-box;
+  margin: 0;
+}
+/* Offset content to account for fixed tabs bar */
+body.fs-dashboard #content-width-wrap,
+body.fs-analysis #content-width-wrap,
+body.fs-clipboard #content-width-wrap { padding-top: 60px !important; }
+
+
+/* Fullscreen nav shell visual style: white pill aligned to content width */
+body.fs-dashboard .nav-shell,
+body.fs-analysis .nav-shell,
+body.fs-clipboard .nav-shell {
+  background: #ffffff !important;
+  border: 1px solid #dee2e6 !important;
+  border-radius: 10px !important;
+  padding: 6px 8px !important;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.06) !important;
+  align-items: center;
+}
+/* Tabs inside the fullscreen bar stay centered vertically */
+body.fs-dashboard .nav-shell .tabs,
+body.fs-analysis .nav-shell .tabs,
+body.fs-clipboard .nav-shell .tabs { align-self: center; }
+
+/* Let page handle scrolling for Dashboard and Clipboard fullscreen too */
+body.fs-dashboard .tab-content.active,
+body.fs-clipboard .tab-content.active {
+  position: static !important;
+  inset: auto !important;
+  overflow: visible !important;
+  padding: 0 !important;
+}
+
+/* Fullscreen overlay exit button */
+.fs-exit-btn { position: fixed; right: 12px; bottom: 12px; z-index: 30; display: none; background: rgba(255,255,255,0.96); border: 1px solid #e0e0e0; border-radius: 10px; padding: 8px 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.15); font-weight: 600; cursor: pointer; }
+.fs-exit-btn:hover { background: #f7f7f7; }
+body.fs-dashboard .fs-exit-btn, body.fs-analysis .fs-exit-btn, body.fs-clipboard .fs-exit-btn { display: inline-flex; align-items: center; gap: 6px; }
+
+/* Header expand floating button (shown when header collapsed) */
+.header-expand-fab { position: fixed; top: 10px; left: 12px; z-index: 26; display: none; background: rgba(255,255,255,0.96); border: 1px solid #e0e0e0; border-radius: 10px; padding: 6px 10px; box-shadow: 0 8px 24px rgba(0,0,0,0.12); font-weight: 600; cursor: pointer; }
+.header-expand-fab:hover { background: #f7f7f7; }
+body.fs-dashboard .header-expand-fab, body.fs-analysis .header-expand-fab, body.fs-clipboard .header-expand-fab { display: none !important; }
+
+/* Normalize major section spacing and alignment across tabs */
+#top-header { margin-bottom: var(--section-gap) !important; }
+.nav-shell { margin-bottom: 8px; width: 100%; }
+#top-header { border: none !important; }
+#top-header { margin-bottom: 4px !important; }
+
+
+#dashboard-tab > .chart-container { margin-bottom: var(--section-gap) !important; }
+#dashboard-tab > .chart-container:last-child { margin-bottom: 0 !important; }
+#analysis-tab > .card { margin-bottom: var(--section-gap); }
+#analysis-tab > .analysis-grid { margin-bottom: var(--section-gap); }
+/* Align nav-shell to container; remove viewport offsets */
+/* .nav-shell { left: 20px; right: 20px; }  -- removed */
+
+.nav-shell { top: 0 !important; }
+#top-header { margin-bottom: 0 !important; }
+
+.nav-shell { width: 100% !important; margin: 0 0 8px !important; }
+.nav-shell { margin-top: -8px !important; }
+
+
+/* Tab content spans full container width for perfect alignment */
+.tab-content { width: 100%; margin: 0; }
+
+/* Ensure all immediate blocks under tabs align exactly with header edges */
+#top-header, .nav-shell, .tab-content > * { width: 100%; box-sizing: border-box; }
+
+#clipboard-tab > *:not(:last-child) { margin-bottom: var(--section-gap); }
+
+
+
+/* Header four-card grid: equal widths, equal gaps, equal heights */
+.header-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; width: 100%; align-items: stretch; }
+.header-grid .header-card { height: 100%; display: flex; flex-direction: column; box-sizing: border-box; }
+
+
+/* Equalize vertical gaps around tabs to match surrounding panels */
+:root { --section-gap: 10px; }
+#top-header { margin-bottom: var(--section-gap) !important; }
+.nav-shell { margin-top: 0 !important; margin-bottom: var(--section-gap) !important; }
+#dashboard-tab > *:first-child { margin-top: 0 !important; }
+#analysis-tab > *:first-child { margin-top: 0 !important; }

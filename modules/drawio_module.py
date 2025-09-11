@@ -32,12 +32,22 @@ DRAWIO_URL_TEMPLATE = "https://app.diagrams.net/?lightbox=1&edit=_blank&layers=1
 def is_drawio_xml(xml_str):
     """
     Check if a string is valid Draw.io XML.
+    Accepts either:
+    - <mxfile><diagram><mxGraphModel>...</mxGraphModel></diagram></mxfile>
+    - A direct <mxGraphModel>...</mxGraphModel> root (common when copying from the editor)
     """
     if not isinstance(xml_str, str) or not xml_str.strip():
         return False
     try:
         root = ET.fromstring(xml_str)
-        return root.tag == "mxfile" and root.find("diagram") is not None
+        tag = root.tag.split('}')[-1]  # Strip XML namespace if present
+        if tag == "mxfile":
+            # Must contain at least one <diagram>
+            return root.find("diagram") is not None
+        if tag == "mxGraphModel":
+            # Basic sanity check for Draw.io model structure
+            return root.find("root") is not None
+        return False
     except ET.ParseError:
         return False
 
